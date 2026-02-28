@@ -75,8 +75,13 @@ export default function Home() {
           <div className="space-y-16">
             <section className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-slate-100">
               <div className="space-y-3">
-                <h2 className="text-6xl font-black text-black tracking-tight leading-none">
+                <h2 className="text-6xl font-black text-black tracking-tight leading-none flex items-center gap-6">
                     Hello, {user?.firstName || "User"}!
+                    {stats.instagram?.isConnected && stats.instagram.profilePic && (
+                      <div className="w-14 h-14 rounded-full p-1 bg-gradient-to-tr from-[#FFDA3A] via-[#FF3040] to-[#E5266E] animate-in zoom-in-50 duration-500">
+                        <img src={stats.instagram.profilePic} alt="" className="w-full h-full rounded-full border-2 border-white object-cover" />
+                      </div>
+                    )}
                 </h2>
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full">
@@ -84,7 +89,11 @@ export default function Home() {
                     <span className="text-[10px] font-bold uppercase tracking-widest">Active System</span>
                   </div>
                   <p className="text-[15px] font-medium text-slate-400">
-                     {stats.contacts} registered contacts across your linked Instagram.
+                     {stats.contacts} registered contacts across your linked {stats.instagram?.isConnected ? (
+                       <span className="text-primary font-bold lowercase tracking-tight">@{stats.instagram.username}</span>
+                     ) : (
+                       "Instagram Account"
+                     )}.
                   </p>
                   <div className="w-1 h-1 rounded-full bg-slate-200" />
                   <button className="text-primary text-[14px] font-bold hover:underline">View Insights</button>

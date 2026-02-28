@@ -152,28 +152,42 @@ export default function Automation() {
       {/* Configuration Form */}
       <div className="flex-1 max-w-xl pb-20">
         <div className="animate-in slide-in-from-left-4 duration-300">
-          {/* Top navigation row */}
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-50">
-             <div className="flex items-center gap-4">
-               {step > 1 && (
-                 <button 
-                   onClick={() => setStep(1)}
-                   className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100 hover:bg-white hover:shadow-sm transition-all text-slate-400 hover:text-blue-500"
-                   title="Go Back"
-                 >
-                   <ArrowLeft size={18} />
-                 </button>
-               )}
-               <div className="space-y-0.5">
-                  <h2 className="text-[17px] font-bold text-slate-900">Automation Logic</h2>
-                  <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">
-                    Step {step} of 2 (Trigger & Response)
-                  </p>
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 mb-10 flex items-center justify-between group">
+             <div className="flex items-center gap-5">
+               <div className="relative">
+                 <div className="w-16 h-16 rounded-full p-1 bg-gradient-to-tr from-[#FFDA3A] via-[#FF3040] to-[#E5266E]">
+                   <div className="w-full h-full rounded-full border-2 border-white overflow-hidden bg-slate-100">
+                     {instaData.profilePicture ? (
+                       <img src={instaData.profilePicture} alt="" className="w-full h-full object-cover" />
+                     ) : (
+                       <div className="w-full h-full flex items-center justify-center text-slate-300">
+                         <Instagram size={24} />
+                       </div>
+                     )}
+                   </div>
+                 </div>
+                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center">
+                   <Zap size={10} className="text-white fill-white" />
+                 </div>
+               </div>
+               <div>
+                  <h3 className="text-lg font-black text-slate-900 leading-tight">@{instaData.username}</h3>
+                  <div className="flex gap-4 mt-1">
+                    <p className="text-[12px] text-slate-500 font-bold uppercase tracking-wider">{instaData.followersCount.toLocaleString()} Followers</p>
+                    <div className="w-1 h-1 rounded-full bg-slate-300 mt-2" />
+                    <p className="text-[12px] text-emerald-600 font-black uppercase tracking-wider">Connected & Active</p>
+                  </div>
                </div>
              </div>
+             <button 
+                onClick={() => window.location.href='/onboarding'}
+                className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-black text-slate-400 uppercase tracking-widest hover:border-pink-500 hover:text-pink-600 transition-all shadow-sm"
+             >
+                Switch Account
+             </button>
           </div>
 
-          <h2 className="text-[17px] font-bold text-slate-900 mb-6">When someone comments on</h2>
+          <h2 className="text-[17px] font-bold text-slate-900 mb-6 font-primary">When someone comments on</h2>
           
           <div className="space-y-1 mb-8">
             <RadioOption 
@@ -403,7 +417,7 @@ export default function Automation() {
               <button 
                 onClick={handlePublish}
                 disabled={publishing}
-                className="px-10 py-2.5 rounded-lg bg-black text-white font-bold text-sm hover:bg-slate-900 transition-all shadow-xl shadow-slate-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-10 py-3 rounded-xl bg-gradient-to-r from-[#FF3040] to-[#E5266E] text-white font-black text-sm hover:opacity-90 transition-all shadow-xl shadow-pink-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {publishing && <Loader2 size={16} className="animate-spin" />}
                 {publishing ? "Publishing..." : "Publish Automation"}

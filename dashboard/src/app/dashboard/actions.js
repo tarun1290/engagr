@@ -50,7 +50,12 @@ export async function getDashboardStats() {
     contacts: totalContacts,
     sentToday,
     transmissionTrend,
-    latestEvents: JSON.parse(JSON.stringify(latestEvents))
+    latestEvents: JSON.parse(JSON.stringify(latestEvents)),
+    instagram: {
+      username: user.instagramUsername,
+      profilePic: user.instagramProfilePic || null,
+      isConnected: user.isConnected
+    }
   };
 }
 
@@ -109,6 +114,7 @@ export async function saveDiscoveredAccount(details) {
       instagramAccessToken: accessToken,
       instagramBusinessId: details.igId,
       instagramUsername: details.username,
+      instagramProfilePic: details.profilePic,
       pageId: details.pageId,
       pageAccessToken: details.pageToken,
       isConnected: true,

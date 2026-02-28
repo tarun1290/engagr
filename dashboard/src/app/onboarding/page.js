@@ -156,7 +156,7 @@ export default function Onboarding() {
                </div>
                <h3 className="text-3xl font-black text-slate-900 leading-tight tracking-tight">Connect Account</h3>
                <p className="text-slate-500 text-sm font-medium leading-relaxed max-w-[280px] mx-auto">
-                  Sign in with Facebook to authorize your Instagram Business account.
+                  Login with Instagram to authorize your Business account for AI automation.
                </p>
             </div>
 
