@@ -97,14 +97,14 @@ export default function Onboarding() {
 
   const handleInstagramLogin = () => {
     setLoading(true);
-    // Use the Instagram-specific OAuth endpoint to FORCE the Instagram-branded login/permissions UI
-    // as shown in the manager's target screenshot.
-    const scope = 'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish';
+    // Switch to the Business Login for Instagram flow
+    // IMPORTANT: Even though we use facebook.com/dialog/oauth, the parameters 
+    // brand=instagram and extras with setup:ongoing_grid_access force the 
+    // modern Instagram-branded permissions UI (the dark one from your screenshot)
+    const scope = 'instagram_basic,instagram_manage_comments,instagram_manage_messages,pages_show_list,pages_read_engagement';
     const redirectUri = window.location.origin + window.location.pathname;
     
-    // endpoint: https://www.instagram.com/oauth/authorize
-    // enable_fb_login=0 removes the "Login with Facebook" button from the IG screen
-    const loginUrl = `https://www.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code&enable_fb_login=0&force_authentication=1`;
+    const loginUrl = `https://www.facebook.com/v25.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=token&brand=instagram&display=page&enable_fb_login=0&extras=${encodeURIComponent(JSON.stringify({setup:{ongoing_grid_access:true}}))}`;
     
     window.location.href = loginUrl;
   };
