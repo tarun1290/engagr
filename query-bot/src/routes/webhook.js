@@ -32,7 +32,26 @@ async function getMedia(id, token) {
         });
         return res.data;
     } catch (err) {
-        log(`[Media Error] ${id}: ${err.response?.data?.error?.message || err.message}`);
+        log(`[Media Error] Graph API failed for ${id}: ${err.response?.data?.error?.message || err.message}`);
+        return null;
+    }
+}
+
+// Try Instagram oEmbed for public reels — works without special permissions
+async function getOEmbed(url, token) {
+    if (!url) return null;
+    try {
+        const res = await axios.get(`${BASE_URL}/instagram_oembed`, {
+            params: {
+                url,
+                fields: 'thumbnail_url,title,author_name',
+                access_token: token
+            }
+        });
+        log(`[oEmbed] Got metadata for: ${url}`);
+        return res.data; // { thumbnail_url, title, author_name }
+    } catch (err) {
+        log(`[oEmbed Error] ${err.response?.data?.error?.message || err.message}`);
         return null;
     }
 }
@@ -252,36 +271,57 @@ router.post('/', async (req, res) => {
                 for (const att of attachments) {
                     const mediaId = att.payload?.reel_video_id || att.payload?.media?.id || att.payload?.id;
                     let url = att.payload?.url || att.url;
+                    let thumbnailUrl = null;
+                    let reelAuthor = null;
 
+                    // Step 1: Try Graph API (works for your own managed media)
                     if (mediaId) {
                         const meta = await getMedia(mediaId, token);
-                        if (meta?.permalink) url = meta.permalink;
+                        if (meta?.permalink) {
+                            url = meta.permalink;
+                            log(`[Metadata] Got permalink from Graph API: ${url}`);
+                        }
+                        if (meta?.thumbnail_url || meta?.media_url) {
+                            thumbnailUrl = meta.thumbnail_url || meta.media_url;
+                        }
+                        if (meta?.username) reelAuthor = meta.username;
+                    }
+
+                    // Step 2: Try oEmbed API (works for public reels — gets thumbnail + author)
+                    if (!thumbnailUrl && url) {
+                        log(`[oEmbed] Trying to fetch public reel metadata...`);
+                        const oembed = await getOEmbed(url, token);
+                        if (oembed?.thumbnail_url) {
+                            thumbnailUrl = oembed.thumbnail_url;
+                            log(`[oEmbed] Got thumbnail: ${thumbnailUrl}`);
+                        }
+                        if (oembed?.author_name) reelAuthor = oembed.author_name;
                     }
 
                     if (url) {
-                        log(`[Shared] URL: ${url}`);
+                        log(`[Shared] Final URL: ${url}`);
                         const greeting = `Hi ${profile?.name?.split(' ')[0] || 'there'}! 👋`;
                         const text = `${greeting} I've detected that you shared a reel! ✨ Here is the direct link for easy access.`;
                         
                         const buttons = [{ type: 'web_url', url: url, title: 'Watch Reel 🎬' }];
                         let sent = false;
 
-                        if (mediaId) {
+                        // Step 3: Send richest available format
+                        if (thumbnailUrl) {
                             try {
-                                const meta = await getMedia(mediaId, token);
-                                if (meta && (meta.thumbnail_url || meta.media_url)) {
-                                    const elements = [{
-                                        title: 'Reel Shared with You! ✨',
-                                        image_url: meta.thumbnail_url || meta.media_url,
-                                        subtitle: meta.username ? `A masterpiece shared by @${meta.username}. Tap below to watch!` : `${greeting} I've retrieved the link for you!`,
-                                        buttons: buttons
-                                    }];
-                                    await sendGenericTemplate(senderId, elements, token);
-                                    log(`[Generic Sent] -> ${senderId}`);
-                                    sent = true;
-                                }
+                                const elements = [{
+                                    title: 'Reel Shared with You! ✨',
+                                    image_url: thumbnailUrl,
+                                    subtitle: reelAuthor
+                                        ? `By @${reelAuthor}. Tap below to watch!`
+                                        : `${greeting} I've retrieved the link for you!`,
+                                    buttons: buttons
+                                }];
+                                await sendGenericTemplate(senderId, elements, token);
+                                log(`[Generic Sent] -> ${senderId} (with thumbnail)`);
+                                sent = true;
                             } catch (e) {
-                                log(`[Meta Fetch Fail] Falling back to Button Template`);
+                                log(`[Template Fail] Falling back to Button Template: ${e.message}`);
                             }
                         }
 
@@ -299,7 +339,7 @@ router.post('/', async (req, res) => {
                         await saveEvent({
                             type: 'reel_share',
                             from: { id: senderId, username: profile?.username, name: profile?.name },
-                            content: { mediaId, url },
+                            content: { mediaId, url, thumbnailUrl },
                             reply: { privateDM: text, status: 'sent' },
                             raw: event
                         }, botUser.instagramBusinessId);
