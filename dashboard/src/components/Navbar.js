@@ -4,6 +4,8 @@ import React from 'react';
 import { Search, Bell, Grid, User } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 
+import NotificationCenter from './NotificationCenter';
+
 export default function Navbar() {
   return (
     <header className="h-[56px] bg-white sticky top-0 border-b border-slate-100 px-8 flex items-center justify-between z-40">
@@ -19,10 +21,7 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center gap-2">
-        <button className="p-2 rounded-lg hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-all relative">
-          <Bell size={18} />
-          <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full border border-white" />
-        </button>
+        <NotificationCenter />
         <button className="p-2 rounded-lg hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-all">
           <Grid size={18} />
         </button>

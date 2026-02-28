@@ -77,9 +77,6 @@ export async function getAccountsFromToken(tokenOrCode, isCode = false) {
       }
       
       console.log(`[OAuth] Exchanging code for token using App ID: ${appId} and redirect: ${redirectUri}`);
-      
-      // Exchange code for token at the Graph API endpoint (not api.instagram.com)
-      // For Instagram Business Login, the code exchange happens at graph.facebook.com
       const exchangeRes = await fetch(`https://graph.facebook.com/v25.0/oauth/access_token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -245,3 +242,25 @@ export async function getInstagramAccount() {
   };
 }
 
+
+export async function getNotifications() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  await dbConnect();
+  
+  const user = await User.findOne({ clerkId: userId });
+  if (!user || !user.isConnected) return [];
+
+  const businessId = user.instagramBusinessId;
+
+  const notifications = await Event.find({ 
+    targetBusinessId: businessId,
+    "reply.status": "sent"
+  })
+  .sort({ createdAt: -1 })
+  .limit(10)
+  .lean();
+
+  return JSON.parse(JSON.stringify(notifications));
+}
