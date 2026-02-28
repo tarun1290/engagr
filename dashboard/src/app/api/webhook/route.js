@@ -271,14 +271,28 @@ export async function POST(request) {
         }
 
         // 2. Direct Messages & Postbacks
-        const messaging = entry.messaging || entry.standby || [];
+        // Only process entry.messaging — NOT standby (standby = handled by another app)
+        const messaging = entry.messaging || [];
         for (const event of messaging) {
             const senderId = event.sender?.id || event.from?.id;
             if (senderId === targetId || senderId === botUser.instagramBusinessId) continue;
 
             // Handle DMs (including shared reels/posts)
             if (event.message) {
-                console.log(`[Incoming Message] sender=${senderId}`);
+                const mid = event.message.mid; // Unique message ID from Meta
+
+                // ── Deduplication: skip if we've already processed this message ──
+                if (mid) {
+                    try {
+                        const already = await Event.findOne({ 'raw.message.mid': mid });
+                        if (already) {
+                            console.log(`[Skip] Duplicate message id=${mid}`);
+                            continue;
+                        }
+                    } catch {}
+                }
+
+                console.log(`[Incoming Message] sender=${senderId} mid=${mid}`);
                 const profile = await getUser(senderId, token);
                 const msgText = event.message.text;
                 if (msgText) console.log(`[Message] @${profile?.username || 'user'}: ${msgText}`);
@@ -339,7 +353,7 @@ export async function POST(request) {
                             from: { id: senderId, username: profile?.username, name: profile?.name },
                             content: { mediaId, thumbnailUrl },
                             reply: { privateDM: text, status: sent ? 'sent' : 'fallback', url: dashboardUrl },
-                            raw: event
+                            raw: event  // raw.message.mid is used for dedup on next call
                         });
                     }
                 }
