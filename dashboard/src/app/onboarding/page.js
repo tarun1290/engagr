@@ -47,16 +47,24 @@ export default function Onboarding() {
   useEffect(() => {
     setIsMounted(true);
     
-    // Catch Access Token from URL Fragment (for Redirect flow)
+    // Catch Access Token from URL Fragment (for Implicit flow)
     if (window.location.hash) {
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
       const accessToken = params.get("access_token");
       if (accessToken) {
-        // Clear hash for cleaner URL
         window.history.replaceState(null, null, window.location.pathname);
         handleOAuthTokenDiscovery(accessToken);
       }
+    }
+
+    // Catch Authorization Code from URL Query (for Code flow)
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+    if (code) {
+      // Clear query for cleaner URL
+      window.history.replaceState(null, null, window.location.pathname);
+      handleOAuthTokenDiscovery(code, true);
     }
   }, []);
 
@@ -89,20 +97,22 @@ export default function Onboarding() {
 
   const handleInstagramLogin = () => {
     setLoading(true);
-    const scope = 'instagram_basic,instagram_manage_comments,instagram_manage_messages,pages_show_list,pages_read_engagement';
+    // Use the Instagram-specific OAuth endpoint to FORCE the Instagram-branded login/permissions UI
+    // as shown in the manager's target screenshot.
+    const scope = 'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish';
     const redirectUri = window.location.origin + window.location.pathname;
     
-    // This refined URL forces the Instagram-branded login experience (See Screenshot 3 provided)
-    // Using display=page and brand=instagram parameters triggers the modern Business Login UI
-    const loginUrl = `https://www.facebook.com/v25.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=token&brand=instagram&display=page&extras={"setup":{"ongoing_grid_access":true}}`;
+    // endpoint: https://www.instagram.com/oauth/authorize
+    // enable_fb_login=0 removes the "Login with Facebook" button from the IG screen
+    const loginUrl = `https://www.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=code&enable_fb_login=0&force_authentication=1`;
     
     window.location.href = loginUrl;
   };
 
-  const handleOAuthTokenDiscovery = async (token) => {
+  const handleOAuthTokenDiscovery = async (tokenOrCode, isCode = false) => {
     setLoading(true);
     try {
-      const res = await getAccountsFromToken(token);
+      const res = await getAccountsFromToken(tokenOrCode, isCode);
       if (res.success) {
         setDiscoveredAccounts(res.accounts);
         if (res.accounts.length === 0) {

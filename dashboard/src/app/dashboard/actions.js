@@ -59,11 +59,41 @@ export async function getDashboardStats() {
   };
 }
 
-export async function getAccountsFromToken(token) {
+export async function getAccountsFromToken(tokenOrCode, isCode = false) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
+  const appId = process.env.NEXT_PUBLIC_META_APP_ID || "839586385802767";
+  const appSecret = process.env.FB_APP_SECRET; // Ensure this is in your .env
+  const redirectUri = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/onboarding` : "http://localhost:3000/onboarding";
+
+  let token = tokenOrCode;
+
   try {
+    if (isCode) {
+      if (!appSecret) throw new Error("Server configuration error: Missing FB_APP_SECRET.");
+      
+      // Exchange code for token
+      const exchangeRes = await fetch(`https://api.instagram.com/oauth/access_token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: appId,
+          client_secret: appSecret,
+          grant_type: 'authorization_code',
+          redirect_uri: redirectUri,
+          code: tokenOrCode
+        })
+      });
+      
+      const exchangeData = await exchangeRes.json();
+      if (exchangeData.error_message || exchangeData.error) {
+        throw new Error(exchangeData.error_message || "Token exchange failed");
+      }
+      token = exchangeData.access_token;
+    }
+
+    // Now fetch accounts using the token
     const res = await fetch(`https://graph.facebook.com/v25.0/me/accounts?fields=name,access_token,instagram_business_account{id,username,name,profile_picture_url}&access_token=${token}`);
     const data = await res.json();
     
