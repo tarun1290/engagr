@@ -27,7 +27,9 @@ export default function Onboarding() {
   const [connectedUsername, setConnectedUsername] = useState('');
   const [isMounted, setIsMounted] = useState(false);
 
-  const appId = process.env.NEXT_PUBLIC_META_APP_ID || "839586385802767";
+  // IMPORTANT: For the instagram.com endpoint, you MUST use the Instagram App ID, 
+  // not the main Facebook App ID. I saw this in your screenshot.
+  const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || "2155335488543802";
 
 
 
@@ -77,14 +79,12 @@ export default function Onboarding() {
     setLoading(true);
     
     // Official Instagram Business Login OAuth Redirect
-    // This forces the DARK Instagram-branded permission screen
+    // These specific scopes are required for the Instagram domain flow
     const scopes = [
-        'instagram_basic',
-        'instagram_manage_comments',
-        'instagram_manage_messages',
-        'instagram_content_publish',
-        'pages_show_list',
-        'pages_read_engagement'
+        'instagram_business_basic',
+        'instagram_business_manage_messages',
+        'instagram_business_manage_comments',
+        'instagram_business_content_publish'
     ].join(',');
 
     const redirectUri = `${window.location.origin}/onboarding`;

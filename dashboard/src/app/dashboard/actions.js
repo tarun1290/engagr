@@ -63,7 +63,7 @@ export async function getAccountsFromToken(tokenOrCode, isCode = false) {
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  const appId = process.env.NEXT_PUBLIC_META_APP_ID || "839586385802767";
+  const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || "2155335488543802";
   const appSecret = process.env.FB_APP_SECRET; // Ensure this is in your .env
   const redirectUri = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/onboarding` : "http://localhost:3000/onboarding";
 
