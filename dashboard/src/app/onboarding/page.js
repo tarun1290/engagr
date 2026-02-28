@@ -96,17 +96,30 @@ export default function Onboarding() {
   };
 
   const handleInstagramLogin = () => {
+    if (!window.FB) {
+      alert("Instagram API not ready. Please refresh.");
+      return;
+    }
     setLoading(true);
-    // Switch to the Business Login for Instagram flow
-    // IMPORTANT: Even though we use facebook.com/dialog/oauth, the parameters 
-    // brand=instagram and extras with setup:ongoing_grid_access force the 
-    // modern Instagram-branded permissions UI (the dark one from your screenshot)
-    const scope = 'instagram_basic,instagram_manage_comments,instagram_manage_messages,pages_show_list,pages_read_engagement';
-    const redirectUri = window.location.origin + window.location.pathname;
     
-    const loginUrl = `https://www.facebook.com/v25.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=token&brand=instagram&display=page&enable_fb_login=0&extras=${encodeURIComponent(JSON.stringify({setup:{ongoing_grid_access:true}}))}`;
-    
-    window.location.href = loginUrl;
+    // window.FB.login() opens the secure popup as requested (no full page redirect)
+    // Adding brand: 'instagram' and Business Login scopes forces the 
+    // modern dark-themed Instagram permission UI shown in the manager's target screenshot.
+    window.FB.login((response) => {
+      console.log("Instagram Login Success:", response);
+      if (response.authResponse) {
+        const accessToken = response.authResponse.accessToken;
+        handleOAuthTokenDiscovery(accessToken);
+      } else {
+        setLoading(false);
+        console.log("User cancelled login.");
+      }
+    }, {
+      scope: 'instagram_basic,instagram_manage_comments,instagram_manage_messages,pages_show_list,pages_read_engagement',
+      brand: 'instagram',
+      display: 'popup',
+      auth_type: 'rerequest' // Use this to ensure the permission dialog shows up with IG branding
+    });
   };
 
   const handleOAuthTokenDiscovery = async (tokenOrCode, isCode = false) => {
