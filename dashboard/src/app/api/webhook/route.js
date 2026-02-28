@@ -282,19 +282,28 @@ export async function POST(request) {
             if (event.message) {
                 const mid = event.message.mid; // Unique message ID from Meta
 
-                // ── Atomic dedup via unique index: only ONE Vercel instance wins ──
+                // ── ATOMIC DEDUPLICATION: Block race conditions for good ──
                 if (mid) {
                     try {
-                        await ProcessedMid.create({ mid });
-                        // Insert succeeded → this instance processes the message
-                    } catch (err) {
-                        if (err.code === 11000) {
-                            // Duplicate key → another instance already handled it
-                            console.log(`[Skip] Duplicate mid=${mid} — already processed`);
+                        await dbConnect();
+                        // findOneAndUpdate with upsert: true is atomic. 
+                        // If it returns a result where lastErrorObject.updatedExisting is true, 
+                        // it means another instance already successfully claimed this mid.
+                        const dedup = await ProcessedMid.findOneAndUpdate(
+                            { mid },
+                            { $setOnInsert: { mid, createdAt: new Date() } },
+                            { upsert: true, rawResult: true }
+                        );
+
+                        if (dedup.lastErrorObject?.updatedExisting) {
+                            console.log(`[Skip] Duplicate mid detected at DB level: ${mid}`);
                             continue;
                         }
-                        // Unexpected DB error — still proceed to avoid dropping the message
+                        console.log(`[Process] Claimed unique mid: ${mid}`);
+                    } catch (err) {
                         console.error('[Dedup Error]', err.message);
+                        // If DB is down or error, we skip to be safe against infinite loops/retries
+                        continue; 
                     }
                 }
 
