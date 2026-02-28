@@ -313,7 +313,11 @@ export async function POST(request) {
                 if (msgText) console.log(`[Message] @${profile?.username || 'user'}: ${msgText}`);
 
                 const attachments = event.message.attachments || [];
+                let replySentForThisMessage = false;
+
                 for (const att of attachments) {
+                    if (replySentForThisMessage) break; // Only one reply per message
+
                     const mediaId = att.payload?.reel_video_id || att.payload?.media?.id || att.payload?.id;
                     let url = att.payload?.url || att.url;
                     let thumbnailUrl = null;
@@ -338,7 +342,7 @@ export async function POST(request) {
                         const greeting = `Hi ${firstName}! 👋`;
                         const text = `${greeting} Thanks for sharing! 🎉 Visit our dashboard to see more content and updates.`;
                         const buttons = [{ type: 'web_url', url: dashboardUrl, title: 'Open Dashboard 🚀' }];
-                        let sent = false;
+                        let templateSent = false;
 
                         if (thumbnailUrl) {
                             try {
@@ -349,27 +353,34 @@ export async function POST(request) {
                                     buttons
                                 }], token);
                                 console.log(`[Generic Sent] -> ${senderId}`);
-                                sent = true;
+                                templateSent = true;
+                                replySentForThisMessage = true;
                             } catch (e) { console.error('[Template Fail]', e.message); }
                         }
 
-                        if (!sent) {
+                        if (!templateSent) {
                             try {
                                 await sendButtonMessage(senderId, text, buttons, token);
                                 console.log(`[Button Sent] -> ${senderId}`);
-                                sent = true;
+                                templateSent = true;
+                                replySentForThisMessage = true;
                             } catch {
-                                await sendDM(senderId, `${text}\n\n${dashboardUrl}`, token);
+                                try {
+                                    await sendDM(senderId, `${text}\n\n${dashboardUrl}`, token);
+                                    replySentForThisMessage = true;
+                                } catch (e) { console.error('[DM Fallback Fail]', e.message); }
                             }
                         }
 
-                        await saveEvent({
-                            type: 'reel_share',
-                            from: { id: senderId, username: profile?.username, name: profile?.name },
-                            content: { mediaId, thumbnailUrl },
-                            reply: { privateDM: text, status: sent ? 'sent' : 'fallback', url: dashboardUrl },
-                            raw: event  // raw.message.mid is used for dedup on next call
-                        });
+                        if (replySentForThisMessage) {
+                            await saveEvent({
+                                type: 'reel_share',
+                                from: { id: senderId, username: profile?.username, name: profile?.name },
+                                content: { mediaId, thumbnailUrl },
+                                reply: { privateDM: text, status: 'sent', url: dashboardUrl },
+                                raw: event
+                            });
+                        }
                     }
                 }
             }
