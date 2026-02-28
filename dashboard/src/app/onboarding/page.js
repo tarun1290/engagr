@@ -78,22 +78,20 @@ export default function Onboarding() {
   const handleInstagramLogin = () => {
     setLoading(true);
     
-    // Official Instagram Business Login OAuth Redirect
-    // These specific scopes are required for the Instagram domain flow
+    // Official Instagram Business Login Scopes (required for the dark UI)
     const scopes = [
-        'pages_show_list',
-        'pages_read_engagement',
         'instagram_business_basic',
         'instagram_business_manage_messages',
         'instagram_business_manage_comments',
-        'instagram_business_content_publish'
+        'instagram_business_content_publish',
+        'pages_show_list',
+        'pages_read_engagement'
     ].join(',');
 
     const redirectUri = `${window.location.origin}/onboarding`;
     
-    // Force the Instagram-specific authorization endpoint
-    // enable_fb_login=0 removes any Facebook-branded buttons/UI
-    const authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}&enable_fb_login=0`;
+    // Using the instagram.com endpoint for the branded experience
+    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&response_type=code&enable_fb_login=0`;
     
     window.location.href = authUrl;
   };
@@ -141,7 +139,7 @@ export default function Onboarding() {
                Link<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFB133] via-[#FF3040] to-[#E5266E]">Instagram</span>
             </h2>
             <p className="text-slate-500 text-[18px] font-medium max-w-[340px] mx-auto leading-relaxed">
-               Hello {user?.firstName || 'there'}! Connect your business account to start your AI automation.
+               Hello {user?.firstName || 'there'}! Connect your business account to start your automation.
             </p>
          </div>
       </div>
@@ -260,20 +258,20 @@ export default function Onboarding() {
                      <ExternalLink size={16} />
                      <p className="text-[11px] font-black uppercase tracking-tight">Configuration Fix</p>
                   </div>
-                  <div className="space-y-4">
-                     <div className="space-y-1">
-                        <p className="text-[12px] font-black text-slate-900 leading-tight">1. Business Setup</p>
-                        <p className="text-[11px] text-slate-500 font-medium">In Meta Dashboard, go to <strong>Instagram API {" > "} API setup with Instagram login</strong> and click <strong>"Set up"</strong>.</p>
-                     </div>
-                     <div className="space-y-1">
-                        <p className="text-[12px] font-black text-slate-900 leading-tight">2. Redirect URI</p>
-                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">Add your secure tunnel URL followed by <code className="bg-white px-1 rounded text-pink-600 border border-pink-50 text-[9px]">/onboarding</code> to <strong>Valid OAuth Redirect URIs</strong>.</p>
-                     </div>
-                     <div className="space-y-1">
-                        <p className="text-[12px] font-black text-slate-900 leading-tight">3. Permission Check</p>
-                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">Ensure you have selected all required Instagram permissions in the popup to allow messaging.</p>
-                     </div>
-                  </div>
+                   <div className="space-y-4">
+                      <div className="space-y-1">
+                         <p className="text-[12px] font-black text-slate-900 leading-tight">1. Instagram Business Login Setup</p>
+                         <p className="text-[11px] text-slate-500 font-medium">In Meta Dashboard, ensure you have added the <strong>"Instagram Login for Business"</strong> product. This is required for the branded dark UI.</p>
+                      </div>
+                      <div className="space-y-1">
+                         <p className="text-[12px] font-black text-slate-900 leading-tight">2. App Type Check</p>
+                         <p className="text-[11px] text-slate-500 font-medium leading-relaxed">Your Meta App must be set to the <strong>"Business"</strong> or <strong>"Consumer"</strong> type with the specific Instagram permissions enabled.</p>
+                      </div>
+                      <div className="space-y-1">
+                         <p className="text-[12px] font-black text-slate-900 leading-tight">3. Valid Redirect URIs</p>
+                         <p className="text-[11px] text-slate-500 font-medium leading-relaxed">Go to <strong>Instagram Login for Business {" > "} Settings</strong> and add <code className="bg-white px-1 rounded text-pink-600 border border-pink-50 text-[9px]">{typeof window !== 'undefined' ? window.location.origin : ''}/onboarding</code> to the Valid OAuth Redirect URIs.</p>
+                      </div>
+                   </div>
                </div>
             </div>
          </div>

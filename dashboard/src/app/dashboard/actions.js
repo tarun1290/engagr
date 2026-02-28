@@ -76,34 +76,30 @@ export async function getAccountsFromToken(tokenOrCode, isCode = false) {
         throw new Error("Missing FB_APP_SECRET or META_APP_SECRET. Please add this to your Vercel Environment Variables.");
       }
       
-      console.log(`[OAuth] Exchanging code for token using App ID: ${appId} and redirect: ${redirectUri}`);
-      const exchangeRes = await fetch(`https://graph.facebook.com/v25.0/oauth/access_token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          client_id: appId,
-          client_secret: appSecret,
-          grant_type: 'authorization_code',
-          redirect_uri: redirectUri,
-          code: tokenOrCode
-        })
-      });
+      console.log(`[OAuth] Exchanging code for token using App ID: ${appId}`);
       
+      // 1. Exchange code for short-lived user token
+      const exchangeRes = await fetch(`https://graph.facebook.com/v25.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${tokenOrCode}`);
       const exchangeData = await exchangeRes.json();
       
       if (exchangeData.error) {
-          const errMsg = exchangeData.error.message || exchangeData.error_message || "Token exchange failed";
-          console.error("[OAuth Exchange Error]", exchangeData.error);
-          throw new Error(`OAuth Exchange Error: ${errMsg}`);
+          throw new Error(`Short-lived token error: ${exchangeData.error.message}`);
       }
 
-      if (!exchangeData.access_token) {
-        console.error("[OAuth Exchange Error] No access_token in response", exchangeData);
-        throw new Error("Token exchange failed: No access token received from Meta.");
-      }
+      const shortLivedToken = exchangeData.access_token;
 
-      token = exchangeData.access_token;
-      console.log("[OAuth] Successfully obtained access token");
+      // 2. Exchange for long-lived user token (60 days)
+      console.log("[OAuth] Exchanging for long-lived token...");
+      const longTokenRes = await fetch(`https://graph.facebook.com/v25.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortLivedToken}`);
+      const longTokenData = await longTokenRes.json();
+
+      if (longTokenData.error) {
+          console.warn("[OAuth] Long-lived token exchange failed, falling back to short-lived token", longTokenData.error);
+          token = shortLivedToken;
+      } else {
+          token = longTokenData.access_token;
+          console.log("[OAuth] Successfully obtained long-lived token");
+      }
     }
 
     // Now fetch accounts using the token
@@ -149,6 +145,22 @@ export async function saveDiscoveredAccount(details) {
 
   if (!accessToken) {
     return { success: false, error: "No access token found for this account." };
+  }
+
+  // Subscribe Page to Webhooks (Required for the bot to receive events)
+  try {
+    console.log(`[Subscription] Subscribing Page ${details.pageId} to app...`);
+    const subRes = await fetch(`https://graph.facebook.com/v25.0/${details.pageId}/subscribed_apps?access_token=${details.pageToken}`, {
+      method: "POST"
+    });
+    const subData = await subRes.json();
+    if (subData.success) {
+      console.log("[Subscription] Successfully subscribed Page to webhooks");
+    } else {
+      console.warn("[Subscription] Page subscription warning:", subData.error);
+    }
+  } catch (err) {
+    console.error("[Subscription] Failed to subscribe Page:", err.message);
   }
 
   const user = await User.findOneAndUpdate(
