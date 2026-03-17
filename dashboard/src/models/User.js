@@ -2,7 +2,10 @@ import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema({
   userId: { type: String, required: true, unique: true },
-  email: { type: String },
+  email: { type: String, unique: true, sparse: true, lowercase: true },
+  name: { type: String },
+  instagramHandle: { type: String },
+  passwordHash: { type: String },
   instagramAccessToken: { type: String },
   instagramBusinessId: { type: String },
   instagramUsername: { type: String },

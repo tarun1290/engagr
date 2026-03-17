@@ -24,7 +24,7 @@ export default async function LandingPage() {
           <span className="text-xl font-black tracking-tight uppercase">Ai DM Bot</span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {isLoggedIn ? (
             <Link
               href="/dashboard"
@@ -33,12 +33,20 @@ export default async function LandingPage() {
               Dashboard <ArrowRight size={16} />
             </Link>
           ) : (
-            <Link
-              href="/onboarding"
-              className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-pink-100 flex items-center gap-2"
-            >
-              Login <ArrowRight size={16} />
-            </Link>
+            <>
+              <Link
+                href="/sign-in"
+                className="px-5 py-2.5 text-slate-700 font-bold text-sm hover:text-primary transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/sign-up"
+                className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-pink-100 flex items-center gap-2"
+              >
+                Get Started <ArrowRight size={16} />
+              </Link>
+            </>
           )}
         </div>
       </nav>

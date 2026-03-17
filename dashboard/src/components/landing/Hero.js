@@ -29,17 +29,22 @@ export default function Hero({ isLoggedIn }) {
                 <ArrowRight className="group-hover:translate-x-1 transition-transform" />
               </Link>
             ) : (
-              <Link
-                href="/onboarding"
-                className="w-full sm:w-auto px-10 py-5 bg-primary text-white rounded-2xl font-bold text-lg hover:opacity-90 transition-all shadow-2xl shadow-pink-200 flex items-center justify-center gap-3 group"
-              >
-                Login with Instagram
-                <ArrowRight className="group-hover:translate-x-1 transition-transform" />
-              </Link>
+              <>
+                <Link
+                  href="/sign-up"
+                  className="w-full sm:w-auto px-10 py-5 bg-primary text-white rounded-2xl font-bold text-lg hover:opacity-90 transition-all shadow-2xl shadow-pink-200 flex items-center justify-center gap-3 group"
+                >
+                  Get Started Free
+                  <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link
+                  href="/sign-in"
+                  className="w-full sm:w-auto px-10 py-5 bg-white text-slate-900 border border-slate-200 rounded-2xl font-bold text-lg hover:bg-slate-50 transition-all"
+                >
+                  Sign In
+                </Link>
+              </>
             )}
-            <button className="w-full sm:w-auto px-10 py-5 bg-white text-slate-900 border border-slate-200 rounded-2xl font-bold text-lg hover:bg-slate-50 transition-all">
-              View Demo
-            </button>
           </div>
         </div>
 
@@ -58,7 +63,6 @@ function PhoneMockup() {
     <div className="relative bg-slate-950 border-[8px] border-slate-900 rounded-[60px] p-2 shadow-2xl shadow-blue-500/20 w-[320px] mx-auto overflow-hidden">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-900 rounded-b-3xl z-20" />
       <div className="bg-black rounded-[50px] aspect-[9/19] overflow-hidden flex flex-col relative">
-        {/* IG Header Simulation */}
         <div className="h-12 flex items-center justify-between px-8 pt-2 text-[10px] text-white font-bold">
           <span>9:41</span>
           <div className="flex gap-1.5 items-center">
@@ -70,7 +74,7 @@ function PhoneMockup() {
         <div className="flex items-center gap-3 px-5 py-3 border-b border-white/5">
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 p-[1.5px]">
             <div className="w-full h-full rounded-full bg-black border-2 border-black flex items-center justify-center overflow-hidden">
-              <div className="w-full h-full bg-primary flex items-center justify-center text-[10px] font-black text-white">QB</div>
+              <div className="w-full h-full bg-primary flex items-center justify-center text-[10px] font-black text-white">AI</div>
             </div>
           </div>
           <div className="flex-1">

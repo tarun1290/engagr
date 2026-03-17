@@ -5,6 +5,8 @@ const secret = new TextEncoder().encode(
   process.env.JWT_SECRET || "ai-dm-bot-default-secret-change-in-production"
 );
 
+const PUBLIC_PATHS = ["/", "/sign-in", "/sign-up", "/api/webhook", "/api/auth"];
+
 export default async function proxy(req) {
   const { pathname } = req.nextUrl;
 
@@ -16,16 +18,16 @@ export default async function proxy(req) {
     }
   }
 
-  // Protect main dashboard with JWT
-  if (pathname.startsWith("/dashboard")) {
+  // Protect dashboard and onboarding with JWT
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding")) {
     const token = req.cookies.get("auth_token")?.value;
     if (!token) {
-      return NextResponse.redirect(new URL("/", req.nextUrl));
+      return NextResponse.redirect(new URL("/sign-in", req.nextUrl));
     }
     try {
       await jwtVerify(token, secret);
     } catch {
-      return NextResponse.redirect(new URL("/", req.nextUrl));
+      return NextResponse.redirect(new URL("/sign-in", req.nextUrl));
     }
   }
 }
