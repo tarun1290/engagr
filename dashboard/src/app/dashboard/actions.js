@@ -51,16 +51,26 @@ export async function getDashboardStats() {
 
   const transmissionTrend = sentYesterday === 0 ? 0 : Math.round(((sentToday - sentYesterday) / sentYesterday) * 100);
 
-  const latestEvents = await Event.find({ targetBusinessId: businessId })
+  const totalInteractions = await Event.countDocuments({ targetBusinessId: businessId });
+
+  const interactionsByType = await Event.aggregate([
+    { $match: { targetBusinessId: businessId } },
+    { $group: { _id: "$type", count: { $sum: 1 } } },
+    { $sort: { count: -1 } }
+  ]);
+
+  const recentInteractions = await Event.find({ targetBusinessId: businessId })
     .sort({ createdAt: -1 })
-    .limit(5)
+    .limit(25)
     .lean();
 
   return {
     contacts: totalContacts,
     sentToday,
     transmissionTrend,
-    latestEvents: JSON.parse(JSON.stringify(latestEvents)),
+    totalInteractions,
+    interactionsByType,
+    recentInteractions: JSON.parse(JSON.stringify(recentInteractions)),
     instagram: {
       username: user.instagramUsername,
       profilePic: user.instagramProfilePic || null,

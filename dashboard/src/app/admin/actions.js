@@ -22,6 +22,21 @@ export async function adminLogin(formData) {
   redirect("/admin?error=1");
 }
 
+export async function deleteUser(formData) {
+  const userId = formData.get("userId");
+  if (!userId) redirect("/admin/dashboard");
+
+  await dbConnect();
+
+  const user = await User.findOne({ userId });
+  if (user?.instagramBusinessId) {
+    await Event.deleteMany({ targetBusinessId: user.instagramBusinessId });
+  }
+  await User.deleteOne({ userId });
+
+  redirect("/admin/dashboard");
+}
+
 export async function adminLogout() {
   const cookieStore = await cookies();
   cookieStore.delete("admin_session");
@@ -41,6 +56,10 @@ export async function getAdminStats() {
 
   const sentToday = await Event.countDocuments({
     "reply.status": "sent",
+    createdAt: { $gte: startOfDay },
+  });
+
+  const eventsToday = await Event.countDocuments({
     createdAt: { $gte: startOfDay },
   });
 
@@ -65,6 +84,7 @@ export async function getAdminStats() {
     activeAutomations,
     totalEvents,
     sentToday,
+    eventsToday,
     eventsByType,
     users: JSON.parse(JSON.stringify(users)),
     recentEvents: JSON.parse(JSON.stringify(recentEvents)),

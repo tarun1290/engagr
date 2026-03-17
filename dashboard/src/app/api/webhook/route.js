@@ -36,7 +36,7 @@ async function getUser(id, token) {
     if (!id) return null;
     try {
         const url = new URL(`${BASE_URL}/${id}`);
-        url.searchParams.set('fields', 'name,username');
+        url.searchParams.set('fields', 'name,username,profile_picture_url');
         url.searchParams.set('access_token', token);
         const res = await fetch(url.toString());
         return res.ok ? res.json() : null;
@@ -185,7 +185,8 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
 
     await saveEvent({
         type,
-        from: { id: fromInfo?.id, username: fromInfo?.username },
+        targetBusinessId: automation.instagramBusinessId,
+        from: { id: fromInfo?.id, username: fromInfo?.username, name: fromInfo?.name, profilePic: fromInfo?.profilePic },
         content: { commentId, text: fromInfo?.text, mediaId },
         reply: { publicReply, privateDM, status: replyStatus },
         raw: rawPayload
@@ -316,38 +317,54 @@ export async function POST(request) {
                 let replySentForThisMessage = false;
 
                 for (const att of attachments) {
-                    if (replySentForThisMessage) break; // Only one reply per message
+                    if (replySentForThisMessage) break;
 
-                    const mediaId = att.payload?.reel_video_id || att.payload?.media?.id || att.payload?.id;
-                    let url = att.payload?.url || att.url;
+                    const isSharedContent = !!(att.payload?.reel_video_id || att.payload?.media?.id);
+                    const rawMediaId = att.payload?.reel_video_id || att.payload?.media?.id || att.payload?.id;
+                    let mediaUrl = att.payload?.url || att.url || null;
                     let thumbnailUrl = null;
+                    let permalink = null;
+                    const attachmentType = att.payload?.reel_video_id ? 'reel'
+                        : att.payload?.media?.id ? 'post_share'
+                        : (att.type || 'media');
 
-                    // Try Graph API for media metadata
-                    if (mediaId) {
-                        const meta = await getMedia(mediaId, token);
-                        if (meta?.permalink) url = meta.permalink;
-                        if (meta?.thumbnail_url || meta?.media_url) thumbnailUrl = meta.thumbnail_url || meta.media_url;
+                    // Fetch rich metadata for shared posts/reels
+                    if (rawMediaId) {
+                        const meta = await getMedia(rawMediaId, token);
+                        if (meta?.permalink) permalink = meta.permalink;
+                        if (meta?.thumbnail_url) thumbnailUrl = meta.thumbnail_url;
+                        if (meta?.media_url) {
+                            if (!mediaUrl) mediaUrl = meta.media_url;
+                            if (!thumbnailUrl) thumbnailUrl = meta.media_url;
+                        }
                     }
 
-                    // Try oEmbed for public media
-                    if (!thumbnailUrl && url) {
-                        const oembed = await getOEmbed(url, token);
+                    // oEmbed fallback for thumbnail
+                    if (!thumbnailUrl && (permalink || mediaUrl)) {
+                        const oembed = await getOEmbed(permalink || mediaUrl, token);
                         if (oembed?.thumbnail_url) thumbnailUrl = oembed.thumbnail_url;
                     }
 
-                    if (url || mediaId) {
-                        console.log('[Shared] Post/Reel detected — redirecting to dashboard');
+                    const fromInfo = {
+                        id: senderId,
+                        username: profile?.username,
+                        name: profile?.name,
+                        profilePic: profile?.profile_picture_url,
+                    };
+
+                    if (isSharedContent) {
+                        // Shared reel/post — send auto-reply with thumbnail card
+                        console.log('[Shared] Post/Reel detected — sending reply');
                         const dashboardUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://aidmbot.vercel.app') + '/dashboard';
                         const firstName = profile?.name?.split(' ')[0] || 'there';
-                        const greeting = `Hi ${firstName}! 👋`;
-                        const text = `${greeting} Thanks for sharing! 🎉 Visit our dashboard to see more content and updates.`;
+                        const replyText = `Hi ${firstName}! 👋 Thanks for sharing! 🎉 Visit our dashboard to see more content and updates.`;
                         const buttons = [{ type: 'web_url', url: dashboardUrl, title: 'Open Dashboard 🚀' }];
                         let templateSent = false;
 
                         if (thumbnailUrl) {
                             try {
                                 await sendGenericTemplate(senderId, [{
-                                    title: `${greeting} Thanks for sharing! 🎉`,
+                                    title: `Hi ${firstName}! 👋 Thanks for sharing! 🎉`,
                                     image_url: thumbnailUrl,
                                     subtitle: 'Visit our dashboard to see all posts and updates.',
                                     buttons
@@ -360,28 +377,50 @@ export async function POST(request) {
 
                         if (!templateSent) {
                             try {
-                                await sendButtonMessage(senderId, text, buttons, token);
+                                await sendButtonMessage(senderId, replyText, buttons, token);
                                 console.log(`[Button Sent] -> ${senderId}`);
                                 templateSent = true;
                                 replySentForThisMessage = true;
                             } catch {
                                 try {
-                                    await sendDM(senderId, `${text}\n\n${dashboardUrl}`, token);
+                                    await sendDM(senderId, `${replyText}\n\n${dashboardUrl}`, token);
                                     replySentForThisMessage = true;
                                 } catch (e) { console.error('[DM Fallback Fail]', e.message); }
                             }
                         }
 
-                        if (replySentForThisMessage) {
-                            await saveEvent({
-                                type: 'reel_share',
-                                from: { id: senderId, username: profile?.username, name: profile?.name },
-                                content: { mediaId, thumbnailUrl },
-                                reply: { privateDM: text, status: 'sent', url: dashboardUrl },
-                                raw: event
-                            });
-                        }
+                        await saveEvent({
+                            type: 'reel_share',
+                            targetBusinessId: botUser.instagramBusinessId,
+                            from: fromInfo,
+                            content: { mediaId: rawMediaId, mediaUrl, thumbnailUrl, permalink, attachmentType, text: msgText },
+                            reply: { privateDM: replyText, status: replySentForThisMessage ? 'sent' : 'failed' },
+                            raw: event
+                        });
+
+                    } else if (att.type === 'image' || att.type === 'video' || att.type === 'audio') {
+                        // Direct image/video/audio — save without auto-reply
+                        await saveEvent({
+                            type: 'dm',
+                            targetBusinessId: botUser.instagramBusinessId,
+                            from: fromInfo,
+                            content: { mediaUrl, thumbnailUrl: thumbnailUrl || mediaUrl, attachmentType, text: msgText },
+                            reply: { status: 'skipped' },
+                            raw: event
+                        });
                     }
+                }
+
+                // Save plain text DMs (no attachments)
+                if (msgText && !attachments.length) {
+                    await saveEvent({
+                        type: 'dm',
+                        targetBusinessId: botUser.instagramBusinessId,
+                        from: { id: senderId, username: profile?.username, name: profile?.name, profilePic: profile?.profile_picture_url },
+                        content: { text: msgText },
+                        reply: { status: 'skipped' },
+                        raw: event
+                    });
                 }
             }
 
@@ -391,6 +430,7 @@ export async function POST(request) {
                 const title = event.postback.title;
                 console.log(`[Postback] From ${senderId}: ${title} (${payload})`);
 
+                const pbProfile = await getUser(senderId, token);
                 let replyText = 'Thanks for your choice! 🌟';
                 if (payload === 'GET_DOCS_PAYLOAD') {
                     replyText = 'Sure! 📚 You can find our docs at: https://github.com/amanraj2408/Query-Bot/blob/main/README.md';
@@ -401,7 +441,8 @@ export async function POST(request) {
                 await sendDM(senderId, replyText, token);
                 await saveEvent({
                     type: 'postback',
-                    from: { id: senderId },
+                    targetBusinessId: botUser.instagramBusinessId,
+                    from: { id: senderId, username: pbProfile?.username, name: pbProfile?.name, profilePic: pbProfile?.profile_picture_url },
                     content: { text: title, url: payload },
                     reply: { privateDM: replyText, status: 'sent' },
                     raw: event

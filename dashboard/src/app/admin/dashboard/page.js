@@ -1,11 +1,13 @@
-import { ShieldCheck, Users, Zap, MessageSquare, Activity, LogOut, CheckCircle, XCircle, Clock, Instagram } from "lucide-react";
+import { ShieldCheck, Users, Zap, MessageSquare, Activity, LogOut, Instagram, TrendingUp, UserCheck, Calendar } from "lucide-react";
 import { getAdminStats, adminLogout } from "../actions";
+import DeleteUserButton from "./DeleteUserButton";
 
 function StatCard({ label, value, sub, icon: Icon, color = "slate" }) {
   const colors = {
     pink: "bg-pink-500/10 text-pink-400 border-pink-500/20",
     emerald: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
     blue: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    amber: "bg-amber-500/10 text-amber-400 border-amber-500/20",
     slate: "bg-slate-700/50 text-slate-300 border-slate-700",
   };
   return (
@@ -34,16 +36,32 @@ function StatusBadge({ active }) {
   );
 }
 
+function EventTypeBadge({ type }) {
+  const map = {
+    comment:    "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    mention:    "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    dm:         "bg-pink-500/10 text-pink-400 border-pink-500/20",
+    reel_share: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    reaction:   "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    postback:   "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+  };
+  return (
+    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${map[type] || "bg-slate-800 text-slate-500 border-slate-700"}`}>
+      {type?.replace("_", " ")}
+    </span>
+  );
+}
+
 function EventStatusBadge({ status }) {
   const map = {
-    sent: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    failed: "bg-rose-500/10 text-rose-400 border-rose-500/20",
+    sent:     "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    failed:   "bg-rose-500/10 text-rose-400 border-rose-500/20",
     fallback: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    skipped: "bg-slate-800 text-slate-500 border-slate-700",
+    skipped:  "bg-slate-800 text-slate-500 border-slate-700",
   };
   return (
     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${map[status] || map.skipped}`}>
-      {status}
+      {status || "skipped"}
     </span>
   );
 }
@@ -58,6 +76,9 @@ function timeAgo(date) {
 
 export default async function AdminDashboard() {
   const stats = await getAdminStats();
+  const connectionRate = stats.totalUsers > 0
+    ? Math.round((stats.connectedUsers / stats.totalUsers) * 100)
+    : 0;
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -85,24 +106,28 @@ export default async function AdminDashboard() {
         {/* Stats Grid */}
         <section>
           <h2 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-5">Overview</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={Users} label="Total Users" value={stats.totalUsers} color="slate" />
             <StatCard icon={Instagram} label="Connected" value={stats.connectedUsers} sub="Instagram linked" color="pink" />
             <StatCard icon={Zap} label="Automations" value={stats.activeAutomations} sub="Currently live" color="emerald" />
-            <StatCard icon={MessageSquare} label="Total Events" value={stats.totalEvents} color="blue" />
             <StatCard icon={Activity} label="Sent Today" value={stats.sentToday} sub="Replies delivered" color="pink" />
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+            <StatCard icon={MessageSquare} label="Total Events" value={stats.totalEvents} color="blue" />
+            <StatCard icon={UserCheck} label="Connection Rate" value={`${connectionRate}%`} sub="Users with Instagram" color="amber" />
+            <StatCard icon={TrendingUp} label="Events Today" value={stats.eventsToday} sub="All interactions" color="emerald" />
           </div>
         </section>
 
         {/* Event Type Breakdown */}
         {stats.eventsByType.length > 0 && (
           <section>
-            <h2 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-5">Events by Type</h2>
-            <div className="flex flex-wrap gap-3">
+            <h2 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-5">Interaction Breakdown</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {stats.eventsByType.map((e) => (
-                <div key={e._id} className="bg-slate-900 border border-slate-800 rounded-xl px-5 py-3 flex items-center gap-3">
-                  <span className="text-xl font-black text-white">{e.count}</span>
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">{e._id}</span>
+                <div key={e._id} className="bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 flex flex-col gap-2">
+                  <EventTypeBadge type={e._id} />
+                  <span className="text-2xl font-black text-white">{e.count}</span>
                 </div>
               ))}
             </div>
@@ -111,9 +136,11 @@ export default async function AdminDashboard() {
 
         {/* Users Table */}
         <section>
-          <h2 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-5">
-            Registered Users ({stats.users.length})
-          </h2>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xs font-black text-slate-600 uppercase tracking-widest">
+              Registered Users ({stats.users.length})
+            </h2>
+          </div>
           <div className="bg-slate-900 border border-slate-800 rounded-[20px] overflow-hidden">
             {stats.users.length === 0 ? (
               <div className="py-16 text-center text-slate-600 text-sm font-medium">No users registered yet.</div>
@@ -121,18 +148,22 @@ export default async function AdminDashboard() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-800">
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">User ID</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">User</th>
                     <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Instagram</th>
                     <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Automation</th>
                     <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Keywords</th>
                     <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Joined</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest text-right">Delete</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stats.users.map((user, i) => (
                     <tr key={user._id} className={`border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors ${i === stats.users.length - 1 ? "border-0" : ""}`}>
                       <td className="px-6 py-4">
-                        <span className="text-slate-400 font-mono text-xs">{user.userId}</span>
+                        <div>
+                          <p className="font-bold text-slate-300 text-[13px]">{user.name || "—"}</p>
+                          <p className="text-slate-600 text-[11px] mt-0.5">{user.email || user.userId}</p>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         {user.isConnected ? (
@@ -167,7 +198,13 @@ export default async function AdminDashboard() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-slate-600 text-xs">{timeAgo(user.createdAt)}</span>
+                        <div className="flex items-center gap-1.5 text-slate-600">
+                          <Calendar size={11} />
+                          <span className="text-xs">{timeAgo(user.createdAt)}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <DeleteUserButton userId={user.userId} />
                       </td>
                     </tr>
                   ))}
@@ -179,7 +216,9 @@ export default async function AdminDashboard() {
 
         {/* Recent Events */}
         <section>
-          <h2 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-5">Recent Events</h2>
+          <h2 className="text-xs font-black text-slate-600 uppercase tracking-widest mb-5">
+            Recent Events ({stats.recentEvents.length})
+          </h2>
           <div className="bg-slate-900 border border-slate-800 rounded-[20px] overflow-hidden">
             {stats.recentEvents.length === 0 ? (
               <div className="py-16 text-center text-slate-600 text-sm font-medium">No events recorded yet.</div>
@@ -189,7 +228,8 @@ export default async function AdminDashboard() {
                   <tr className="border-b border-slate-800">
                     <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Type</th>
                     <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">From</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Message</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Content</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Reply Sent</th>
                     <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Status</th>
                     <th className="text-left px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Time</th>
                   </tr>
@@ -198,17 +238,21 @@ export default async function AdminDashboard() {
                   {stats.recentEvents.map((event, i) => (
                     <tr key={event._id} className={`border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors ${i === stats.recentEvents.length - 1 ? "border-0" : ""}`}>
                       <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                          {event.type}
-                        </span>
+                        <EventTypeBadge type={event.type} />
                       </td>
                       <td className="px-6 py-4">
                         <p className="font-semibold text-slate-300 text-[13px]">
                           {event.from?.username ? `@${event.from.username}` : event.from?.id || "—"}
                         </p>
+                        {event.from?.name && (
+                          <p className="text-[10px] text-slate-600 mt-0.5">{event.from.name}</p>
+                        )}
                       </td>
-                      <td className="px-6 py-4 max-w-[220px]">
-                        <p className="text-slate-500 text-xs truncate">{event.content?.text || event.reply?.privateDM || "—"}</p>
+                      <td className="px-6 py-4 max-w-[200px]">
+                        <p className="text-slate-500 text-xs truncate">{event.content?.text || "—"}</p>
+                      </td>
+                      <td className="px-6 py-4 max-w-[180px]">
+                        <p className="text-slate-600 text-xs truncate">{event.reply?.privateDM || event.reply?.publicReply || "—"}</p>
                       </td>
                       <td className="px-6 py-4">
                         <EventStatusBadge status={event.reply?.status} />
