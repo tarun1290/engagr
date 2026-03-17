@@ -6,6 +6,7 @@ const UserSchema = new mongoose.Schema({
   name: { type: String },
   instagramHandle: { type: String },
   passwordHash: { type: String },
+  facebookUserId: { type: String, index: true },
   instagramAccessToken: { type: String },
   instagramBusinessId: { type: String },
   instagramUsername: { type: String },

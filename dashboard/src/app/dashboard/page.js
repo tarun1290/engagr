@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import HelpCenter from "@/components/Help";
 import Automation from "@/components/Automation";
+import Settings from "@/components/Settings";
 import { getDashboardStats } from './actions';
 
 const FeatureCard = ({ icon: Icon, title, description, badge, activeStatus = "Active" }) => (
@@ -170,6 +171,8 @@ export default function Home() {
         return <HelpCenter />;
       case "Automation":
         return <Automation />;
+      case "Settings":
+        return <Settings stats={stats} />;
       default:
         return (
           <div className="flex items-center justify-center min-h-[60vh]">
