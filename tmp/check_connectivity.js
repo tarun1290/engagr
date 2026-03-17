@@ -51,7 +51,7 @@ function testUrl(url) {
 
     request.on('error', (e) => {
         console.error(`❌ Connection Error: ${e.message}`);
-        console.log('👉 Ensure your bot server (npm run dev in query-bot) is RUNNING on port 5001.');
+        console.log('👉 Ensure your bot server (npm run dev in ai-dm-bot) is RUNNING on port 5001.');
     });
 }
 

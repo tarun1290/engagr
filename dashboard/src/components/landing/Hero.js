@@ -64,7 +64,7 @@ function PhoneMockup() {
             </div>
           </div>
           <div className="flex-1">
-            <p className="text-[11px] font-bold text-white leading-none">query_bot</p>
+            <p className="text-[11px] font-bold text-white leading-none">ai_dm_bot</p>
             <p className="text-[8px] text-emerald-500 font-bold mt-0.5">Automated System</p>
           </div>
         </div>

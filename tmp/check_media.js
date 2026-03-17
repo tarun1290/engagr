@@ -27,7 +27,7 @@ async function checkMedia() {
         console.log(`ClerkID: ${user.clerkId}, IG Username: ${user.instagramUsername}, BusinessID: ${user.instagramBusinessId}`);
         
         // Test media fetch
-        const fbUrl = `https://graph.facebook.com/v21.0/${user.instagramBusinessId}/media?fields=id,media_type,media_url,thumbnail_url,permalink,caption&limit=6&access_token=${user.instagramAccessToken}`;
+        const fbUrl = `https://graph.facebook.com/v25.0/${user.instagramBusinessId}/media?fields=id,media_type,media_url,thumbnail_url,permalink,caption&limit=6&access_token=${user.instagramAccessToken}`;
         console.log("Fetching media from Meta API...");
         
         const response = await fetch(fbUrl);

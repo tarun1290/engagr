@@ -4,7 +4,7 @@ import User from '@/models/User';
 import Event from '@/models/Event';
 import ProcessedMid from '@/models/ProcessedMid';
 
-const BASE_URL = 'https://graph.facebook.com/v21.0';
+const BASE_URL = 'https://graph.facebook.com/v25.0';
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 // ─── Graph API Helpers (native fetch, no axios needed) ───────────────────────

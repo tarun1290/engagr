@@ -14,7 +14,7 @@ const {
 } = require('../services/webhookHandlers');
 
 const router = express.Router();
-const BASE_URL = 'https://graph.facebook.com/v21.0';
+const BASE_URL = 'https://graph.facebook.com/v25.0';
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 /**

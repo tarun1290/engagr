@@ -16,7 +16,7 @@ export default function LandingPage() {
           <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-pink-100">
             <Bot className="text-white" size={24} />
           </div>
-          <span className="text-xl font-black tracking-tight uppercase">Query Bot</span>
+          <span className="text-xl font-black tracking-tight uppercase">Ai DM Bot</span>
         </div>
         
         <div className="flex items-center gap-4">
@@ -50,9 +50,9 @@ export default function LandingPage() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-2">
             <Bot className="text-primary" size={20} />
-            <span className="font-bold tracking-tight uppercase text-sm">Query Bot</span>
+            <span className="font-bold tracking-tight uppercase text-sm">Ai DM Bot</span>
           </div>
-          <p className="text-slate-400 text-sm">© 2024 Query Bot Inc. All rights reserved.</p>
+          <p className="text-slate-400 text-sm">© 2024 Ai DM Bot Inc. All rights reserved.</p>
         </div>
       </footer>
     </div>

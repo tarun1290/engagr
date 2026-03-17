@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "query-bot-api",
+  "name": "ai-dm-bot-api",
   "builds": [
     {
       "src": "index.js",

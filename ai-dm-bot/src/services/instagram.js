@@ -1,7 +1,7 @@
 const axios = require('axios');
 require('dotenv').config();
 
-const BASE_URL = 'https://graph.facebook.com/v21.0';
+const BASE_URL = 'https://graph.facebook.com/v25.0';
 
 async function getBusinessProfile(bizId, token) {
     try {

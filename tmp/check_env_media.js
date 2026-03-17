@@ -2,7 +2,7 @@ const accessToken = "EAAL7mXBItg8BQ1uMKKZCmTR8SCH5gdzumaFDcj4mxNL4m3MFqOsk78ZA57
 const businessId = "17841460161632234";
 
 async function checkMedia() {
-    console.log("Testing credentials from query-bot .env...");
+    console.log("Testing credentials from ai-dm-bot .env...");
     const url = `https://graph.facebook.com/v25.0/${businessId}/media?fields=id,media_type,media_url,thumbnail_url,permalink,caption&limit=6&access_token=${accessToken}`;
     
     try {

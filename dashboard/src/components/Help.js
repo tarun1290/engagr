@@ -49,7 +49,7 @@ export default function HelpCenter() {
               Help Center
           </h2>
           <p className="text-[16px] font-medium text-slate-400">
-             Everything you need to master your Query Bot automation.
+             Everything you need to master your Ai DM Bot automation.
           </p>
         </div>
         

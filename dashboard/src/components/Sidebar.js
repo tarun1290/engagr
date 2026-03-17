@@ -52,7 +52,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, activeTab = "Home
           <ShieldCheck className="text-white" size={18} />
         </div>
         {!isCollapsed && (
-          <span className="text-xl font-bold tracking-tight text-black uppercase">Query Bot</span>
+          <span className="text-xl font-bold tracking-tight text-black uppercase">Ai DM Bot</span>
         )}
       </div>
 

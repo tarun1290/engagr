@@ -10,7 +10,7 @@ const Event = require('../models/Event');
 const { isConnected } = require('../../config/db');
 const { log } = require('../utils/logger');
 
-const BASE_URL = 'https://graph.facebook.com/v21.0';
+const BASE_URL = 'https://graph.facebook.com/v25.0';
 
 /**
  * Fetches user profile information from Instagram

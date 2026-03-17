@@ -13,7 +13,7 @@ const outfit = Outfit({
 });
 
 export const metadata = {
-  title: "Query Bot | Automation Dashboard",
+  title: "Ai DM Bot | Automation Dashboard",
   description: "Next-gen Instagram automation and DM management",
 };
 

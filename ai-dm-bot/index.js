@@ -13,7 +13,7 @@ const app = express();
 app.use(express.json());
 
 // Main Routes
-app.get('/', (req, res) => res.json({ status: 'active', message: 'Query Bot API is running' }));
+app.get('/', (req, res) => res.json({ status: 'active', message: 'Ai DM Bot API is running' }));
 app.use('/webhook', webhookRouter);
 
 // Export for Vercel
