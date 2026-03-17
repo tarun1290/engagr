@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Zap } from "lucide-react";
 
-export default function Hero({ isSignedIn }) {
+export default function Hero() {
   return (
     <section className="pt-24 pb-32">
       <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -20,11 +20,11 @@ export default function Hero({ isSignedIn }) {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-            <Link 
-              href={isSignedIn ? "/onboarding" : "/sign-up"}
+            <Link
+              href="/dashboard"
               className="w-full sm:w-auto px-10 py-5 bg-primary text-white rounded-2xl font-bold text-lg hover:opacity-90 transition-all shadow-2xl shadow-pink-200 flex items-center justify-center gap-3 group"
             >
-              {isSignedIn ? "Go to Dashboard" : "Start your free trial"}
+              Go to Dashboard
               <ArrowRight className="group-hover:translate-x-1 transition-transform" />
             </Link>
             <button className="w-full sm:w-auto px-10 py-5 bg-white text-slate-900 border border-slate-200 rounded-2xl font-bold text-lg hover:bg-slate-50 transition-all">

@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useAuth } from "@clerk/nextjs";
 import { ArrowRight, Bot } from "lucide-react";
 import Hero from "@/components/landing/Hero";
 import Features from "@/components/landing/Features";
 
 export default function LandingPage() {
-  const { isSignedIn } = useAuth();
-
   return (
     <div className="min-h-screen bg-white text-slate-900 font-[family-name:var(--font-inter)]">
       <nav className="flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
@@ -18,31 +15,19 @@ export default function LandingPage() {
           </div>
           <span className="text-xl font-black tracking-tight uppercase">Ai DM Bot</span>
         </div>
-        
+
         <div className="flex items-center gap-4">
-          {isSignedIn ? (
-            <Link 
-              href="/onboarding" 
-              className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-pink-100 flex items-center gap-2"
-            >
-              Dashboard <ArrowRight size={16} />
-            </Link>
-          ) : (
-            <>
-              <Link href="/sign-in" className="text-sm font-bold text-slate-600 hover:text-primary transition-colors">Sign In</Link>
-              <Link 
-                href="/sign-up" 
-                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all"
-              >
-                Get Started
-              </Link>
-            </>
-          )}
+          <Link
+            href="/dashboard"
+            className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-pink-100 flex items-center gap-2"
+          >
+            Dashboard <ArrowRight size={16} />
+          </Link>
         </div>
       </nav>
 
       <main className="max-w-7xl mx-auto px-8">
-        <Hero isSignedIn={isSignedIn} />
+        <Hero />
         <Features />
       </main>
       
