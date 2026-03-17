@@ -1,11 +1,7 @@
-import { ClerkProvider } from "@clerk/nextjs";
-import { Inter, Outfit } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
+import { Toaster } from "sonner";
+import Providers from "@/components/Providers";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -17,17 +13,15 @@ export const metadata = {
   description: "Next-gen Instagram automation and DM management",
 };
 
-import { Toaster } from "sonner";
-
 export default function RootLayout({ children }) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className={`${inter.variable} ${outfit.variable} antialiased`} suppressHydrationWarning>
+    <html lang="en">
+      <body className={`${outfit.variable} antialiased`} suppressHydrationWarning>
+        <Providers>
           {children}
           <Toaster richColors position="top-right" />
-        </body>
-      </html>
-    </ClerkProvider>
+        </Providers>
+      </body>
+    </html>
   );
 }

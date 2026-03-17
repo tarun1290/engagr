@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
-import { 
-  Zap, 
-  MessageSquare, 
-  Share2, 
-  TrendingUp, 
+import {
+  Zap,
+  MessageSquare,
+  Share2,
+  TrendingUp,
   ArrowUpRight,
   ChevronRight,
   Plus,
@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import HelpCenter from "@/components/Help";
 import Automation from "@/components/Automation";
 import { getDashboardStats } from './actions';
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 
 const FeatureCard = ({ icon: Icon, title, description, badge, activeStatus = "Active" }) => (
   <div className="bg-white p-7 border-r border-slate-100 last:border-0 flex-1 group cursor-pointer hover:bg-slate-50/50 transition-all">
@@ -35,7 +35,7 @@ const FeatureCard = ({ icon: Icon, title, description, badge, activeStatus = "Ac
             <p className="text-[13px] text-slate-500 leading-snug">{description}</p>
         </div>
       </div>
-      
+
       <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -48,7 +48,7 @@ const FeatureCard = ({ icon: Icon, title, description, badge, activeStatus = "Ac
 );
 
 export default function Home() {
-  const { user, isLoaded } = useUser();
+  const { data: session } = useSession();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState("Home");
   const [stats, setStats] = useState({ contacts: 0, sentToday: 0, transmissionTrend: 0, latestEvents: [] });
@@ -76,7 +76,7 @@ export default function Home() {
             <section className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-slate-100">
               <div className="space-y-3">
                 <h2 className="text-6xl font-black text-black tracking-tight leading-none flex items-center gap-6">
-                    Hello, {user?.firstName || "User"}!
+                    Hello, {session?.user?.name?.split(' ')[0] || "User"}!
                     {stats.instagram?.isConnected && stats.instagram.profilePic && (
                       <div className="w-14 h-14 rounded-full p-1 bg-gradient-to-tr from-[#FFDA3A] via-[#FF3040] to-[#E5266E] animate-in zoom-in-50 duration-500">
                         <img src={stats.instagram.profilePic} alt="" className="w-full h-full rounded-full border-2 border-white object-cover" />
@@ -112,24 +112,24 @@ export default function Home() {
                   </button>
               </div>
               <div className="bg-white border border-slate-100 rounded-[32px] flex flex-col lg:flex-row overflow-hidden shadow-sm">
-                  <FeatureCard 
+                  <FeatureCard
                       icon={MessageSquare}
-                      title="Comment-to-DM" 
+                      title="Comment-to-DM"
                       description="Automatically reply to post comments and send private DMs instantly."
                   />
-                  <FeatureCard 
+                  <FeatureCard
                       icon={BellRing}
-                      title="Mentions Tracker" 
+                      title="Mentions Tracker"
                       description="Capture every time someone mentions @yourbrand in stories or posts."
                   />
-                  <FeatureCard 
+                  <FeatureCard
                       icon={Share2}
-                      title="Reel Share Linker" 
+                      title="Reel Share Linker"
                       description="Detect when reels are shared in DMs and provide direct watch links."
                   />
-                  <FeatureCard 
+                  <FeatureCard
                       icon={MousePointer2}
-                      title="Interactive Flows" 
+                      title="Interactive Flows"
                       description="Use button templates and generic cards to engage users visually."
                       badge
                   />
@@ -186,13 +186,13 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Sidebar 
-        isCollapsed={isCollapsed} 
-        setIsCollapsed={setIsCollapsed} 
+      <Sidebar
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
-      
+
       <main className={cn(
         "flex flex-col min-h-screen transition-all duration-300",
         isCollapsed ? "pl-20" : "pl-64"

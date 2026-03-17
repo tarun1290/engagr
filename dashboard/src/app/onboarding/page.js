@@ -1,33 +1,33 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Bot, 
-  Instagram, 
-  ArrowRight, 
-  Zap, 
-  CheckCircle2, 
+import {
+  Bot,
+  Instagram,
+  ArrowRight,
+  Zap,
+  CheckCircle2,
   ChevronDown,
   Lock,
   ExternalLink,
   ShieldCheck as ShieldText
 } from "lucide-react";
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { getAccountsFromToken, saveDiscoveredAccount } from "../dashboard/actions";
 
 export default function Onboarding() {
-  const { user } = useUser();
+  const { data: session } = useSession();
   const router = useRouter();
-  
+
   const [subStep, setSubStep] = useState(0); // 0: Connect, 3: Success
   const [loading, setLoading] = useState(false);
   const [discoveredAccounts, setDiscoveredAccounts] = useState([]);
   const [connectedUsername, setConnectedUsername] = useState('');
   const [isMounted, setIsMounted] = useState(false);
 
-  // IMPORTANT: For the instagram.com endpoint, you MUST use the Instagram App ID, 
+  // IMPORTANT: For the instagram.com endpoint, you MUST use the Instagram App ID,
   // not the main Facebook App ID. I saw this in your screenshot.
   const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || "2155335488543802";
 
@@ -35,11 +35,11 @@ export default function Onboarding() {
 
   useEffect(() => {
     setIsMounted(true);
-    
+
     // Catch Authorization Code from URL Query (Official Instagram Business Login flow)
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
-    
+
     if (code) {
       console.log("Onboarding: Code detected, starting discovery...");
       // Clear query for cleaner URL
@@ -77,7 +77,7 @@ export default function Onboarding() {
 
   const handleInstagramLogin = () => {
     setLoading(true);
-    
+
     // Official Instagram Business Login Scopes (required for the dark UI)
     const scopes = [
         'instagram_business_basic',
@@ -89,10 +89,10 @@ export default function Onboarding() {
     ].join(',');
 
     const redirectUri = `${window.location.origin}/onboarding`;
-    
+
     // Using the instagram.com endpoint for the branded experience
     const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&response_type=code&enable_fb_login=0`;
-    
+
     window.location.href = authUrl;
   };
 
@@ -133,20 +133,20 @@ export default function Onboarding() {
                <Zap size={32} className="text-pink-500 fill-pink-500" />
             </div>
          </div>
-         
+
          <div className="text-center space-y-5">
             <h2 className="text-6xl font-black text-slate-900 tracking-tight leading-[0.9]">
                Link<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFB133] via-[#FF3040] to-[#E5266E]">Instagram</span>
             </h2>
             <p className="text-slate-500 text-[18px] font-medium max-w-[340px] mx-auto leading-relaxed">
-               Hello {user?.firstName || 'there'}! Connect your business account to start your automation.
+               Hello {session?.user?.name?.split(' ')[0] || 'there'}! Connect your business account to start your automation.
             </p>
          </div>
       </div>
 
       <div className="relative group">
          <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 to-pink-500/10 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
-         
+
          <div className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-[40px] p-8 space-y-6 relative overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] transition-all duration-500 hover:shadow-[0_48px_80px_-24px_rgba(0,0,0,0.15)]">
             <div className="space-y-4 text-center">
                <div className="inline-flex items-center gap-2 px-3 py-1 bg-pink-50 rounded-full text-[10px] font-black text-pink-600 uppercase tracking-widest mb-2">
@@ -161,7 +161,7 @@ export default function Onboarding() {
 
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3">
-                <button 
+                <button
                    onClick={handleInstagramLogin}
                    className="group/btn w-full py-6 px-8 bg-gradient-to-tr from-[#FFDA3A] via-[#FF3040] to-[#E5266E] text-white rounded-[24px] font-black text-[18px] flex items-center justify-center gap-4 transition-all shadow-[0_20px_40px_-12px_rgba(229,38,110,0.4)] hover:shadow-[0_24px_48px_-12px_rgba(229,38,110,0.5)] hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden"
                 >
@@ -181,7 +181,7 @@ export default function Onboarding() {
                 <div className="space-y-3 pt-2">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Select Account to Link</p>
                   {discoveredAccounts.map((acc) => (
-                    <button 
+                    <button
                       key={acc.igId}
                       onClick={() => handleSelectAccount(acc)}
                       className="w-full flex items-center gap-4 bg-white border-2 border-slate-100 p-4 rounded-2xl hover:border-pink-500 hover:bg-pink-50/50 transition-all group/acc"
@@ -242,9 +242,9 @@ export default function Onboarding() {
       {subStep === 0 && (
          <div className="w-full flex flex-col items-center space-y-12 mb-20">
             {renderInitial()}
-            
+
             <div className="w-full max-w-sm">
-               <button 
+               <button
                  onClick={() => {
                    const guide = document.getElementById('troubleshooting-guide');
                    guide.classList.toggle('hidden');
@@ -288,4 +288,3 @@ export default function Onboarding() {
     </div>
   );
 }
-
