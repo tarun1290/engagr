@@ -18,7 +18,6 @@ import { cn } from "@/lib/utils";
 import HelpCenter from "@/components/Help";
 import Automation from "@/components/Automation";
 import { getDashboardStats } from './actions';
-import { useSession } from "next-auth/react";
 
 const FeatureCard = ({ icon: Icon, title, description, badge, activeStatus = "Active" }) => (
   <div className="bg-white p-7 border-r border-slate-100 last:border-0 flex-1 group cursor-pointer hover:bg-slate-50/50 transition-all">
@@ -48,7 +47,6 @@ const FeatureCard = ({ icon: Icon, title, description, badge, activeStatus = "Ac
 );
 
 export default function Home() {
-  const { data: session } = useSession();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState("Home");
   const [stats, setStats] = useState({ contacts: 0, sentToday: 0, transmissionTrend: 0, latestEvents: [] });
@@ -76,7 +74,7 @@ export default function Home() {
             <section className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-slate-100">
               <div className="space-y-3">
                 <h2 className="text-6xl font-black text-black tracking-tight leading-none flex items-center gap-6">
-                    Hello, {session?.user?.name?.split(' ')[0] || "User"}!
+                    Hello, {stats.instagram?.username || "there"}!
                     {stats.instagram?.isConnected && stats.instagram.profilePic && (
                       <div className="w-14 h-14 rounded-full p-1 bg-gradient-to-tr from-[#FFDA3A] via-[#FF3040] to-[#E5266E] animate-in zoom-in-50 duration-500">
                         <img src={stats.instagram.profilePic} alt="" className="w-full h-full rounded-full border-2 border-white object-cover" />

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Zap } from "lucide-react";
 
-export default function Hero() {
+export default function Hero({ isLoggedIn }) {
   return (
     <section className="pt-24 pb-32">
       <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -10,23 +10,33 @@ export default function Hero() {
             <Zap size={16} className="fill-primary" />
             <span className="text-xs font-black uppercase tracking-widest">Next-Gen Automation</span>
           </div>
-          
+
           <h1 className="text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] text-slate-900">
             Automate your <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFB133] via-[#FF3040] to-[#E5266E]">Instagram</span> DMs & Comments.
           </h1>
-          
+
           <p className="text-xl text-slate-500 font-medium leading-relaxed max-w-xl mx-auto lg:mx-0">
             The ultimate tool for creators and businesses to manage high-volume interactions without lifting a finger.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-            <Link
-              href="/dashboard"
-              className="w-full sm:w-auto px-10 py-5 bg-primary text-white rounded-2xl font-bold text-lg hover:opacity-90 transition-all shadow-2xl shadow-pink-200 flex items-center justify-center gap-3 group"
-            >
-              Go to Dashboard
-              <ArrowRight className="group-hover:translate-x-1 transition-transform" />
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href="/dashboard"
+                className="w-full sm:w-auto px-10 py-5 bg-primary text-white rounded-2xl font-bold text-lg hover:opacity-90 transition-all shadow-2xl shadow-pink-200 flex items-center justify-center gap-3 group"
+              >
+                Go to Dashboard
+                <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            ) : (
+              <Link
+                href="/onboarding"
+                className="w-full sm:w-auto px-10 py-5 bg-primary text-white rounded-2xl font-bold text-lg hover:opacity-90 transition-all shadow-2xl shadow-pink-200 flex items-center justify-center gap-3 group"
+              >
+                Login with Instagram
+                <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            )}
             <button className="w-full sm:w-auto px-10 py-5 bg-white text-slate-900 border border-slate-200 rounded-2xl font-bold text-lg hover:bg-slate-50 transition-all">
               View Demo
             </button>
@@ -70,7 +80,7 @@ function PhoneMockup() {
         </div>
         <div className="flex-1 p-5 space-y-4 overflow-y-auto no-scrollbar">
           <div className="bg-slate-800/50 text-white p-3 rounded-2xl rounded-bl-none max-w-[85%] text-[10px] leading-relaxed">
-            Hey! I saw your comment on my latest post about "AI Tools" 🤖
+            Hey! I saw your comment on my latest post about &quot;AI Tools&quot; 🤖
           </div>
           <div className="bg-primary text-white p-3 rounded-2xl rounded-bl-none max-w-[85%] text-[10px] shadow-lg shadow-pink-500/20 leading-relaxed">
             Here is the link to the toolkit I promised! ✨

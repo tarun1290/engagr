@@ -12,13 +12,11 @@ import {
   ExternalLink,
   ShieldCheck as ShieldText
 } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { getAccountsFromToken, saveDiscoveredAccount } from "../dashboard/actions";
 
 export default function Onboarding() {
-  const { data: session } = useSession();
   const router = useRouter();
 
   const [subStep, setSubStep] = useState(0); // 0: Connect, 3: Success
@@ -139,7 +137,7 @@ export default function Onboarding() {
                Link<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFB133] via-[#FF3040] to-[#E5266E]">Instagram</span>
             </h2>
             <p className="text-slate-500 text-[18px] font-medium max-w-[340px] mx-auto leading-relaxed">
-               Hello {session?.user?.name?.split(' ')[0] || 'there'}! Connect your business account to start your automation.
+               Hello there! Connect your business account to start your automation.
             </p>
          </div>
       </div>

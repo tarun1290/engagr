@@ -1,18 +1,23 @@
 "use server";
 
+import { cookies } from "next/headers";
 import dbConnect from "@/lib/dbConnect";
 import Event from "@/models/Event";
 import User from "@/models/User";
-// import { auth } from "@/auth"; // disabled — Google OAuth not configured
+import { generateToken, verifyToken } from "@/lib/jwt";
 
-// Single-owner mode: all actions operate on the account identified by OWNER_USER_ID.
-// Re-enable auth() and replace getOwnerId() with session.user.id when Google OAuth is set up.
-function getOwnerId() {
+async function getOwnerId() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("auth_token")?.value;
+  if (token) {
+    const payload = await verifyToken(token);
+    if (payload?.userId) return payload.userId;
+  }
   return process.env.OWNER_USER_ID || "owner";
 }
 
 export async function getDashboardStats() {
-  const userId = getOwnerId();
+  const userId = await getOwnerId();
 
   await dbConnect();
 
@@ -67,7 +72,7 @@ export async function getDashboardStats() {
 export async function getAccountsFromToken(tokenOrCode, isCode = false) {
   const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID;
   const appSecret = process.env.META_APP_SECRET;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://ai-dm-bot.vercel.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://aidmbot.vercel.app";
   const redirectUri = `${appUrl}/onboarding`;
 
   let token = tokenOrCode;
@@ -116,7 +121,7 @@ export async function getAccountsFromToken(tokenOrCode, isCode = false) {
 }
 
 export async function saveDiscoveredAccount(details) {
-  const userId = getOwnerId();
+  const userId = await getOwnerId();
 
   await dbConnect();
 
@@ -151,11 +156,22 @@ export async function saveDiscoveredAccount(details) {
     { upsert: true, new: true }
   );
 
+  // Generate master JWT and set as httpOnly cookie (30-day session)
+  const jwtToken = await generateToken({ userId });
+  const cookieStore = await cookies();
+  cookieStore.set("auth_token", jwtToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 30,
+    path: "/",
+  });
+
   return { success: true, username: details.username };
 }
 
 export async function saveAutomation(data) {
-  const userId = getOwnerId();
+  const userId = await getOwnerId();
 
   await dbConnect();
 
@@ -182,7 +198,7 @@ export async function saveAutomation(data) {
 }
 
 export async function getInstagramAccount() {
-  const userId = getOwnerId();
+  const userId = await getOwnerId();
 
   await dbConnect();
   const user = await User.findOne({ userId });
@@ -222,7 +238,7 @@ export async function getInstagramAccount() {
 }
 
 export async function getNotifications() {
-  const userId = getOwnerId();
+  const userId = await getOwnerId();
 
   await dbConnect();
 
