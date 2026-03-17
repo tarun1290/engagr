@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Lock,
   ExternalLink,
+  AlertCircle,
   ShieldCheck as ShieldText
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -24,10 +25,9 @@ export default function Onboarding() {
   const [discoveredAccounts, setDiscoveredAccounts] = useState([]);
   const [connectedUsername, setConnectedUsername] = useState('');
   const [isMounted, setIsMounted] = useState(false);
+  const [oauthError, setOauthError] = useState('');
 
-  // IMPORTANT: For the instagram.com endpoint, you MUST use the Instagram App ID,
-  // not the main Facebook App ID. I saw this in your screenshot.
-  const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || "2155335488543802";
+  const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID;
 
 
 
@@ -57,26 +57,28 @@ export default function Onboarding() {
 
   const handleSelectAccount = async (account) => {
     setLoading(true);
+    setOauthError('');
     try {
-      // The page access token is what the bot needs to send messages on behalf of the IG account.
       const res = await saveDiscoveredAccount({ ...account, userToken: account.pageToken });
       if (res.success) {
         setConnectedUsername(account.username);
         setSubStep(3);
       } else {
-        alert("Save Error: " + (res.error || "Unknown error"));
+        setOauthError(res.error || "Failed to save account. Please try again.");
       }
     } catch (err) {
-      alert("Error: " + err.message);
+      setOauthError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleInstagramLogin = () => {
+    setOauthError('');
     setLoading(true);
 
-    // Official Instagram Business Login Scopes (required for the dark UI)
+    // Use Facebook dialog/oauth — required to get pages_show_list + pages_read_engagement
+    // (Instagram-only endpoint blocks Facebook-scoped permissions)
     const scopes = [
         'instagram_business_basic',
         'instagram_business_manage_messages',
@@ -87,31 +89,30 @@ export default function Onboarding() {
     ].join(',');
 
     const redirectUri = `${window.location.origin}/onboarding`;
-
-    // Using the instagram.com endpoint for the branded experience
-    const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&response_type=code&enable_fb_login=0`;
+    const authUrl = `https://www.facebook.com/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&response_type=code`;
 
     window.location.href = authUrl;
   };
 
   const handleOAuthTokenDiscovery = async (tokenOrCode, isCode = false) => {
     setLoading(true);
+    setOauthError('');
     try {
       const res = await getAccountsFromToken(tokenOrCode, isCode);
       if (res.success) {
         setDiscoveredAccounts(res.accounts);
         if (res.accounts.length === 0) {
-            if (res.totalPages > 0) {
-              alert(`Found ${res.totalPages} linked accounts, but NONE are active Instagram Business accounts. Please ensure your IG account is linked correctly to a Page.`);
-            } else {
-              alert("No accounts found. Ensure you have selected the right permissions in the Instagram popup.");
-            }
+          if (res.totalPages > 0) {
+            setOauthError(`Found ${res.totalPages} page(s) but none have an Instagram Business account linked. Connect your IG account to a Facebook Page first.`);
+          } else {
+            setOauthError("No accounts found. Make sure you granted all requested permissions.");
+          }
         }
       } else {
-        alert("Discovery Error: " + res.error);
+        setOauthError(res.error || "Could not discover accounts. Please try again.");
       }
     } catch (err) {
-      alert("Unexpected Error: " + err.message);
+      setOauthError(err.message);
     } finally {
       setLoading(false);
     }
@@ -158,6 +159,13 @@ export default function Onboarding() {
             </div>
 
             <div className="space-y-4">
+              {oauthError && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-100 text-red-600 rounded-2xl px-4 py-3 text-xs font-medium leading-relaxed">
+                  <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                  {oauthError}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 gap-3">
                 <button
                    onClick={handleInstagramLogin}
@@ -165,7 +173,7 @@ export default function Onboarding() {
                 >
                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000"></div>
                    <Instagram size={24} className="text-white" />
-                   Login with Instagram
+                   Connect Instagram
                 </button>
               </div>
 
@@ -199,6 +207,13 @@ export default function Onboarding() {
                   <button onClick={() => setDiscoveredAccounts([])} className="w-full py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-rose-600 transition-colors">← Cancel</button>
                 </div>
               )}
+
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="w-full py-3 text-[11px] font-bold text-slate-400 hover:text-slate-700 transition-colors text-center"
+              >
+                Skip for now → Go to Dashboard
+              </button>
             </div>
          </div>
       </div>
