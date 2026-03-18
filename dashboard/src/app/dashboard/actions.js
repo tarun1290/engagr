@@ -94,26 +94,30 @@ export async function getAccountsFromToken(tokenOrCode, isCode = false) {
         throw new Error("Missing META_APP_SECRET in environment variables.");
       }
 
-      const exchangeRes = await fetch(`https://graph.facebook.com/v25.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${tokenOrCode}`);
+      // Exchange auth code for short-lived token
+      const exchangeRes = await fetch(
+        `https://graph.facebook.com/v25.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${tokenOrCode}`
+      );
       const exchangeData = await exchangeRes.json();
 
       if (exchangeData.error) {
-        throw new Error(`Short-lived token error: ${exchangeData.error.message}`);
+        throw new Error(`Token exchange failed: ${exchangeData.error.message}`);
       }
 
-      const shortLivedToken = exchangeData.access_token;
+      token = exchangeData.access_token;
 
-      const longTokenRes = await fetch(`https://graph.facebook.com/v25.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortLivedToken}`);
-      const longTokenData = await longTokenRes.json();
-
-      token = longTokenData.error ? shortLivedToken : longTokenData.access_token;
-    } else if (appSecret) {
-      // JS SDK short-lived token — exchange for long-lived so page tokens don't expire
-      try {
-        const longTokenRes = await fetch(`https://graph.facebook.com/v25.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${token}`);
-        const longTokenData = await longTokenRes.json();
-        if (!longTokenData.error) token = longTokenData.access_token;
-      } catch { /* keep short-lived token on failure */ }
+      // Try to upgrade to long-lived token (works for FB User Tokens; may be a no-op for IG tokens — that's fine)
+      if (appSecret) {
+        try {
+          const longTokenRes = await fetch(
+            `https://graph.facebook.com/v25.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${token}`
+          );
+          const longTokenData = await longTokenRes.json();
+          if (!longTokenData.error && longTokenData.access_token) {
+            token = longTokenData.access_token;
+          }
+        } catch { /* keep short-lived token on failure */ }
+      }
     }
 
     // ── Approach 1: Facebook User Token + Pages (requires pages_show_list) ──
