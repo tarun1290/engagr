@@ -31,11 +31,23 @@ export default function Onboarding() {
   useEffect(() => {
     setIsMounted(true);
 
-    // Catch the `code` returned by Facebook OAuth redirect
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
-    if (code) {
+    const error = urlParams.get("error");
+    const errorDesc = urlParams.get("error_description");
+
+    // Always clean the URL so params don't persist on refresh
+    if (code || error) {
       window.history.replaceState(null, null, window.location.pathname);
+    }
+
+    if (error) {
+      // Facebook returned an error (e.g. redirect_uri mismatch, user cancelled)
+      const msg = errorDesc
+        ? decodeURIComponent(errorDesc.replace(/\+/g, ' '))
+        : `Authorization failed: ${error}`;
+      setOauthError(msg);
+    } else if (code) {
       handleOAuthTokenDiscovery(code, true);
     }
   }, []);
@@ -87,7 +99,7 @@ export default function Onboarding() {
     ].join(',');
 
     const redirectUri = encodeURIComponent(`${window.location.origin}/onboarding`);
-    const authUrl = `https://www.facebook.com/dialog/oauth?client_id=${fbAppId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(scope)}&response_type=code&auth_type=rerequest`;
+    const authUrl = `https://www.facebook.com/dialog/oauth?client_id=${fbAppId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent(scope)}&response_type=code`;
 
     window.location.href = authUrl;
   };

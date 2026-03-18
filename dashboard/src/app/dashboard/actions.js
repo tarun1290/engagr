@@ -81,7 +81,7 @@ export async function getDashboardStats() {
 
 export async function getAccountsFromToken(tokenOrCode, isCode = false) {
   // Use Facebook App ID (JS SDK / dialog/oauth flow)
-  const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID;
+  const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || "904079505867470";
   const appSecret = process.env.META_APP_SECRET;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://aidmbot.vercel.app";
   const redirectUri = `${appUrl}/onboarding`;
