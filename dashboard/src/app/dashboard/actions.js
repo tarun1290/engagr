@@ -137,7 +137,7 @@ export async function getAccountsFromToken(tokenOrCode, isCode = false) {
 
     // ── Approach 2: Instagram User Token (Instagram Login for Business config_id) ──
     // When pages_show_list is absent, the token is scoped to Instagram directly.
-    const igRes = await fetch(`https://graph.facebook.com/v25.0/me?fields=id,username,name,profile_picture_url&access_token=${token}`);
+    const igRes = await fetch(`https://graph.facebook.com/v25.0/me?fields=id,username,name&access_token=${token}`);
     const igData = await igRes.json();
 
     if (!igData.error && igData.username) {
@@ -149,7 +149,7 @@ export async function getAccountsFromToken(tokenOrCode, isCode = false) {
           igId: igData.id,
           username: igData.username,
           name: igData.name,
-          profilePic: igData.profile_picture_url,
+          profilePic: null,
           isIgToken: true,
         }],
         totalPages: 1,
