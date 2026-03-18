@@ -24,7 +24,7 @@ export default function Onboarding() {
   const [isMounted, setIsMounted] = useState(false);
   const [oauthError, setOauthError] = useState('');
 
-  const fbAppId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
+  const fbAppId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || "904079505867470";
 
 
 
