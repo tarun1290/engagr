@@ -120,8 +120,11 @@ export async function getAccountsFromToken(tokenOrCode, isCode = false) {
       }
     }
 
-    // ── Approach 1: Facebook User Token + Pages (requires pages_show_list) ──
-    const pagesRes = await fetch(`https://graph.facebook.com/v25.0/me/accounts?fields=name,access_token,instagram_business_account{id,username,name,profile_picture_url}&access_token=${token}`);
+    // ── Approach 1: Facebook User Token + Pages ──
+    // Works when the user has a Facebook Page linked to their Instagram Business account.
+    const pagesRes = await fetch(
+      `https://graph.facebook.com/v25.0/me/accounts?fields=name,access_token,instagram_business_account{id,username,name}&access_token=${token}`
+    );
     const pagesData = await pagesRes.json();
 
     if (!pagesData.error && pagesData.data?.length > 0) {
@@ -133,35 +136,38 @@ export async function getAccountsFromToken(tokenOrCode, isCode = false) {
           igId: p.instagram_business_account.id,
           username: p.instagram_business_account.username,
           name: p.instagram_business_account.name,
-          profilePic: p.instagram_business_account.profile_picture_url,
+          profilePic: null,
           isIgToken: false,
         }));
-      return { success: true, accounts, totalPages: pagesData.data.length };
+      if (accounts.length > 0) {
+        return { success: true, accounts, totalPages: pagesData.data.length };
+      }
     }
 
-    // ── Approach 2: Instagram User Token (Instagram Login for Business config_id) ──
-    // When pages_show_list is absent, the token is scoped to Instagram directly.
-    const igRes = await fetch(`https://graph.facebook.com/v25.0/me?fields=id,username,name&access_token=${token}`);
-    const igData = await igRes.json();
+    // ── Approach 2: Facebook User Token + instagram_business_accounts edge ──
+    // Works when the user authenticated via config_id (Instagram Login for Business)
+    // but does NOT have a Facebook Page — the token is a Facebook User Token that has
+    // instagram_business_basic permission granted directly.
+    const igBizRes = await fetch(
+      `https://graph.facebook.com/v25.0/me/instagram_business_accounts?fields=id,username,name&access_token=${token}`
+    );
+    const igBizData = await igBizRes.json();
 
-    if (!igData.error && igData.username) {
-      return {
-        success: true,
-        accounts: [{
-          pageId: null,
-          pageToken: token,
-          igId: igData.id,
-          username: igData.username,
-          name: igData.name,
-          profilePic: null,
-          isIgToken: true,
-        }],
-        totalPages: 1,
-      };
+    if (!igBizData.error && igBizData.data?.length > 0) {
+      const accounts = igBizData.data.map(ig => ({
+        pageId: null,
+        pageToken: token,
+        igId: ig.id,
+        username: ig.username,
+        name: ig.name,
+        profilePic: null,
+        isIgToken: true,
+      }));
+      return { success: true, accounts, totalPages: igBizData.data.length };
     }
 
-    // Nothing found — surface the most useful error message
-    const reason = pagesData.error?.message || igData.error?.message || "No Instagram account found.";
+    // Nothing found — surface the most useful error
+    const reason = pagesData.error?.message || igBizData.error?.message || "No Instagram Business account found.";
     return { success: true, accounts: [], totalPages: 0, debugReason: reason };
   } catch (err) {
     return { success: false, error: err.message };
