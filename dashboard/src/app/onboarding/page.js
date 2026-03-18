@@ -25,7 +25,7 @@ export default function Onboarding() {
   const [oauthError, setOauthError] = useState('');
 
   const fbAppId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || "777188381785658";
-  const fbLoginConfigId = process.env.NEXT_PUBLIC_FACEBOOK_LOGIN_CONFIG_ID || "904079505867470";
+  const fbLoginConfigId = process.env.NEXT_PUBLIC_FACEBOOK_LOGIN_CONFIG_ID || "1187399100137844";
 
 
 
