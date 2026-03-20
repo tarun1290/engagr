@@ -26,26 +26,17 @@ export default function Onboarding() {
   const fbAppId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || "777188381785658";
   const fbLoginConfigId = process.env.NEXT_PUBLIC_FACEBOOK_LOGIN_CONFIG_ID || "1187399100137844";
 
+  // Handle OAuth redirect — Facebook sends ?code= back to this page
   useEffect(() => {
-    // Load Facebook JS SDK
-    const initFB = () => {
-      if (window.FB) {
-        window.FB.init({ appId: fbAppId, cookie: true, xfbml: false, version: 'v25.0' });
-      }
-    };
-
-    if (window.FB) {
-      initFB();
-    } else {
-      window.fbAsyncInit = initFB;
-      if (!document.getElementById('facebook-jssdk')) {
-        const script = document.createElement('script');
-        script.id = 'facebook-jssdk';
-        script.src = 'https://connect.facebook.net/en_US/sdk.js';
-        script.async = true;
-        script.defer = true;
-        document.head.appendChild(script);
-      }
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const error = params.get('error');
+    if (code) {
+      window.history.replaceState(null, null, window.location.pathname);
+      handleOAuthTokenDiscovery(code, true);
+    } else if (error) {
+      window.history.replaceState(null, null, window.location.pathname);
+      setOauthError('Login was cancelled or permissions were not granted. Please try again.');
     }
   }, []);
 
@@ -79,37 +70,15 @@ export default function Onboarding() {
 
   const handleInstagramLogin = () => {
     setOauthError('');
-
-    if (!window.FB) {
-      setOauthError('Facebook SDK is still loading. Please wait a moment and try again.');
-      return;
-    }
-
     setLoading(true);
-
-    // Safety net: if popup is blocked, callback never fires — reset after 12s
-    let responded = false;
-    const popupTimeout = setTimeout(() => {
-      if (!responded) {
-        setLoading(false);
-        setOauthError('The login popup may have been blocked. Allow popups for this site in your browser address bar, then try again.');
-      }
-    }, 12000);
-
-    // config_id carries all permissions — do NOT pass scope separately
-    window.FB.login(
-      function(response) {
-        responded = true;
-        clearTimeout(popupTimeout);
-        if (response.authResponse) {
-          handleOAuthTokenDiscovery(response.authResponse.accessToken, false);
-        } else {
-          setLoading(false);
-          setOauthError('Login was cancelled or permissions were not granted. Please try again.');
-        }
-      },
-      { config_id: fbLoginConfigId, auth_type: 'rerequest' }
-    );
+    // Redirect to Facebook OAuth — config_id carries all permissions, response_type=code required
+    const redirectUri = `${window.location.origin}/onboarding`;
+    const url = new URL('https://www.facebook.com/dialog/oauth');
+    url.searchParams.set('client_id', fbAppId);
+    url.searchParams.set('config_id', fbLoginConfigId);
+    url.searchParams.set('redirect_uri', redirectUri);
+    url.searchParams.set('response_type', 'code');
+    window.location.href = url.toString();
   };
 
   const handleOAuthTokenDiscovery = async (tokenOrCode, isCode = false) => {
