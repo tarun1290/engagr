@@ -89,6 +89,17 @@ export async function getAccountsFromToken(tokenOrCode, isCode = false) {
   let isIgToken = false;
 
   try {
+    // FB JS SDK tokens are short-lived (~1hr) — upgrade to long-lived (60 days) regardless of flow
+    if (!isCode && appSecret) {
+      try {
+        const longRes = await fetch(
+          `https://graph.facebook.com/v25.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${token}`
+        );
+        const longData = await longRes.json();
+        if (!longData.error && longData.access_token) token = longData.access_token;
+      } catch { /* keep short-lived on failure */ }
+    }
+
     if (isCode) {
       if (!appSecret) throw new Error("Missing META_APP_SECRET in environment variables.");
 
