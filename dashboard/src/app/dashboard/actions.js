@@ -241,7 +241,7 @@ export async function getInstagramAccount() {
       followersCount = profileData.followers_count || 0;
     }
 
-    const mediaRes = await fetch(`https://graph.instagram.com/v25.0/me/media?fields=id,media_type,media_url,thumbnail_url,permalink,caption,like_count,comments_count&limit=12&access_token=${user.instagramAccessToken}`);
+    const mediaRes = await fetch(`https://graph.instagram.com/v25.0/me/media?fields=id,media_type,media_url,thumbnail_url,permalink,caption,like_count,comments_count&limit=18&access_token=${user.instagramAccessToken}`);
     const mediaData = await mediaRes.json();
     if (mediaData.data) media = mediaData.data;
   } catch (error) {
