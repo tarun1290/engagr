@@ -6,9 +6,11 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 import { getInstagramAccount, saveAutomation } from '@/app/dashboard/actions';
-import { getSubscriptionStatus } from '@/app/dashboard/billing-actions';
-import { canUseFeature } from '@/lib/gating';
-import UpgradePrompt from './UpgradePrompt';
+// [PLANS DISABLED] Feature gating imports not needed during Early Access
+// import { getSubscriptionStatus } from '@/app/dashboard/billing-actions';
+// import { canUseFeature } from '@/lib/gating';
+// import UpgradePrompt from './UpgradePrompt';
+// [/PLANS DISABLED]
 import AccountSummary from './automation/AccountSummary';
 import TriggerForm from './automation/TriggerForm';
 import ResponseEditor from './automation/ResponseEditor';
@@ -19,9 +21,11 @@ export default function Automation() {
   const [fetching, setFetching] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [subData, setSubData] = useState(null);
-  const [showFollowGatePrompt, setShowFollowGatePrompt] = useState(false);
-  const [showMentionPrompt, setShowMentionPrompt] = useState(false);
+  // [PLANS DISABLED] Subscription and feature gate state not needed
+  // const [subData, setSubData] = useState(null);
+  // const [showFollowGatePrompt, setShowFollowGatePrompt] = useState(false);
+  // const [showMentionPrompt, setShowMentionPrompt] = useState(false);
+  // [/PLANS DISABLED]
 
   const [config, setConfig] = useState({
     postTrigger: "specific",
@@ -52,7 +56,7 @@ export default function Automation() {
   useEffect(() => {
     async function load() {
       try {
-        getSubscriptionStatus().then(s => { if (s.success) setSubData(s); }).catch(() => {});
+        // [PLANS DISABLED] getSubscriptionStatus().then(s => { if (s.success) setSubData(s); }).catch(() => {});
         const data = await getInstagramAccount();
         if (data?.isConnected) {
           setInstaData(data);
@@ -97,30 +101,11 @@ export default function Automation() {
 
   const update = (key, value) => setConfig(prev => ({ ...prev, [key]: value }));
 
-  const userPlan = subData?.plan || "trial";
-
-  // Gated toggle handlers
-  const handleFollowToggle = (val) => {
-    if (val) {
-      const check = canUseFeature(userPlan, "follow_gate");
-      if (!check.allowed) {
-        setShowFollowGatePrompt(true);
-        return;
-      }
-    }
-    update('requireFollow', val);
-  };
-
-  const handleMentionsToggle = () => {
-    if (!config.mentionsEnabled) {
-      const check = canUseFeature(userPlan, "mention_detection");
-      if (!check.allowed) {
-        setShowMentionPrompt(true);
-        return;
-      }
-    }
-    update('mentionsEnabled', !config.mentionsEnabled);
-  };
+  // [PLANS DISABLED] All features unlocked — no gating checks
+  // const userPlan = subData?.plan || "trial";
+  const handleFollowToggle = (val) => update('requireFollow', val);
+  const handleMentionsToggle = () => update('mentionsEnabled', !config.mentionsEnabled);
+  // [/PLANS DISABLED]
 
   const handlePublish = async () => {
     setPublishing(true);
@@ -163,72 +148,15 @@ export default function Automation() {
     );
   }
 
-  // Check subscription status for expired overlay
-  const subStatus = subData?.status || "trialing";
-  const isExpired = subStatus === "expired" || subStatus === "cancelled";
-
-  // Check DM quota for warning banner
-  const dmExhausted = subData && subData.dmsSent >= (subData.dmLimit + (subData.topUpRemaining || 0));
+  // [PLANS DISABLED] No expired overlay or DM quota warnings during Early Access
+  const isExpired = false;
+  const dmExhausted = false;
+  // [/PLANS DISABLED]
 
   return (
     <div className="flex flex-col lg:flex-row gap-12 pb-20 theme-transition relative">
 
-      {/* Expired subscription overlay */}
-      {isExpired && (
-        <div className="absolute inset-0 z-20 flex items-start justify-center pt-20"
-          style={{ backgroundColor: 'var(--overlay)' }}
-        >
-          <UpgradePrompt
-            featureName="Automations"
-            requiredPlan="silver"
-            requiredPlanPrice={499}
-            context="page"
-            currentPlan={userPlan}
-            onUpgrade={() => window.location.href = '/dashboard'}
-            onComparePlans={() => window.location.href = '/pricing'}
-          />
-        </div>
-      )}
-
-      {/* Follow Gate upgrade prompt */}
-      {showFollowGatePrompt && (
-        <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-6"
-          style={{ backgroundColor: 'var(--overlay)' }}
-          onClick={() => setShowFollowGatePrompt(false)}
-        >
-          <div onClick={(e) => e.stopPropagation()} className="max-w-md w-full">
-            <UpgradePrompt
-              featureName="Follower Verification Gate"
-              requiredPlan="gold"
-              requiredPlanPrice={999}
-              context="page"
-              currentPlan={userPlan}
-              onUpgrade={() => { setShowFollowGatePrompt(false); window.location.href = '/dashboard'; }}
-              onComparePlans={() => { setShowFollowGatePrompt(false); window.location.href = '/pricing'; }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Mention Detection upgrade prompt */}
-      {showMentionPrompt && (
-        <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-6"
-          style={{ backgroundColor: 'var(--overlay)' }}
-          onClick={() => setShowMentionPrompt(false)}
-        >
-          <div onClick={(e) => e.stopPropagation()} className="max-w-md w-full">
-            <UpgradePrompt
-              featureName="Mention Detection"
-              requiredPlan="gold"
-              requiredPlanPrice={999}
-              context="page"
-              currentPlan={userPlan}
-              onUpgrade={() => { setShowMentionPrompt(false); window.location.href = '/dashboard'; }}
-              onComparePlans={() => { setShowMentionPrompt(false); window.location.href = '/pricing'; }}
-            />
-          </div>
-        </div>
-      )}
+      {/* [PLANS DISABLED] Expired overlay, Follow Gate prompt, and Mention Detection prompt removed */}
 
       {/* Left — config */}
       <div className={cn("flex-1 max-w-xl space-y-10", isExpired && "opacity-40 pointer-events-none")}>
@@ -323,13 +251,7 @@ export default function Automation() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {!canUseFeature(userPlan, "mention_detection").allowed && (
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
-                  style={{ backgroundColor: 'var(--warning-light)', color: 'var(--warning-dark)', border: '1px solid var(--warning)' }}
-                >
-                  Gold
-                </span>
-              )}
+              {/* [PLANS DISABLED] Gold badge removed — all features unlocked */}
               <button
                 onClick={handleMentionsToggle}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all"

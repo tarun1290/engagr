@@ -10,32 +10,33 @@ import {
   ShieldCheck,
   Users2,
   Activity,
-  CreditCard,
-  BarChart3,
-  KeyRound,
-  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getPlanConfig } from "@/lib/plans";
-import { PLAN_BADGE_COLORS } from "./UpgradePrompt";
 import AccountSwitcher from "./AccountSwitcher";
-import { getSubscriptionStatus } from "@/app/dashboard/billing-actions";
+
+// [PLANS DISABLED] Removed: CreditCard, BarChart3, KeyRound, Lock imports
+// [PLANS DISABLED] Removed: getPlanConfig, PLAN_BADGE_COLORS imports
+// [PLANS DISABLED] Removed: getSubscriptionStatus import
+// [PLANS DISABLED] Removed: gatedPage entries for Billing, Analytics, API Keys
+// [PLANS DISABLED] Removed: lock icons, plan badge, DM usage bar in footer
 
 const MENU_ITEMS = [
   { id: "Home", label: "Home", icon: Home },
   { id: "Automation", label: "Automation", icon: Zap },
-  { id: "Contacts", label: "Contacts", icon: Users2, gatedPage: "contacts" },
-  { id: "Activity", label: "Activity", icon: Activity, gatedPage: "activity" },
-  { id: "Billing", label: "Billing", icon: CreditCard },
-  { id: "Analytics", label: "Analytics", icon: BarChart3, gatedPage: "analytics" },
-  { id: "API Keys", label: "API Keys", icon: KeyRound, gatedPage: "api_keys" },
+  { id: "Contacts", label: "Contacts", icon: Users2 },
+  { id: "Activity", label: "Activity", icon: Activity },
+  // [PLANS DISABLED] These items are hidden during Early Access:
+  // { id: "Billing", label: "Billing", icon: CreditCard },
+  // { id: "Analytics", label: "Analytics", icon: BarChart3, gatedPage: "analytics" },
+  // { id: "API Keys", label: "API Keys", icon: KeyRound, gatedPage: "api_keys" },
+  // [/PLANS DISABLED]
 ];
 
 const BOTTOM_ITEMS = [
   { id: "Settings", label: "Settings", icon: Settings },
 ];
 
-const SidebarItem = ({ icon: Icon, label, active = false, collapsed = false, locked = false, onClick }) => (
+const SidebarItem = ({ icon: Icon, label, active = false, collapsed = false, onClick }) => (
   <div
     onClick={onClick}
     className={cn(
@@ -44,9 +45,8 @@ const SidebarItem = ({ icon: Icon, label, active = false, collapsed = false, loc
     )}
     style={{
       backgroundColor: active ? 'var(--sidebar-active-bg)' : 'transparent',
-      color: active ? 'var(--sidebar-text-active)' : locked ? 'var(--sidebar-icon)' : 'var(--sidebar-text)',
+      color: active ? 'var(--sidebar-text-active)' : 'var(--sidebar-text)',
       fontWeight: active ? 600 : 400,
-      opacity: locked && !active ? 0.65 : 1,
     }}
     onMouseEnter={(e) => { if (!active) e.currentTarget.style.backgroundColor = 'var(--sidebar-hover)'; }}
     onMouseLeave={(e) => { if (!active) e.currentTarget.style.backgroundColor = 'transparent'; }}
@@ -56,40 +56,12 @@ const SidebarItem = ({ icon: Icon, label, active = false, collapsed = false, loc
       style={{ color: active ? 'var(--sidebar-icon-active)' : 'var(--sidebar-icon)' }}
     />
     {!collapsed && (
-      <>
-        <span className="text-[14px] whitespace-nowrap flex-1">{label}</span>
-        {locked && <Lock size={12} style={{ color: 'var(--sidebar-icon)' }} />}
-      </>
+      <span className="text-[14px] whitespace-nowrap flex-1">{label}</span>
     )}
   </div>
 );
 
 export default function Sidebar({ isCollapsed, setIsCollapsed, activeTab = "Home", onTabChange }) {
-  const [subData, setSubData] = useState(null);
-
-  useEffect(() => {
-    getSubscriptionStatus()
-      .then((data) => { if (data.success) setSubData(data); })
-      .catch(() => {});
-  }, []);
-
-  const plan = subData?.plan || "trial";
-  const config = getPlanConfig(plan);
-  const badgeColor = PLAN_BADGE_COLORS[plan] || PLAN_BADGE_COLORS.trial;
-
-  // DM usage for sidebar footer
-  const dmsSent = subData?.dmsSent || 0;
-  const dmLimit = subData?.dmLimit || 50;
-  const dmDisplay = subData?.dmLimitDisplay || "50";
-  const isUnlimited = dmDisplay === "Unlimited";
-  const dmPercent = isUnlimited ? 0 : Math.min(Math.round((dmsSent / dmLimit) * 100), 100);
-  const dmBarColor = dmPercent >= 100 ? 'var(--error)' : dmPercent >= 80 ? 'var(--warning)' : 'var(--success)';
-  const daysLeft = subData?.daysLeftInTrial || 0;
-  const isTrial = plan === "trial";
-
-  // Check which pages the user's plan allows
-  const userPages = config.pages;
-
   return (
     <aside
       className={cn(
@@ -125,74 +97,32 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, activeTab = "Home
       </div>
 
       <nav className="flex-1 px-4 space-y-0.5 mt-2">
-        {MENU_ITEMS.map((item) => {
-          const locked = item.gatedPage && !userPages.includes(item.gatedPage);
-          return (
-            <SidebarItem
-              key={item.id}
-              icon={item.icon}
-              label={item.label}
-              active={activeTab === item.id}
-              collapsed={isCollapsed}
-              locked={locked}
-              onClick={() => onTabChange(item.id)}
-            />
-          );
-        })}
+        {MENU_ITEMS.map((item) => (
+          <SidebarItem
+            key={item.id}
+            icon={item.icon}
+            label={item.label}
+            active={activeTab === item.id}
+            collapsed={isCollapsed}
+            onClick={() => onTabChange(item.id)}
+          />
+        ))}
       </nav>
 
-      {/* Plan badge + DM usage footer */}
+      {/* [PLANS DISABLED] Plan badge + DM usage footer removed for Early Access */}
+      {/* Original code showed plan badge, trial days, DM usage bar */}
+
       <div className="px-4 py-3 theme-transition"
         style={{ borderTop: '1px solid var(--sidebar-border)' }}
       >
-        {!isCollapsed && subData && (
-          <div className="mb-3 space-y-2">
-            {/* Plan badge */}
+        {!isCollapsed && (
+          <div className="mb-3">
             <span
               className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
-              style={{ backgroundColor: badgeColor.bg, color: badgeColor.text, border: `1px solid ${badgeColor.border}` }}
+              style={{ backgroundColor: 'var(--success-light)', color: 'var(--success)', border: '1px solid var(--success)' }}
             >
-              {config.name}
+              Early Access
             </span>
-
-            {isTrial && daysLeft > 0 ? (
-              <div className="space-y-1">
-                <p className="text-[11px] font-medium" style={{ color: 'var(--sidebar-text)' }}>
-                  Trial — {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
-                </p>
-                <button
-                  onClick={() => onTabChange("Billing")}
-                  className="text-[11px] font-bold"
-                  style={{ color: 'var(--accent)' }}
-                >
-                  Upgrade
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {/* DM usage bar */}
-                {!isUnlimited && (
-                  <div className="h-1 rounded-full overflow-hidden"
-                    style={{ backgroundColor: 'var(--sidebar-border)' }}
-                  >
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{ width: `${dmPercent}%`, backgroundColor: dmBarColor }}
-                    />
-                  </div>
-                )}
-                <p className="text-[11px] font-medium" style={{ color: 'var(--sidebar-text)', opacity: 0.7 }}>
-                  {isUnlimited ? "Unlimited DMs" : `${dmsSent}/${dmLimit} DMs`}
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Collapsed: just show a small plan dot */}
-        {isCollapsed && subData && (
-          <div className="flex justify-center mb-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: badgeColor.text }} />
           </div>
         )}
 

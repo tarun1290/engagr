@@ -6,8 +6,10 @@ import Event from "@/models/Event";
 import User from "@/models/User";
 import InstagramAccount from "@/models/InstagramAccount";
 import { generateToken, verifyToken } from "@/lib/jwt";
-import { canUseFeature, canAccessPage, canConnectMoreAccounts } from "@/lib/gating";
-import { getPlanConfig } from "@/lib/plans";
+// [PLANS DISABLED] Gating imports not needed during Early Access
+// import { canUseFeature, canAccessPage, canConnectMoreAccounts } from "@/lib/gating";
+// import { getPlanConfig } from "@/lib/plans";
+// [/PLANS DISABLED]
 
 async function getOwnerId() {
   const cookieStore = await cookies();
@@ -110,13 +112,14 @@ export async function getContacts(accountId) {
   const userId = await getOwnerId();
   await dbConnect();
 
-  // Page gate: contacts page requires Gold+
-  const user = await User.findOne({ userId }).lean();
-  const plan = user?.subscription?.plan || "trial";
-  const status = user?.subscription?.status || "trialing";
-  if (!canAccessPage(plan, "contacts", status)) {
-    return { error: "Contacts requires a Gold or higher plan.", gated: true };
-  }
+  // [PLANS DISABLED] Page gate: contacts page requires Gold+
+  // const user = await User.findOne({ userId }).lean();
+  // const plan = user?.subscription?.plan || "trial";
+  // const status = user?.subscription?.status || "trialing";
+  // if (!canAccessPage(plan, "contacts", status)) {
+  //   return { error: "Contacts requires a Gold or higher plan.", gated: true };
+  // }
+  // [/PLANS DISABLED]
 
   const account = await resolveAccount(userId, accountId);
   if (!account || !account.isConnected) return [];
@@ -150,13 +153,14 @@ export async function getAllInteractions(type, accountId) {
   const userId = await getOwnerId();
   await dbConnect();
 
-  // Page gate: activity page requires Gold+
-  const user = await User.findOne({ userId }).lean();
-  const plan = user?.subscription?.plan || "trial";
-  const status = user?.subscription?.status || "trialing";
-  if (!canAccessPage(plan, "activity", status)) {
-    return { error: "Activity log requires a Gold or higher plan.", gated: true };
-  }
+  // [PLANS DISABLED] Page gate: activity page requires Gold+
+  // const user = await User.findOne({ userId }).lean();
+  // const plan = user?.subscription?.plan || "trial";
+  // const status = user?.subscription?.status || "trialing";
+  // if (!canAccessPage(plan, "activity", status)) {
+  //   return { error: "Activity log requires a Gold or higher plan.", gated: true };
+  // }
+  // [/PLANS DISABLED]
 
   const account = await resolveAccount(userId, accountId);
   if (!account || !account.isConnected) return [];
@@ -274,19 +278,18 @@ export async function saveDiscoveredAccount(details) {
     return { success: false, error: "No access token found for this account." };
   }
 
-  // Check Instagram account limit before connecting a new one
-  const user = await User.findOne({ userId }).lean();
-  const plan = user?.subscription?.plan || "trial";
-
-  // Only check limit for genuinely new accounts (not re-connecting existing ones)
-  const existingAccount = await InstagramAccount.findOne({ userId, instagramUserId: details.igId });
-  if (!existingAccount) {
-    const connectedCount = await InstagramAccount.countDocuments({ userId, isConnected: true });
-    const accountLimit = canConnectMoreAccounts(plan, connectedCount);
-    if (!accountLimit.allowed) {
-      return { success: false, error: `Your ${getPlanConfig(plan).name} plan allows ${accountLimit.max} Instagram account${accountLimit.max > 1 ? 's' : ''}. Upgrade to connect more.`, gated: true };
-    }
-  }
+  // [PLANS DISABLED] Check Instagram account limit before connecting a new one
+  // const user = await User.findOne({ userId }).lean();
+  // const plan = user?.subscription?.plan || "trial";
+  // const existingAccount = await InstagramAccount.findOne({ userId, instagramUserId: details.igId });
+  // if (!existingAccount) {
+  //   const connectedCount = await InstagramAccount.countDocuments({ userId, isConnected: true });
+  //   const accountLimit = canConnectMoreAccounts(plan, connectedCount);
+  //   if (!accountLimit.allowed) {
+  //     return { success: false, error: `Your ${getPlanConfig(plan).name} plan allows ${accountLimit.max} Instagram account${accountLimit.max > 1 ? 's' : ''}. Upgrade to connect more.`, gated: true };
+  //   }
+  // }
+  // [/PLANS DISABLED]
 
   try {
     // Subscribe to webhook fields
@@ -371,45 +374,46 @@ export async function saveAutomation(data, accountId) {
   const userId = await getOwnerId();
   await dbConnect();
 
-  const user = await User.findOne({ userId }).lean();
-  const plan = user?.subscription?.plan || "trial";
-  const status = user?.subscription?.status || "trialing";
+  // [PLANS DISABLED] Plan checks disabled for Early Access
+  // const user = await User.findOne({ userId }).lean();
+  // const plan = user?.subscription?.plan || "trial";
+  // const status = user?.subscription?.status || "trialing";
 
-  // Block expired/cancelled users
-  if (status === "expired" || status === "cancelled") {
-    return { success: false, error: "Your subscription has expired. Please renew to save automations.", gated: true };
-  }
+  // [PLANS DISABLED] Block expired/cancelled users
+  // if (status === "expired" || status === "cancelled") {
+  //   return { success: false, error: "Your subscription has expired. Please renew to save automations.", gated: true };
+  // }
 
-  // Trial users: limited to 1 automation across all accounts
-  const planConfig = getPlanConfig(plan);
-  if (planConfig.automationLimit !== Infinity) {
-    const existingAutomations = await InstagramAccount.countDocuments({
-      userId,
-      "automation.isActive": true,
-    });
-    // Allow saving to the same account (editing), but block creating new active automations
-    const account = await resolveAccount(userId, accountId);
-    const isEditing = account?.automation?.isActive;
-    if (!isEditing && existingAutomations >= planConfig.automationLimit) {
-      return { success: false, error: `Your ${planConfig.name} plan allows ${planConfig.automationLimit} active automation. Upgrade for unlimited automations.`, gated: true, requiredPlan: "silver" };
-    }
-  }
+  // [PLANS DISABLED] Trial users: limited to 1 automation across all accounts
+  // const planConfig = getPlanConfig(plan);
+  // if (planConfig.automationLimit !== Infinity) {
+  //   const existingAutomations = await InstagramAccount.countDocuments({
+  //     userId,
+  //     "automation.isActive": true,
+  //   });
+  //   const account = await resolveAccount(userId, accountId);
+  //   const isEditing = account?.automation?.isActive;
+  //   if (!isEditing && existingAutomations >= planConfig.automationLimit) {
+  //     return { success: false, error: `Your ${planConfig.name} plan allows ${planConfig.automationLimit} active automation. Upgrade for unlimited automations.`, gated: true, requiredPlan: "silver" };
+  //   }
+  // }
 
-  // Feature gate: follow_gate requires Gold+
-  if (data.requireFollow) {
-    const followCheck = canUseFeature(plan, "follow_gate");
-    if (!followCheck.allowed) {
-      return { success: false, error: `Follow gate requires the ${followCheck.requiredPlanName} plan (₹${followCheck.requiredPlanPrice}/mo).`, gated: true, requiredPlan: followCheck.requiredPlan };
-    }
-  }
+  // [PLANS DISABLED] Feature gate: follow_gate requires Gold+
+  // if (data.requireFollow) {
+  //   const followCheck = canUseFeature(plan, "follow_gate");
+  //   if (!followCheck.allowed) {
+  //     return { success: false, error: `Follow gate requires the ${followCheck.requiredPlanName} plan (₹${followCheck.requiredPlanPrice}/mo).`, gated: true, requiredPlan: followCheck.requiredPlan };
+  //   }
+  // }
 
-  // Feature gate: mention_detection requires Gold+
-  if (data.mentionsEnabled) {
-    const mentionCheck = canUseFeature(plan, "mention_detection");
-    if (!mentionCheck.allowed) {
-      return { success: false, error: `Mention detection requires the ${mentionCheck.requiredPlanName} plan (₹${mentionCheck.requiredPlanPrice}/mo).`, gated: true, requiredPlan: mentionCheck.requiredPlan };
-    }
-  }
+  // [PLANS DISABLED] Feature gate: mention_detection requires Gold+
+  // if (data.mentionsEnabled) {
+  //   const mentionCheck = canUseFeature(plan, "mention_detection");
+  //   if (!mentionCheck.allowed) {
+  //     return { success: false, error: `Mention detection requires the ${mentionCheck.requiredPlanName} plan (₹${mentionCheck.requiredPlanPrice}/mo).`, gated: true, requiredPlan: mentionCheck.requiredPlan };
+  //   }
+  // }
+  // [/PLANS DISABLED]
 
   const account = await resolveAccount(userId, accountId);
   if (!account) return { success: false, error: "No account found." };
@@ -460,14 +464,15 @@ export async function toggleAutomation(isActive, accountId) {
   const userId = await getOwnerId();
   await dbConnect();
 
-  // Block activating automation if subscription expired/cancelled
-  if (isActive) {
-    const user = await User.findOne({ userId }).lean();
-    const status = user?.subscription?.status || "trialing";
-    if (status === "expired" || status === "cancelled") {
-      return { success: false, error: "Your subscription has expired. Please renew to activate automations.", gated: true };
-    }
-  }
+  // [PLANS DISABLED] Block activating automation if subscription expired/cancelled
+  // if (isActive) {
+  //   const user = await User.findOne({ userId }).lean();
+  //   const status = user?.subscription?.status || "trialing";
+  //   if (status === "expired" || status === "cancelled") {
+  //     return { success: false, error: "Your subscription has expired. Please renew to activate automations.", gated: true };
+  //   }
+  // }
+  // [/PLANS DISABLED]
 
   const account = await resolveAccount(userId, accountId);
   if (!account) return { success: false, error: "No account found." };

@@ -3,8 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, MessageCircle, Clock, ExternalLink, AlertTriangle, CheckCircle2, CreditCard, Zap } from "lucide-react";
 import { getNotifications } from '@/app/dashboard/actions';
-import { getSubscriptionStatus } from '@/app/dashboard/billing-actions';
-import { getTrialWarning, getDmQuotaWarning } from '@/lib/gating';
+// [PLANS DISABLED] Subscription status and warnings not needed during Early Access
+// import { getSubscriptionStatus } from '@/app/dashboard/billing-actions';
+// import { getTrialWarning, getDmQuotaWarning } from '@/lib/gating';
+// [/PLANS DISABLED]
 import { cn } from '@/lib/utils';
 
 function NotificationSkeleton() {
@@ -31,38 +33,24 @@ export default function NotificationCenter() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const [data, sub] = await Promise.all([
-        getNotifications(),
-        getSubscriptionStatus(),
-      ]);
+      const data = await getNotifications();
 
-      // Build subscription-related system notifications
-      const systemNotifs = [];
-      if (sub.success) {
-        const trialWarning = getTrialWarning({ subscription: sub });
-        if (trialWarning) {
-          systemNotifs.push({
-            _id: "trial-warning",
-            type: "system",
-            systemIcon: "trial",
-            systemMessage: trialWarning.message,
-            createdAt: new Date().toISOString(),
-          });
-        }
+      // [PLANS DISABLED] System notifications for trial/quota warnings disabled
+      // const [data, sub] = await Promise.all([
+      //   getNotifications(),
+      //   getSubscriptionStatus(),
+      // ]);
+      // const systemNotifs = [];
+      // if (sub.success) {
+      //   const trialWarning = getTrialWarning({ subscription: sub });
+      //   if (trialWarning) { systemNotifs.push({ ... }); }
+      //   const quotaWarning = getDmQuotaWarning({ ... });
+      //   if (quotaWarning) { systemNotifs.push({ ... }); }
+      // }
+      // setNotifications([...systemNotifs, ...data]);
+      // [/PLANS DISABLED]
 
-        const quotaWarning = getDmQuotaWarning({ subscription: sub, usage: { dmsSentThisMonth: sub.dmsSent, topUpDmsRemaining: sub.topUpRemaining } });
-        if (quotaWarning) {
-          systemNotifs.push({
-            _id: "quota-warning",
-            type: "system",
-            systemIcon: quotaWarning.level === "critical" ? "quota-critical" : "quota-warning",
-            systemMessage: quotaWarning.message,
-            createdAt: new Date().toISOString(),
-          });
-        }
-      }
-
-      setNotifications([...systemNotifs, ...data]);
+      setNotifications(data);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     } finally {

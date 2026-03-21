@@ -31,12 +31,16 @@ import Automation from "@/components/Automation";
 import Settings from "@/components/Settings";
 import Contacts from "@/components/Contacts";
 import Activity from "@/components/Activity";
-import BillingPage from "@/components/BillingPage";
-import UpgradePrompt from "@/components/UpgradePrompt";
+// [PLANS DISABLED] BillingPage, UpgradePrompt, and gating imports removed for Early Access
+// import BillingPage from "@/components/BillingPage";
+// import UpgradePrompt from "@/components/UpgradePrompt";
+// [/PLANS DISABLED]
 import { getDashboardStats, deleteAutomation, toggleAutomation } from './actions';
-import { getSubscriptionStatus } from './billing-actions';
-import { getTrialWarning, getDmQuotaWarning, canAccessPage } from '@/lib/gating';
-import { getPlanConfig, planRequiredForPage } from '@/lib/plans';
+// [PLANS DISABLED] Subscription/gating imports not needed
+// import { getSubscriptionStatus } from './billing-actions';
+// import { getTrialWarning, getDmQuotaWarning, canAccessPage } from '@/lib/gating';
+// import { getPlanConfig, planRequiredForPage } from '@/lib/plans';
+// [/PLANS DISABLED]
 
 /* ── Data-driven config maps ───────────────────────────────────────────────── */
 
@@ -236,8 +240,10 @@ function DashboardContent() {
   const [deletingAutomation, setDeletingAutomation] = useState(false);
   const [loading, setLoading] = useState(true);
   const [togglingAutomation, setTogglingAutomation] = useState(false);
-  const [subData, setSubData] = useState(null);
-  const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
+  // [PLANS DISABLED] Subscription state not needed during Early Access
+  // const [subData, setSubData] = useState(null);
+  // const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
+  // [/PLANS DISABLED]
   const [stats, setStats] = useState({
     contacts: 0,
     sentToday: 0,
@@ -250,12 +256,10 @@ function DashboardContent() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [data, sub] = await Promise.all([
-          getDashboardStats(selectedAccountId),
-          getSubscriptionStatus(),
-        ]);
+        const data = await getDashboardStats(selectedAccountId);
+        // [PLANS DISABLED] const sub = await getSubscriptionStatus();
+        // if (sub.success) setSubData(sub);
         setStats(data);
-        if (sub.success) setSubData(sub);
       } catch (error) {
         console.error("Failed to fetch dashboard stats:", error);
       } finally {
@@ -299,126 +303,30 @@ function DashboardContent() {
     }
   };
 
-  // Gated page check
-  const renderGatedPage = (pageName, Component) => {
-    const plan = subData?.plan || "trial";
-    const status = subData?.status || "trialing";
-    if (!canAccessPage(plan, pageName, status)) {
-      const required = planRequiredForPage(pageName);
-      return (
-        <UpgradePrompt
-          featureName={pageName.charAt(0).toUpperCase() + pageName.slice(1).replace(/_/g, ' ')}
-          requiredPlan={required?.plan || "gold"}
-          requiredPlanPrice={required?.price}
-          context="page"
-          currentPlan={plan}
-          onUpgrade={() => setActiveTab("Billing")}
-          onComparePlans={() => setActiveTab("Billing")}
-        />
-      );
-    }
-    return Component;
-  };
-
-  // Trial and quota warnings for Home page
-  const trialWarning = subData ? getTrialWarning({ subscription: subData }) : null;
-  const quotaWarning = subData ? getDmQuotaWarning({ subscription: subData, usage: { dmsSentThisMonth: subData.dmsSent, topUpDmsRemaining: subData.topUpRemaining } }) : null;
+  // [PLANS DISABLED] Gated page check disabled — all pages accessible
+  // const renderGatedPage = (pageName, Component) => { ... };
+  // const trialWarning = subData ? getTrialWarning({ subscription: subData }) : null;
+  // const quotaWarning = subData ? getDmQuotaWarning({ ... }) : null;
+  // [/PLANS DISABLED]
 
   const renderContent = () => {
     switch (activeTab) {
       case "Contacts":
-        return renderGatedPage("contacts", <Contacts />);
+        return <Contacts />;
       case "Activity":
-        return renderGatedPage("activity", <Activity />);
-      case "Billing":
-        return <BillingPage onNavigate={setActiveTab} />;
-      case "Analytics":
-        return renderGatedPage("analytics",
-          <UpgradePrompt
-            featureName="Advanced Analytics"
-            requiredPlan="platinum"
-            requiredPlanPrice={1499}
-            context="page"
-            currentPlan={subData?.plan || "trial"}
-            onUpgrade={() => setActiveTab("Billing")}
-            onComparePlans={() => setActiveTab("Billing")}
-          />
-        );
-      case "API Keys":
-        return renderGatedPage("api_keys",
-          <UpgradePrompt
-            featureName="API Access"
-            requiredPlan="platinum"
-            requiredPlanPrice={1499}
-            context="page"
-            currentPlan={subData?.plan || "trial"}
-            onUpgrade={() => setActiveTab("Billing")}
-            onComparePlans={() => setActiveTab("Billing")}
-          />
-        );
+        return <Activity />;
+      // [PLANS DISABLED] Billing, Analytics, API Keys tabs removed from sidebar
+      // case "Billing":
+      //   return <BillingPage onNavigate={setActiveTab} />;
+      // case "Analytics":
+      //   return renderGatedPage("analytics", <UpgradePrompt ... />);
+      // case "API Keys":
+      //   return renderGatedPage("api_keys", <UpgradePrompt ... />);
+      // [/PLANS DISABLED]
       case "Home":
         return (
           <div className="space-y-16">
-            {/* Trial expiry warning */}
-            {trialWarning && !trialBannerDismissed && trialWarning.type === "banner" && (
-              <div className="flex items-center gap-4 px-6 py-4 rounded-2xl"
-                style={{ backgroundColor: 'var(--warning-light)', border: '1px solid var(--warning)' }}
-              >
-                <AlertTriangle size={20} className="flex-shrink-0" style={{ color: 'var(--warning)' }} />
-                <p className="flex-1 text-[14px] font-bold" style={{ color: 'var(--warning-dark)' }}>
-                  {trialWarning.message}
-                </p>
-                <button onClick={() => setActiveTab("Billing")}
-                  className="px-4 py-2 text-[12px] font-bold rounded-xl flex-shrink-0"
-                  style={{ backgroundColor: 'var(--warning)', color: 'white' }}
-                >
-                  Upgrade Now
-                </button>
-                <button onClick={() => setTrialBannerDismissed(true)}
-                  className="text-[14px] flex-shrink-0 ml-1"
-                  style={{ color: 'var(--warning-dark)' }}
-                >
-                  <XCircle size={18} />
-                </button>
-              </div>
-            )}
-
-            {/* Trial expired modal */}
-            {trialWarning && trialWarning.type === "modal" && (
-              <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-6"
-                style={{ backgroundColor: 'var(--overlay)' }}
-              >
-                <div className="rounded-[28px] p-10 max-w-md w-full shadow-2xl text-center space-y-6"
-                  style={{ backgroundColor: 'var(--card)' }}
-                >
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
-                    style={{ backgroundColor: 'var(--error-light)' }}
-                  >
-                    <AlertTriangle size={32} style={{ color: 'var(--error)' }} />
-                  </div>
-                  <h2 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Your free trial has ended</h2>
-                  <p className="text-[14px]" style={{ color: 'var(--text-muted)' }}>Choose a plan to continue using Engagr automations.</p>
-                  <button
-                    onClick={() => setActiveTab("Billing")}
-                    className="w-full py-3.5 rounded-xl font-bold text-[14px]"
-                    style={{ backgroundColor: 'var(--primary)', color: 'white' }}
-                  >
-                    View Plans
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* DM quota warning */}
-            {quotaWarning && (
-              <UpgradePrompt
-                context="quota"
-                quotaData={{ dmsSent: quotaWarning.dmsSent, dmLimit: quotaWarning.dmLimit, topUpRemaining: quotaWarning.topUpRemaining, level: quotaWarning.level }}
-                currentPlan={subData?.plan || "trial"}
-                onUpgrade={() => setActiveTab("Billing")}
-                onTopUp={() => setActiveTab("Billing")}
-              />
-            )}
+            {/* [PLANS DISABLED] Trial/quota warnings removed for Early Access */}
 
             {/* Token expiry warning */}
             {stats.tokenExpired && (
@@ -689,36 +597,20 @@ function DashboardContent() {
                     <Zap size={180} className="absolute -bottom-10 -right-10 -rotate-12 group-hover:scale-110 transition-transform duration-1000" style={{ color: 'var(--primary)', opacity: 0.1 }} />
                   </div>
 
-                  {/* DM Usage stat card */}
-                  {(() => {
-                    const dmSent = subData?.dmsSent || 0;
-                    const dmLimit = subData?.dmLimit || 50;
-                    const dmDisplay = subData?.dmLimitDisplay || "50";
-                    const isUl = dmDisplay === "Unlimited";
-                    const pct = isUl ? 0 : Math.min(Math.round((dmSent / dmLimit) * 100), 100);
-                    const borderClr = pct >= 100 ? 'var(--error)' : pct >= 80 ? 'var(--warning)' : 'var(--border)';
-                    const barClr = pct >= 100 ? 'var(--error)' : pct >= 80 ? 'var(--warning)' : 'var(--success)';
-                    return (
-                      <div className="p-10 rounded-[40px] flex flex-col justify-center"
-                        style={{ backgroundColor: 'var(--card)', border: `1px solid ${borderClr}` }}
-                      >
-                        <p className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--text-placeholder)' }}>
-                          DM Usage
-                        </p>
-                        <h3 className="text-3xl font-black mb-1" style={{ color: 'var(--text-primary)' }}>
-                          {isUl ? "Unlimited" : `${dmSent} / ${dmDisplay}`}
-                        </h3>
-                        <p className="text-sm font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
-                          {isUl ? "DMs this month" : pct >= 100 ? "Limit Reached" : "DMs this month"}
-                        </p>
-                        {!isUl && (
-                          <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--surface-alt)' }}>
-                            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barClr }} />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  {/* [PLANS DISABLED] DM Usage card — show "Unlimited" for Early Access */}
+                  <div className="p-10 rounded-[40px] flex flex-col justify-center"
+                    style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+                  >
+                    <p className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--text-placeholder)' }}>
+                      DM Usage
+                    </p>
+                    <h3 className="text-3xl font-black mb-1" style={{ color: 'var(--text-primary)' }}>
+                      Unlimited
+                    </h3>
+                    <p className="text-sm font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
+                      Early Access — no limits
+                    </p>
+                  </div>
 
                   <div className="p-10 rounded-[40px] flex flex-col justify-center"
                     style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}

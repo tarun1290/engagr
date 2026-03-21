@@ -169,34 +169,16 @@ export default async function AdminDashboard() {
           </div>
         </section>
 
-        {/* Revenue & Plan Stats */}
-        <section>
-          <h2 className="text-xs font-black uppercase tracking-widest mb-5" style={{ color: "var(--admin-text-muted)" }}>Revenue & Plans</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={DollarSign}  label="MRR"                value={`\u20B9${stats.mrr?.toLocaleString("en-IN") || 0}`}   sub="Monthly recurring"    color="emerald" />
-            <StatCard icon={CreditCard}  label="Active Subscribers"  value={stats.activeSubscribers || 0}                          sub="Paid plans"           color="blue"    />
-            <StatCard icon={Crown}       label="Plan Breakdown"      value={stats.planBreakdown?.length || 0}                      sub="Distinct plans"       color="amber"   />
-            <StatCard icon={BarChart3}   label="Trial Users"         value={stats.planBreakdown?.find(p => p._id === "trial")?.count || stats.planBreakdown?.find(p => !p._id)?.count || 0}  sub="Free trial"  color="slate" />
-          </div>
-          {/* Plan breakdown pills */}
-          {stats.planBreakdown?.length > 0 && (
-            <div className="flex flex-wrap gap-3 mt-4">
-              {stats.planBreakdown.map((p) => {
-                const planName = p._id || "trial";
-                const colorMap = { trial: "var(--admin-text-muted)", silver: "var(--admin-text-secondary)", gold: "var(--warning)", platinum: "var(--primary)" };
-                return (
-                  <div key={planName} className="flex items-center gap-2 px-4 py-2 rounded-xl"
-                    style={{ backgroundColor: "var(--admin-card)", border: "1px solid var(--admin-border)" }}
-                  >
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colorMap[planName] || "var(--admin-text-muted)" }} />
-                    <span className="text-[13px] font-bold capitalize" style={{ color: "var(--admin-text-primary)" }}>{planName}</span>
-                    <span className="text-[13px] font-black" style={{ color: colorMap[planName] || "var(--admin-text-muted)" }}>{p.count}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+        {/* [PLANS DISABLED] Revenue & Plan Stats hidden during Early Access */}
+        {/* <section>
+          <h2>Revenue & Plans</h2>
+          <StatCard icon={DollarSign} label="MRR" ... />
+          <StatCard icon={CreditCard} label="Active Subscribers" ... />
+          <StatCard icon={Crown} label="Plan Breakdown" ... />
+          <StatCard icon={BarChart3} label="Trial Users" ... />
+          Plan breakdown pills...
+        </section> */}
+        {/* [/PLANS DISABLED] */}
 
         {/* Interaction Breakdown */}
         {stats.eventsByType.length > 0 && (

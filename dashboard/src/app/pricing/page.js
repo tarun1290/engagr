@@ -285,20 +285,22 @@ export default function PricingPage() {
       <section className="pt-32 pb-16 px-6 text-center relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full blur-3xl -z-10 pointer-events-none" style={{ background: "radial-gradient(ellipse, var(--primary-light), transparent 70%)", opacity: 0.5 }} />
 
+        {/* [PLANS DISABLED] Early Access banner */}
         <div
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6"
-          style={{ backgroundColor: "var(--primary-light)", border: "1px solid var(--primary-medium)" }}
+          style={{ backgroundColor: "var(--success-light)", border: "1px solid var(--success)" }}
         >
-          <Zap size={13} style={{ color: "var(--primary)" }} />
-          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--primary)" }}>Simple Pricing</span>
+          <Zap size={13} style={{ color: "var(--success)" }} />
+          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--success)" }}>Early Access</span>
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight mb-4" style={{ color: "var(--text-primary)" }}>
-          Choose Your Plan
+          Free During Early Access
         </h1>
         <p className="text-base sm:text-lg font-medium max-w-lg mx-auto" style={{ color: "var(--text-muted)" }}>
-          Start with a 7-day free trial on any plan. No credit card required. Upgrade, downgrade, or cancel anytime.
+          All features are completely free while we&apos;re in Early Access. Paid plans will be introduced later — we&apos;ll give you plenty of notice.
         </p>
+        {/* [/PLANS DISABLED] */}
       </section>
 
       {/* ── PLAN CARDS ─────────────────────────────────────────── */}
@@ -518,10 +520,11 @@ export default function PricingPage() {
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 0%, var(--primary-glow), transparent 60%)" }} />
           <div className="relative">
             <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-4">
-              Start Your Free Trial Today
+              {/* [PLANS DISABLED] */}
+              Get Started — It&apos;s Free
             </h2>
             <p className="text-base font-medium max-w-md mx-auto mb-8" style={{ color: "var(--primary-medium)" }}>
-              7 days free on any plan. No credit card required. Set up your first automation in under 3 minutes.
+              No credit card required. All features unlocked during Early Access. Set up your first automation in under 3 minutes.
             </p>
             <Link
               href={userPlan?.loggedIn ? "/dashboard" : "/sign-up"}

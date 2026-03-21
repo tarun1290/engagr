@@ -21,24 +21,26 @@ export async function GET(request) {
   const now = new Date();
   const results = { trialExpired: 0, pastDueEnforced: 0, usageReset: 0, periodEndCancelled: 0, errors: [] };
 
-  // ── 1. Trial expiry (ACTIVE) ───────────────────────────────────────────
-  try {
-    const expiredTrials = await User.find({
-      "subscription.plan": "trial",
-      "subscription.trialEndsAt": { $lt: now },
-      "subscription.status": { $nin: ["expired", "active"] },
-    });
-
-    for (const user of expiredTrials) {
-      await User.findByIdAndUpdate(user._id, {
-        "subscription.status": "expired",
-        "automation.isActive": false,
-      });
-      results.trialExpired++;
-    }
-  } catch (err) {
-    results.errors.push({ task: "trialExpiry", error: err.message });
-  }
+  // [PLANS DISABLED] Trial expiry disabled for Early Access
+  // ── 1. Trial expiry ───────────────────────────────────────────
+  // try {
+  //   const expiredTrials = await User.find({
+  //     "subscription.plan": "trial",
+  //     "subscription.trialEndsAt": { $lt: now },
+  //     "subscription.status": { $nin: ["expired", "active"] },
+  //   });
+  //
+  //   for (const user of expiredTrials) {
+  //     await User.findByIdAndUpdate(user._id, {
+  //       "subscription.status": "expired",
+  //       "automation.isActive": false,
+  //     });
+  //     results.trialExpired++;
+  //   }
+  // } catch (err) {
+  //   results.errors.push({ task: "trialExpiry", error: err.message });
+  // }
+  // [/PLANS DISABLED]
 
   // [PAYMENTS DISABLED] Uncomment when ready to enable Dodo Payments
   // ── 2. Past-due enforcement (3-day grace) ───────────────────────────────
