@@ -439,12 +439,11 @@ export async function POST(request) {
     }
 
     // X-Hub-Signature-256 validation (required by Meta)
-    // META_WEBHOOK_SECRET = App Secret from App Settings → Basic (used by Meta to sign webhooks)
-    // META_APP_SECRET = App Secret from Instagram Login product (used for OAuth token exchange)
-    const webhookSecret = process.env.META_WEBHOOK_SECRET || process.env.META_APP_SECRET;
+    // Uses META_APP_SECRET from "API Setup with Instagram Login" product
+    const appSecret = process.env.META_APP_SECRET;
     const sigHeader = request.headers.get('x-hub-signature-256');
-    if (webhookSecret && sigHeader) {
-        const expected = 'sha256=' + createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+    if (appSecret && sigHeader) {
+        const expected = 'sha256=' + createHmac('sha256', appSecret).update(rawBody).digest('hex');
         if (sigHeader !== expected) {
             console.warn('[Webhook] ❌ Signature mismatch — rejecting request');
             return new NextResponse('Unauthorized', { status: 401 });
