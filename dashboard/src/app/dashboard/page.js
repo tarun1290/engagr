@@ -21,10 +21,15 @@ import {
   CheckCircle2,
   XCircle,
   SkipForward,
+  AlertTriangle,
+  Image,
+  ToggleRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Automation from "@/components/Automation";
 import Settings from "@/components/Settings";
+import Contacts from "@/components/Contacts";
+import Activity from "@/components/Activity";
 import { getDashboardStats } from './actions';
 
 const INTERACTION_TYPE_CONFIG = {
@@ -197,9 +202,30 @@ export default function Home() {
 
   const renderContent = () => {
     switch (activeTab) {
+      case "Contacts":
+        return <Contacts />;
+      case "Activity":
+        return <Activity />;
       case "Home":
         return (
           <div className="space-y-16">
+            {/* Token expiry warning */}
+            {stats.tokenExpired && (
+              <div className="flex items-start gap-4 px-6 py-4 bg-orange-50 border border-orange-200 rounded-2xl">
+                <AlertTriangle size={20} className="text-orange-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-[14px] font-bold text-orange-800">Instagram token has expired</p>
+                  <p className="text-[12px] text-orange-600 mt-0.5">Your automation has stopped working. Reconnect your Instagram account to restore it.</p>
+                </div>
+                <button
+                  onClick={() => window.location.href = '/onboarding'}
+                  className="px-4 py-2 bg-orange-500 text-white text-[12px] font-bold rounded-xl hover:bg-orange-600 transition-colors flex-shrink-0"
+                >
+                  Reconnect
+                </button>
+              </div>
+            )}
+
             {/* Hero header */}
             <section className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-slate-100">
               <div className="space-y-3">
@@ -278,6 +304,87 @@ export default function Home() {
                 />
               </div>
             </section>
+
+            {/* Automation Status Card */}
+            {stats.automation && (
+              <section>
+                <h3 className="text-2xl font-black text-black mb-6">Automation Status</h3>
+                <div className="bg-white border border-slate-100 rounded-[28px] p-8 shadow-sm">
+                  <div className="flex flex-col md:flex-row md:items-start gap-8">
+                    {/* Status indicator */}
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "w-12 h-12 rounded-2xl flex items-center justify-center border",
+                        stats.automation.isActive ? "bg-emerald-50 border-emerald-100" : "bg-slate-50 border-slate-200"
+                      )}>
+                        <ToggleRight size={22} className={stats.automation.isActive ? "text-emerald-600" : "text-slate-400"} />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Status</p>
+                        <p className={cn("text-[16px] font-black", stats.automation.isActive ? "text-emerald-600" : "text-slate-400")}>
+                          {stats.automation.isActive ? "Live & Active" : "Inactive"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="h-px md:h-auto md:w-px bg-slate-100" />
+
+                    {/* Trigger type */}
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">Trigger</p>
+                      <p className="text-[14px] font-bold text-slate-700">
+                        {stats.automation.postTrigger === "any" ? "Any post or reel" : "Specific post"}
+                      </p>
+                      <p className="text-[12px] text-slate-400 mt-0.5">
+                        {stats.automation.commentTrigger === "any"
+                          ? "Any comment fires automation"
+                          : `Keywords: ${(stats.automation.keywords || []).join(', ') || 'none'}`}
+                      </p>
+                    </div>
+
+                    <div className="h-px md:h-auto md:w-px bg-slate-100" />
+
+                    {/* Public reply */}
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">Public Reply</p>
+                      <p className="text-[14px] font-bold text-slate-700">
+                        {stats.automation.replyEnabled ? "Enabled" : "Disabled"}
+                      </p>
+                      {stats.automation.replyEnabled && stats.automation.replyMessages?.length > 0 && (
+                        <p className="text-[12px] text-slate-400 mt-0.5 max-w-[200px] truncate">
+                          "{stats.automation.replyMessages[0]}"
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="h-px md:h-auto md:w-px bg-slate-100" />
+
+                    {/* DM preview */}
+                    <div className="flex-1">
+                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">DM Message</p>
+                      <p className="text-[13px] text-slate-600 leading-snug line-clamp-2">
+                        {stats.automation.dmContent || <span className="text-slate-300 italic">No message set</span>}
+                      </p>
+                      {stats.automation.linkUrl && (
+                        <div className="flex items-center gap-2 mt-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-xl w-fit">
+                          <Image size={11} className="text-primary flex-shrink-0" />
+                          <span className="text-[11px] font-bold text-primary truncate max-w-[180px]">
+                            {stats.automation.buttonText || "Link"}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => setActiveTab("Automation")}
+                      className="px-5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-bold text-slate-600 hover:bg-white hover:border-primary/30 hover:text-primary transition-all flex-shrink-0 self-start"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              </section>
+            )}
 
             {/* Stats strip */}
             <section className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -374,14 +481,7 @@ export default function Home() {
       case "Settings":
         return <Settings stats={stats} />;
       default:
-        return (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center space-y-4">
-              <h3 className="text-2xl font-bold text-slate-400">{activeTab} Section</h3>
-              <p className="text-slate-500">This module is currently under development.</p>
-            </div>
-          </div>
-        );
+        return null;
     }
   };
 

@@ -7,7 +7,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
-  ShieldCheck
+  ShieldCheck,
+  Users2,
+  Activity
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +33,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, activeTab = "Home
   const menuItems = [
     { id: "Home", label: "Home", icon: Home },
     { id: "Automation", label: "Automation", icon: Zap },
+    { id: "Contacts", label: "Contacts", icon: Users2 },
+    { id: "Activity", label: "Activity", icon: Activity },
   ];
 
   return (

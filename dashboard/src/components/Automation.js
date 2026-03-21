@@ -26,7 +26,11 @@ export default function Automation() {
     replyMessages: ["Thanks! Please see DMs.", "Sent you a message! Check it out!", "Nice! Check your DMs!"],
     dmContent: "Hey there! Thanks so much for your interest 😊\n\nClick below and I'll send you the link right away ✨",
     buttonText: "Send me the link",
-    linkUrl: ""
+    linkUrl: "",
+    requireFollow: false,
+    followPromptPublicReply: "",
+    followPromptDM: "",
+    followButtonText: "I'm following now! ✓",
   });
 
   useEffect(() => {
@@ -48,6 +52,10 @@ export default function Automation() {
               dmContent: a.dmContent || prev.dmContent,
               buttonText: a.buttonText || prev.buttonText,
               linkUrl: a.linkUrl || prev.linkUrl,
+              requireFollow: a.requireFollow ?? false,
+              followPromptPublicReply: a.followPromptPublicReply || "",
+              followPromptDM: a.followPromptDM || "",
+              followButtonText: a.followButtonText || "I'm following now! ✓",
             }));
           } else if (data.media?.length > 0) {
             setConfig(prev => ({ ...prev, selectedPostId: data.media[0].id }));
@@ -130,6 +138,11 @@ export default function Automation() {
             setKeywords={(v) => update('keywords', v)}
             setReplyToggle={(v) => update('replyEnabled', v)}
             setReplyMessages={(v) => update('replyMessages', v)}
+            setRequireFollow={(v) => update('requireFollow', v)}
+            setFollowPromptPublicReply={(v) => update('followPromptPublicReply', v)}
+            setFollowPromptDM={(v) => update('followPromptDM', v)}
+            setFollowButtonText={(v) => update('followButtonText', v)}
+            instagramUsername={instaData.username}
           />
         </div>
 

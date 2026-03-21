@@ -71,12 +71,63 @@ export async function getDashboardStats() {
     totalInteractions,
     interactionsByType,
     recentInteractions: JSON.parse(JSON.stringify(recentInteractions)),
+    tokenExpired: user.tokenExpired || false,
+    automation: user.automation ? JSON.parse(JSON.stringify(user.automation)) : null,
     instagram: {
       username: user.instagramUsername,
       profilePic: user.instagramProfilePic || null,
       isConnected: user.isConnected
     }
   };
+}
+
+export async function getContacts() {
+  const userId = await getOwnerId();
+
+  await dbConnect();
+
+  const user = await User.findOne({ userId });
+  if (!user || !user.isConnected) return [];
+
+  const contacts = await Event.aggregate([
+    { $match: { targetBusinessId: user.instagramBusinessId } },
+    {
+      $group: {
+        _id: "$from.id",
+        username: { $last: "$from.username" },
+        name: { $last: "$from.name" },
+        totalInteractions: { $sum: 1 },
+        dmsSent: {
+          $sum: { $cond: [{ $eq: ["$reply.status", "sent"] }, 1, 0] }
+        },
+        lastSeen: { $max: "$createdAt" },
+        types: { $addToSet: "$type" },
+      }
+    },
+    { $sort: { lastSeen: -1 } },
+    { $limit: 200 }
+  ]);
+
+  return JSON.parse(JSON.stringify(contacts));
+}
+
+export async function getAllInteractions(type) {
+  const userId = await getOwnerId();
+
+  await dbConnect();
+
+  const user = await User.findOne({ userId });
+  if (!user || !user.isConnected) return [];
+
+  const query = { targetBusinessId: user.instagramBusinessId };
+  if (type && type !== "all") query.type = type;
+
+  const events = await Event.find(query)
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .lean();
+
+  return JSON.parse(JSON.stringify(events));
 }
 
 export async function getAccountsFromToken(code) {
@@ -211,6 +262,10 @@ export async function saveAutomation(data) {
         buttonText: data.buttonText,
         linkUrl: data.linkUrl,
         isActive: true,
+        requireFollow: data.requireFollow || false,
+        followPromptPublicReply: data.followPromptPublicReply || '',
+        followPromptDM: data.followPromptDM || '',
+        followButtonText: data.followButtonText || "I'm following now! ✓",
       }
     },
     { new: true }

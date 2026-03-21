@@ -22,6 +22,10 @@ const UserSchema = new mongoose.Schema({
     buttonText: { type: String },
     linkUrl: { type: String },
     isActive: { type: Boolean, default: false },
+    requireFollow: { type: Boolean, default: false },
+    followPromptPublicReply: { type: String },
+    followPromptDM: { type: String },
+    followButtonText: { type: String, default: "I'm following now! ✓" },
   },
   createdAt: { type: Date, default: Date.now },
 });
