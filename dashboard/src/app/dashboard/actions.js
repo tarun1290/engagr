@@ -72,6 +72,7 @@ export async function getDashboardStats() {
     interactionsByType,
     recentInteractions: JSON.parse(JSON.stringify(recentInteractions)),
     tokenExpired: user.tokenExpired || false,
+    tokenExpiresAt: user.tokenExpiresAt ? user.tokenExpiresAt.toISOString() : null,
     automation: user.automation ? JSON.parse(JSON.stringify(user.automation)) : null,
     instagram: {
       username: user.instagramUsername,
@@ -157,6 +158,7 @@ export async function getAccountsFromToken(code) {
     }
 
     let token = exchangeData.access_token;
+    let expiresIn = 3600; // short-lived default: 1 hour
 
     // Upgrade to long-lived token (60 days)
     try {
@@ -164,7 +166,10 @@ export async function getAccountsFromToken(code) {
         `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${appSecret}&access_token=${token}`
       );
       const longData = await longRes.json();
-      if (!longData.error && longData.access_token) token = longData.access_token;
+      if (!longData.error && longData.access_token) {
+        token = longData.access_token;
+        expiresIn = longData.expires_in || 5184000; // 60 days default
+      }
     } catch { /* keep short-lived on failure */ }
 
     // Get Instagram user info
@@ -182,6 +187,7 @@ export async function getAccountsFromToken(code) {
         name: me.name || me.username,
         profilePic: null,
         isIgToken: true,
+        expiresIn,
       }],
       totalPages: 1,
     };
@@ -216,6 +222,10 @@ export async function saveDiscoveredAccount(details) {
     console.error("[Subscription] Failed to subscribe:", err.message);
   }
 
+  // Calculate token expiry date from expires_in (seconds)
+  const expiresIn = details.expiresIn || 5184000; // default 60 days
+  const tokenExpiresAt = new Date(Date.now() + expiresIn * 1000);
+
   await User.findOneAndUpdate(
     { userId },
     {
@@ -225,6 +235,7 @@ export async function saveDiscoveredAccount(details) {
       instagramProfilePic: details.profilePic,
       isConnected: true,
       tokenExpired: false,
+      tokenExpiresAt,
     },
     { upsert: true, new: true }
   );

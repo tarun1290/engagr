@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import Event from "@/models/Event";
@@ -23,6 +24,13 @@ export async function adminLogin(formData) {
 }
 
 export async function deleteUser(userId) {
+  // Verify admin session before performing destructive action
+  const cookieStore = await cookies();
+  const adminSession = cookieStore.get("admin_session")?.value;
+  if (adminSession !== process.env.ADMIN_KEY) {
+    return { error: "Unauthorized" };
+  }
+
   if (!userId) return { error: "Missing userId" };
 
   try {
@@ -33,6 +41,9 @@ export async function deleteUser(userId) {
       await Event.deleteMany({ targetBusinessId: user.instagramBusinessId });
     }
     await User.deleteOne({ userId });
+
+    // Invalidate cached page so the table refreshes with fresh data
+    revalidatePath("/admin/dashboard");
 
     return { success: true };
   } catch (err) {

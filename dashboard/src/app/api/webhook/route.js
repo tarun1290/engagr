@@ -230,24 +230,57 @@ async function saveEvent(data) {
     }
 }
 
-// Mark user as disconnected when token expires (error code 190)
-async function handleTokenExpiry(userId) {
+// Attempt to refresh an expired/expiring token at runtime.
+// If refresh succeeds, updates the DB and returns the new token.
+// If refresh fails, marks user as disconnected.
+async function handleTokenExpiry(userId, currentToken) {
     try {
         await dbConnect();
+
+        // Try to refresh before giving up
+        if (currentToken) {
+            try {
+                const refreshUrl = new URL(`${IG_BASE}/refresh_access_token`);
+                refreshUrl.searchParams.set('grant_type', 'ig_refresh_token');
+                refreshUrl.searchParams.set('access_token', currentToken);
+                const refreshRes = await fetch(refreshUrl.toString());
+                const refreshData = await refreshRes.json();
+
+                if (!refreshData.error && refreshData.access_token) {
+                    const expiresIn = refreshData.expires_in || 5184000;
+                    await User.findOneAndUpdate(
+                        { userId },
+                        {
+                            instagramAccessToken: refreshData.access_token,
+                            tokenExpiresAt: new Date(Date.now() + expiresIn * 1000),
+                            tokenExpired: false,
+                        }
+                    );
+                    console.log(`[Token] Refreshed token for user ${userId} — new expiry in ${Math.round(expiresIn / 86400)} days`);
+                    return refreshData.access_token;
+                }
+            } catch (e) {
+                console.error('[Token Refresh] Inline refresh failed:', e.message);
+            }
+        }
+
+        // Refresh failed — mark as disconnected
         await User.findOneAndUpdate(
             { userId },
             { isConnected: false, tokenExpired: true }
         );
-        console.warn(`[Token] Marked user ${userId} as disconnected — token expired`);
+        console.warn(`[Token] Marked user ${userId} as disconnected — token expired and refresh failed`);
+        return null;
     } catch (err) {
         console.error('[Token Expiry Handler]', err.message);
+        return null;
     }
 }
 
 // Check API response for token expiry and handle it
 function checkTokenError(data, botUser) {
     if (data?.error?.code === 190) {
-        handleTokenExpiry(botUser.userId);
+        handleTokenExpiry(botUser.userId, botUser.instagramAccessToken);
         return true;
     }
     return false;

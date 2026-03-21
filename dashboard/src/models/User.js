@@ -11,6 +11,7 @@ const UserSchema = new mongoose.Schema({
   instagramProfilePic: { type: String },
   isConnected: { type: Boolean, default: false },
   tokenExpired: { type: Boolean, default: false },
+  tokenExpiresAt: { type: Date },
   automation: {
     postTrigger: { type: String, default: 'any' },
     selectedPostId: { type: String },

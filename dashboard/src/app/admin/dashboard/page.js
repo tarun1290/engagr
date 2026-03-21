@@ -2,6 +2,9 @@ import { ShieldCheck, Users, Zap, MessageSquare, Activity, LogOut, Instagram, Tr
 import { getAdminStats, adminLogout } from "../actions";
 import DeleteUserButton from "./DeleteUserButton";
 
+// Force dynamic rendering — admin dashboard must always show fresh DB data
+export const dynamic = "force-dynamic";
+
 function StatCard({ label, value, sub, icon: Icon, color = "slate" }) {
   const colors = {
     pink:    "bg-pink-50 text-pink-500 border-pink-100",
