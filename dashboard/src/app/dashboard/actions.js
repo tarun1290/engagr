@@ -237,7 +237,7 @@ export async function saveDiscoveredAccount(details) {
       tokenExpired: false,
       tokenExpiresAt,
     },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: 'after' }
   );
 
   // Generate master JWT and set as httpOnly cookie (30-day session)
@@ -279,7 +279,7 @@ export async function saveAutomation(data) {
         followButtonText: data.followButtonText || "I'm following now! ✓",
       }
     },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   return { success: true, automation: JSON.parse(JSON.stringify(user.automation)) };
