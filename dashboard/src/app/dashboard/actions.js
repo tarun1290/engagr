@@ -285,6 +285,19 @@ export async function saveAutomation(data) {
   return { success: true, automation: JSON.parse(JSON.stringify(user.automation)) };
 }
 
+export async function deleteAutomation() {
+  const userId = await getOwnerId();
+
+  await dbConnect();
+
+  await User.findOneAndUpdate(
+    { userId },
+    { $unset: { automation: "" } }
+  );
+
+  return { success: true };
+}
+
 export async function getInstagramAccount() {
   const userId = await getOwnerId();
 

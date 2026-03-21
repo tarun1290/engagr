@@ -24,13 +24,14 @@ import {
   AlertTriangle,
   Image,
   ToggleRight,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Automation from "@/components/Automation";
 import Settings from "@/components/Settings";
 import Contacts from "@/components/Contacts";
 import Activity from "@/components/Activity";
-import { getDashboardStats } from './actions';
+import { getDashboardStats, deleteAutomation } from './actions';
 
 const INTERACTION_TYPE_CONFIG = {
   comment:    { label: "Comment",    icon: MessageCircle, color: "text-blue-500",   bg: "bg-blue-50",   border: "border-blue-100"   },
@@ -176,6 +177,8 @@ const FeatureCard = ({ icon: Icon, title, description, badge, activeStatus = "Ac
 export default function Home() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState("Home");
+  const [showDeleteAutomation, setShowDeleteAutomation] = useState(false);
+  const [deletingAutomation, setDeletingAutomation] = useState(false);
   const [stats, setStats] = useState({
     contacts: 0,
     sentToday: 0,
@@ -199,6 +202,21 @@ export default function Home() {
     const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleDeleteAutomation = async () => {
+    setDeletingAutomation(true);
+    try {
+      const res = await deleteAutomation();
+      if (res.success) {
+        setStats(prev => ({ ...prev, automation: null }));
+        setShowDeleteAutomation(false);
+      }
+    } catch (err) {
+      console.error("Failed to delete automation:", err);
+    } finally {
+      setDeletingAutomation(false);
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -375,15 +393,56 @@ export default function Home() {
                       )}
                     </div>
 
-                    <button
-                      onClick={() => setActiveTab("Automation")}
-                      className="px-5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-bold text-slate-600 hover:bg-white hover:border-primary/30 hover:text-primary transition-all flex-shrink-0 self-start"
-                    >
-                      Edit
-                    </button>
+                    <div className="flex gap-2 flex-shrink-0 self-start">
+                      <button
+                        onClick={() => setActiveTab("Automation")}
+                        className="px-5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-bold text-slate-600 hover:bg-white hover:border-primary/30 hover:text-primary transition-all"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setShowDeleteAutomation(true)}
+                        className="px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-500 hover:bg-red-100 hover:border-red-300 transition-all"
+                        title="Delete automation"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </section>
+            )}
+
+            {/* Delete Automation Confirm Dialog */}
+            {showDeleteAutomation && (
+              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+                <div className="bg-white rounded-[24px] p-8 max-w-sm w-full space-y-6 shadow-2xl">
+                  <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto">
+                    <Trash2 size={22} className="text-red-500" />
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h3 className="text-xl font-black text-slate-900">Delete Automation?</h3>
+                    <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                      This will remove your automation settings including triggers, keywords, reply messages, and DM content. You can create a new one anytime.
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowDeleteAutomation(false)}
+                      className="flex-1 py-3 border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteAutomation}
+                      disabled={deletingAutomation}
+                      className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-all disabled:opacity-60"
+                    >
+                      {deletingAutomation ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Stats strip */}
