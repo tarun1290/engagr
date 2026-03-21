@@ -1,6 +1,7 @@
-import { ShieldCheck, Users, Zap, MessageSquare, Activity, LogOut, Instagram, TrendingUp, UserCheck, Calendar } from "lucide-react";
+import { ShieldCheck, Users, Zap, MessageSquare, Activity, LogOut, Instagram, TrendingUp, UserCheck, Calendar, DollarSign, CreditCard, Crown, BarChart3, Settings } from "lucide-react";
 import { getAdminStats, adminLogout } from "../actions";
 import DeleteUserButton from "./DeleteUserButton";
+import AdminUserActions from "./AdminUserActions";
 import AdminThemeToggle from "./AdminThemeToggle";
 
 // Force dynamic rendering — admin dashboard must always show fresh DB data
@@ -168,6 +169,35 @@ export default async function AdminDashboard() {
           </div>
         </section>
 
+        {/* Revenue & Plan Stats */}
+        <section>
+          <h2 className="text-xs font-black uppercase tracking-widest mb-5" style={{ color: "var(--admin-text-muted)" }}>Revenue & Plans</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard icon={DollarSign}  label="MRR"                value={`\u20B9${stats.mrr?.toLocaleString("en-IN") || 0}`}   sub="Monthly recurring"    color="emerald" />
+            <StatCard icon={CreditCard}  label="Active Subscribers"  value={stats.activeSubscribers || 0}                          sub="Paid plans"           color="blue"    />
+            <StatCard icon={Crown}       label="Plan Breakdown"      value={stats.planBreakdown?.length || 0}                      sub="Distinct plans"       color="amber"   />
+            <StatCard icon={BarChart3}   label="Trial Users"         value={stats.planBreakdown?.find(p => p._id === "trial")?.count || stats.planBreakdown?.find(p => !p._id)?.count || 0}  sub="Free trial"  color="slate" />
+          </div>
+          {/* Plan breakdown pills */}
+          {stats.planBreakdown?.length > 0 && (
+            <div className="flex flex-wrap gap-3 mt-4">
+              {stats.planBreakdown.map((p) => {
+                const planName = p._id || "trial";
+                const colorMap = { trial: "var(--admin-text-muted)", silver: "var(--admin-text-secondary)", gold: "var(--warning)", platinum: "var(--primary)" };
+                return (
+                  <div key={planName} className="flex items-center gap-2 px-4 py-2 rounded-xl"
+                    style={{ backgroundColor: "var(--admin-card)", border: "1px solid var(--admin-border)" }}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colorMap[planName] || "var(--admin-text-muted)" }} />
+                    <span className="text-[13px] font-bold capitalize" style={{ color: "var(--admin-text-primary)" }}>{planName}</span>
+                    <span className="text-[13px] font-black" style={{ color: colorMap[planName] || "var(--admin-text-muted)" }}>{p.count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
         {/* Interaction Breakdown */}
         {stats.eventsByType.length > 0 && (
           <section>
@@ -206,9 +236,11 @@ export default async function AdminDashboard() {
                   <tr style={{ borderBottom: "1px solid var(--admin-border)", backgroundColor: "var(--admin-surface-alt)" }}>
                     <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>User</th>
                     <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Instagram</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Plan</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>DMs Used</th>
                     <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Automation</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Keywords</th>
                     <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Joined</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Actions</th>
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right" style={{ color: "var(--admin-text-muted)" }}>Delete</th>
                   </tr>
                 </thead>
@@ -243,33 +275,37 @@ export default async function AdminDashboard() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <StatusBadge active={user.automation?.isActive} />
+                        {(() => {
+                          const plan = user.subscription?.plan || "trial";
+                          const planColors = { trial: "var(--admin-text-muted)", silver: "var(--admin-text-secondary)", gold: "var(--warning)", platinum: "var(--primary)" };
+                          return (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                              style={{ backgroundColor: "var(--admin-surface-alt)", color: planColors[plan], border: `1px solid var(--admin-border)` }}
+                            >
+                              {plan}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4">
-                        {user.automation?.keywords?.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {user.automation.keywords.slice(0, 3).map((k) => (
-                              <span
-                                key={k}
-                                className="px-2 py-0.5 rounded-md text-[10px] font-mono"
-                                style={{ backgroundColor: "var(--admin-surface-alt)", color: "var(--admin-text-secondary)", border: "1px solid var(--admin-border)" }}
-                              >
-                                {k}
-                              </span>
-                            ))}
-                            {user.automation.keywords.length > 3 && (
-                              <span className="text-[10px]" style={{ color: "var(--admin-text-muted)" }}>+{user.automation.keywords.length - 3}</span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs" style={{ color: "var(--admin-text-muted)" }}>Any</span>
-                        )}
+                        <span className="text-[13px] font-mono" style={{ color: "var(--admin-text-secondary)" }}>
+                          {user.usage?.dmsSentThisMonth || 0}
+                        </span>
+                        <span className="text-[10px] ml-1" style={{ color: "var(--admin-text-muted)" }}>
+                          /{user.subscription?.plan === "trial" ? 50 : "∞"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <StatusBadge active={user.automation?.isActive} />
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1.5" style={{ color: "var(--admin-text-muted)" }}>
                           <Calendar size={11} />
                           <span className="text-xs">{timeAgo(user.createdAt)}</span>
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <AdminUserActions userId={user.userId} currentPlan={user.subscription?.plan || "trial"} />
                       </td>
                       <td className="px-6 py-4 text-right">
                         <DeleteUserButton userId={user.userId} />

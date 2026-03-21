@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
+import InstagramAccount from "@/models/InstagramAccount";
 
 function parseSignedRequest(signedRequest, secret) {
   try {
@@ -31,7 +32,19 @@ export async function POST(request) {
 
   await dbConnect();
 
-  // Remove tokens and disconnect — match by Facebook user ID or Instagram Business ID
+  // Disconnect all InstagramAccounts for this Facebook user
+  const user = await User.findOne({ facebookUserId: data.user_id });
+  if (user) {
+    await InstagramAccount.updateMany(
+      { userId: user.userId },
+      {
+        $unset: { accessToken: 1 },
+        $set: { isConnected: false, tokenExpired: false, "automation.isActive": false },
+      }
+    );
+  }
+
+  // Remove tokens from legacy User fields
   await User.updateMany(
     { facebookUserId: data.user_id },
     {

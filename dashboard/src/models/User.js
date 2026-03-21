@@ -30,7 +30,44 @@ const UserSchema = new mongoose.Schema({
     followPromptPublicReply: { type: String },
     followPromptDM: { type: String },
     followButtonText: { type: String, default: "I'm following now! ✓" },
+
+    // Mentions tracker
+    mentionsEnabled: { type: Boolean, default: false },
+    mentionReplyMessage: { type: String, default: "Thanks for the mention! 🙌" },
+
+    // Reel share linker
+    reelShareEnabled: { type: Boolean, default: false },
+    reelShareMessage: { type: String, default: "Hey! 👋 Thanks for sharing!" },
+    reelShareLinkUrl: { type: String },
+    reelShareButtonText: { type: String, default: "Check it out 🚀" },
   },
+
+  // ── Subscription & billing ──────────────────────────────────────────────
+  subscription: {
+    plan: { type: String, enum: ["trial", "silver", "gold", "platinum"], default: "trial" },
+    status: { type: String, enum: ["active", "past_due", "cancelled", "expired", "trialing"], default: "trialing" },
+    dodoCustomerId: { type: String },
+    dodoSubscriptionId: { type: String },
+    dodoProductId: { type: String },
+    currentPeriodStart: { type: Date },
+    currentPeriodEnd: { type: Date },
+    trialEndsAt: { type: Date },
+    cancelledAt: { type: Date },
+    cancelAtPeriodEnd: { type: Boolean, default: false },
+    downgradeToPlan: { type: String },
+    downgradeEffectiveDate: { type: Date },
+    cancellationReason: { type: String, enum: ["too_expensive", "not_using", "switching_competitor", "missing_feature", "other", null] },
+  },
+
+  // ── Usage tracking ──────────────────────────────────────────────────────
+  usage: {
+    dmsSentThisMonth: { type: Number, default: 0 },
+    dmsSentTotal: { type: Number, default: 0 },
+    topUpDmsRemaining: { type: Number, default: 0 },
+    monthlyResetDate: { type: Date },
+    lastResetAt: { type: Date },
+  },
+
   createdAt: { type: Date, default: Date.now },
 });
 

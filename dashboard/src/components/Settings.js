@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Instagram, Trash2, ShieldOff, AlertTriangle, CheckCircle2, ExternalLink, User, Mail, AtSign } from "lucide-react";
 import { deauthorizeInstagram, deleteAccountData } from "@/app/settings/actions";
+import ManageAccounts from "./ManageAccounts";
 
 const BASE_URL = "https://engagr-dm.vercel.app";
 
@@ -132,7 +133,10 @@ export default function Settings({ stats }) {
         <p className="text-sm font-medium mt-1" style={{ color: 'var(--text-placeholder)' }}>Manage your account, privacy and data.</p>
       </div>
 
-      {/* Connected Account */}
+      {/* Manage Instagram Accounts */}
+      <ManageAccounts />
+
+      {/* Connected Account (Legacy) */}
       <SectionCard
         icon={Instagram}
         iconColor="var(--primary)"

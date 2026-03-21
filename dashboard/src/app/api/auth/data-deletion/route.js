@@ -3,6 +3,7 @@ import crypto from "crypto";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import Event from "@/models/Event";
+import InstagramAccount from "@/models/InstagramAccount";
 
 function parseSignedRequest(signedRequest, secret) {
   try {
@@ -34,16 +35,33 @@ export async function POST(request) {
 
   await dbConnect();
 
-  // Find the user and delete all their data
   const user = await User.findOne({ facebookUserId: data.user_id });
   if (user) {
-    await Event.deleteMany({ targetBusinessId: user.instagramBusinessId });
+    // Delete events for all InstagramAccounts
+    const accounts = await InstagramAccount.find({ userId: user.userId });
+    for (const account of accounts) {
+      await Event.deleteMany({
+        $or: [
+          { accountId: account._id },
+          { targetBusinessId: account.instagramUserId },
+        ],
+      });
+    }
+
+    // Delete legacy events
+    if (user.instagramBusinessId) {
+      await Event.deleteMany({ targetBusinessId: user.instagramBusinessId });
+    }
+
+    // Delete all InstagramAccounts
+    await InstagramAccount.deleteMany({ userId: user.userId });
+
+    // Delete the User
     await User.deleteOne({ facebookUserId: data.user_id });
   }
 
   console.log(`[Data Deletion] Deleted data for Facebook user ${data.user_id}. Code: ${confirmationCode}`);
 
-  // Meta requires this exact response format
   return NextResponse.json({
     url: `${process.env.NEXT_PUBLIC_APP_URL}/data-deletion-status?id=${confirmationCode}`,
     confirmation_code: confirmationCode,

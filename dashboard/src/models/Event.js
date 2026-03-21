@@ -6,6 +6,7 @@ const EventSchema = new mongoose.Schema({
         enum: ['comment', 'mention', 'dm', 'reel_share', 'reaction', 'bot_restart', 'postback'],
         required: true
     },
+    accountId: { type: mongoose.Schema.Types.ObjectId, ref: "InstagramAccount", index: true },
     targetBusinessId: { type: String, index: true },
     from: {
         id: String,

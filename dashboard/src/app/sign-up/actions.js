@@ -37,12 +37,25 @@ export async function signUp(formData) {
   const passwordHash = await bcrypt.hash(password, 12);
   const userId = email; // use email as unique userId
 
+  const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
   await User.create({
     userId,
     email,
     name,
     instagramHandle: instagramHandle || undefined,
     passwordHash,
+    subscription: {
+      plan: "trial",
+      status: "trialing",
+      trialEndsAt,
+    },
+    usage: {
+      dmsSentThisMonth: 0,
+      dmsSentTotal: 0,
+      topUpDmsRemaining: 0,
+      monthlyResetDate: trialEndsAt,
+    },
   });
 
   // Issue master JWT

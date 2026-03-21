@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
+import InstagramAccount from '@/models/InstagramAccount';
 import Event from '@/models/Event';
 import ProcessedMid from '@/models/ProcessedMid';
+import { checkDmQuota } from '@/lib/gating';
 
 // Business Login for Instagram uses graph.instagram.com — NOT graph.facebook.com
 // instagram_oembed is the only call that stays on graph.facebook.com
@@ -284,10 +286,64 @@ async function saveEvent(data) {
     }
 }
 
+// ── DM Quota enforcement ────────────────────────────────────────────────────
+// Returns { allowed, source } or { allowed: false, reason }.
+// If blocked, logs a quota_exceeded event (once per day per user).
+async function enforceDmQuota(botUser, accountId, igBusinessId) {
+    if (!botUser) return { allowed: true, source: 'monthly' };
+
+    const quota = checkDmQuota(botUser);
+    if (quota.allowed) return quota;
+
+    // Blocked — check if we already logged a quota_exceeded event today
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const existingToday = await Event.findOne({
+        targetBusinessId: igBusinessId,
+        type: 'dm',
+        'reply.status': 'quota_exceeded',
+        createdAt: { $gte: startOfDay },
+    });
+
+    if (!existingToday) {
+        await saveEvent({
+            type: 'dm',
+            accountId,
+            targetBusinessId: igBusinessId,
+            from: { id: 'system' },
+            content: { text: `DM quota exceeded: ${quota.reason}` },
+            reply: { status: 'quota_exceeded' },
+        });
+        console.log(`[Quota] First quota_exceeded event today for user ${botUser.userId} — ${quota.reason}`);
+    }
+
+    console.log(`[Quota] Blocked DM for user ${botUser.userId} — ${quota.reason} (sent=${quota.dmsSent}/${quota.dmLimit})`);
+    return quota;
+}
+
+// Atomically update DM usage after a successful send.
+async function trackDmUsage(botUser, source) {
+    if (!botUser?._id) return;
+    try {
+        if (source === 'topup') {
+            await User.findByIdAndUpdate(botUser._id, {
+                $inc: { 'usage.dmsSentTotal': 1, 'usage.topUpDmsRemaining': -1 },
+            });
+        } else {
+            await User.findByIdAndUpdate(botUser._id, {
+                $inc: { 'usage.dmsSentThisMonth': 1, 'usage.dmsSentTotal': 1 },
+            });
+        }
+    } catch (err) {
+        console.error('[Usage] Failed to track DM usage:', err.message);
+    }
+}
+
 // Attempt to refresh an expired/expiring token at runtime.
 // If refresh succeeds, updates the DB and returns the new token.
 // If refresh fails, marks user as disconnected.
-async function handleTokenExpiry(userId, currentToken) {
+async function handleTokenExpiry(userId, currentToken, igAccountId) {
     try {
         await dbConnect();
 
@@ -302,11 +358,22 @@ async function handleTokenExpiry(userId, currentToken) {
 
                 if (!refreshData.error && refreshData.access_token) {
                     const expiresIn = refreshData.expires_in || 5184000;
+                    const newExpiry = new Date(Date.now() + expiresIn * 1000);
+
+                    // Update InstagramAccount if available
+                    if (igAccountId) {
+                        await InstagramAccount.findByIdAndUpdate(igAccountId, {
+                            accessToken: refreshData.access_token,
+                            tokenExpiresAt: newExpiry,
+                            tokenExpired: false,
+                        });
+                    }
+                    // Keep legacy User in sync
                     await User.findOneAndUpdate(
                         { userId },
                         {
                             instagramAccessToken: refreshData.access_token,
-                            tokenExpiresAt: new Date(Date.now() + expiresIn * 1000),
+                            tokenExpiresAt: newExpiry,
                             tokenExpired: false,
                         }
                     );
@@ -319,6 +386,11 @@ async function handleTokenExpiry(userId, currentToken) {
         }
 
         // Refresh failed — mark as disconnected
+        if (igAccountId) {
+            await InstagramAccount.findByIdAndUpdate(igAccountId, {
+                isConnected: false, tokenExpired: true, 'automation.isActive': false,
+            });
+        }
         await User.findOneAndUpdate(
             { userId },
             { isConnected: false, tokenExpired: true }
@@ -332,15 +404,15 @@ async function handleTokenExpiry(userId, currentToken) {
 }
 
 // Check API response for token expiry and handle it
-function checkTokenError(data, botUser) {
+function checkTokenError(data, botUser, igAccountId) {
     if (data?.error?.code === 190) {
-        handleTokenExpiry(botUser.userId, botUser.instagramAccessToken);
+        handleTokenExpiry(botUser.userId, igAccountId ? null : botUser?.instagramAccessToken, igAccountId);
         return true;
     }
     return false;
 }
 
-async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, token, automation, botUser) {
+async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, token, automation, botUser, accountId) {
     console.log(`[AutoReply] Start — commentId=${commentId} senderId=${senderId} type=${type}`);
     if (!commentId) { console.log('[AutoReply] ❌ No commentId — skipping'); return; }
 
@@ -376,7 +448,21 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
         }
     }
 
-    const igUsername = botUser.instagramUsername || '';
+    // ── Quota check before sending any DM ──────────────────────────────────
+    const quota = await enforceDmQuota(botUser, accountId, automation.instagramBusinessId);
+    if (!quota.allowed) {
+        await saveEvent({
+            type,
+            accountId,
+            targetBusinessId: automation.instagramBusinessId,
+            from: { id: fromInfo?.id, username: fromInfo?.username, name: fromInfo?.name },
+            content: { commentId, text: fromInfo?.text, mediaId },
+            reply: { status: 'quota_exceeded' },
+        });
+        return;
+    }
+
+    const igUsername = igAccount?.instagramUsername || botUser?.instagramUsername || '';
     const publicReply = automation.replyMessages?.[0] || 'Check your DM! 📩';
 
     // ── Step 1: Public reply to the comment ──────────────────────────────────
@@ -385,7 +471,6 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
     }
 
     // ── Step 2: Send initial DM — greeting with "Yes" confirmation button ────
-    // This opens the DM thread via comment_id (required for first contact)
     const greetingText = automation.dmContent || 'Hey there! Thanks for your interest 😊';
     const confirmButtonText = automation.buttonText || 'Yes';
 
@@ -393,10 +478,11 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
     const igScopedId = firstContact?.recipient_id;
 
     if (!firstContact || firstContact.error) {
-        const status = checkTokenError(firstContact, botUser) ? 'token_expired' : 'failed';
+        const status = checkTokenError(firstContact, botUser, accountId) ? 'token_expired' : 'failed';
         console.error('[AutoReply] ❌ Failed to send initial DM');
         await saveEvent({
             type,
+            accountId,
             targetBusinessId: automation.instagramBusinessId,
             from: { id: fromInfo?.id, username: fromInfo?.username, name: fromInfo?.name },
             content: { commentId, text: fromInfo?.text, mediaId },
@@ -438,8 +524,10 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
     }
 
     console.log(`[AutoReply] ✅ Sent greeting + confirmation button to @${fromInfo?.username || senderId}`);
+    await trackDmUsage(botUser, quota.source);
     await saveEvent({
         type,
+        accountId,
         targetBusinessId: automation.instagramBusinessId,
         from: { id: fromInfo?.id, username: fromInfo?.username, name: fromInfo?.name },
         content: { commentId, text: fromInfo?.text, mediaId },
@@ -513,21 +601,38 @@ export async function POST(request) {
             continue;
         }
 
-        const botUser = await User.findOne({
+        // Look up the InstagramAccount first, fall back to legacy User lookup
+        let igAccount = await InstagramAccount.findOne({
             $or: [
-                { instagramWebhookId: targetId },
-                { instagramBusinessId: targetId }
+                { instagramPageScopedId: targetId },
+                { instagramUserId: targetId }
             ]
         }).catch(() => null);
 
-        if (!botUser?.instagramAccessToken) {
+        let botUser = null;
+        if (igAccount) {
+            botUser = await User.findOne({ userId: igAccount.userId }).catch(() => null);
+        } else {
+            // Legacy fallback: lookup by User fields (pre-migration)
+            botUser = await User.findOne({
+                $or: [
+                    { instagramWebhookId: targetId },
+                    { instagramBusinessId: targetId }
+                ]
+            }).catch(() => null);
+        }
+
+        // Resolve token and automation from InstagramAccount (preferred) or User (legacy)
+        const token = igAccount?.accessToken || botUser?.instagramAccessToken;
+        if (!token) {
             console.log(`[Webhook] No active account for ID: ${targetId}`);
             continue;
         }
 
-        const token = botUser.instagramAccessToken;
-        const igBusinessId = botUser.instagramBusinessId;
-        console.log(`[Webhook] ✅ Found user for ID ${targetId} — automation.isActive=${botUser.automation?.isActive}`);
+        const igBusinessId = igAccount?.instagramUserId || botUser?.instagramBusinessId;
+        const accountId = igAccount?._id || null;
+        const automation = igAccount?.automation || botUser?.automation;
+        console.log(`[Webhook] ✅ Found account for ID ${targetId} — automation.isActive=${automation?.isActive}`);
 
         // 1. Comments & Mentions (Feed / Live Comments)
         const changes = entry.changes || [];
@@ -543,42 +648,49 @@ export async function POST(request) {
 
             if (field === 'feed' || field === 'comments' || field === 'live_comments') {
                 if (value.item === 'comment' || field === 'comments' || field === 'live_comments') {
-                    // Skip sub-replies (replies to comments) — only handle top-level comments
-                    // parent_id is set when this is a reply to an existing comment
                     if (value.parent_id) continue;
 
                     const cid = value.comment_id || value.id;
                     console.log(`[Comment] @${value.from?.username}: ${value.text || value.message}`);
+                    const autoObj = automation?.toObject?.() || automation || {};
                     await handleAutoReply(cid, fromId, 'comment', {
                         id: fromId, username: value.from?.username, text: value.text || value.message
-                    }, value, token, { ...(botUser.automation?.toObject?.() || botUser.automation || {}), instagramBusinessId: igBusinessId }, botUser);
+                    }, value, token, { ...autoObj, instagramBusinessId: igBusinessId }, botUser, accountId);
                 }
             }
 
-            // Mentions: user tagged the business in a comment on another post
-            // Must use POST /{ig-user-id}/mentions (NOT comment replies endpoint)
             if (field === 'mention' || field === 'mentions') {
                 const mentionMediaId = value.media_id;
                 const mentionCommentId = value.comment_id;
                 console.log(`[Mention] in media ${mentionMediaId}, comment ${mentionCommentId}`);
 
-                if (botUser.automation?.isActive && mentionMediaId && mentionCommentId) {
-                    const mentionReply = botUser.automation.replyMessages?.length > 0
-                        ? botUser.automation.replyMessages[Math.floor(Math.random() * botUser.automation.replyMessages.length)]
-                        : 'Thanks for the mention! 🙌';
+                const mentionsEnabled = automation?.mentionsEnabled ?? true;
+                if (automation?.isActive && mentionsEnabled && mentionMediaId && mentionCommentId) {
+                    const mentionReply = automation.mentionReplyMessage
+                        || 'Thanks for the mention! 🙌';
 
                     const mentionResult = await replyToMention(igBusinessId, mentionMediaId, mentionCommentId, mentionReply, token);
                     const mentionStatus = mentionResult && !mentionResult.error ? 'sent' : 'failed';
-                    if (mentionResult && checkTokenError(mentionResult, botUser)) {
+                    if (mentionResult && checkTokenError(mentionResult, botUser, accountId)) {
                         // token expired — stop processing
                     }
 
                     await saveEvent({
                         type: 'mention',
+                        accountId,
                         targetBusinessId: igBusinessId,
                         from: { id: fromId, username: value.from?.username },
                         content: { commentId: mentionCommentId, mediaId: mentionMediaId, text: value.text },
                         reply: { publicReply: mentionReply, status: mentionStatus },
+                    });
+                } else if (automation?.isActive && !mentionsEnabled && mentionMediaId) {
+                    await saveEvent({
+                        type: 'mention',
+                        accountId,
+                        targetBusinessId: igBusinessId,
+                        from: { id: fromId, username: value.from?.username },
+                        content: { commentId: mentionCommentId, mediaId: mentionMediaId, text: value.text },
+                        reply: { status: 'skipped' },
                     });
                 }
             }
@@ -589,7 +701,7 @@ export async function POST(request) {
         const messaging = entry.messaging || [];
         for (const event of messaging) {
             const senderId = event.sender?.id || event.from?.id;
-            if (senderId === targetId || senderId === botUser.instagramBusinessId) continue;
+            if (senderId === targetId || senderId === igBusinessId) continue;
 
             // Handle DMs (including shared reels/posts)
             if (event.message) {
@@ -650,12 +762,10 @@ export async function POST(request) {
                         : att.type === 'share' ? 'post_share'
                         : (att.type || 'media');
 
-                    // If the share URL looks like an Instagram permalink, use it as permalink
                     if (isShareType && mediaUrl && /instagram\.com/.test(mediaUrl)) {
                         permalink = mediaUrl;
                     }
 
-                    // Fetch rich metadata for shared posts/reels
                     if (rawMediaId) {
                         const meta = await getMedia(rawMediaId, token);
                         if (meta?.permalink) permalink = meta.permalink;
@@ -666,7 +776,6 @@ export async function POST(request) {
                         }
                     }
 
-                    // oEmbed fallback for thumbnail
                     if (!thumbnailUrl && (permalink || mediaUrl)) {
                         const oembed = await getOEmbed(permalink || mediaUrl, token);
                         if (oembed?.thumbnail_url) thumbnailUrl = oembed.thumbnail_url;
@@ -681,59 +790,93 @@ export async function POST(request) {
                     console.log(`[Attachment] type=${att.type} isShared=${isSharedContent} rawMediaId=${rawMediaId} url=${mediaUrl?.substring(0, 60)}`);
 
                     if (isSharedContent) {
-                        // Shared reel/post — send auto-reply
-                        console.log('[Shared] Post/Reel detected — sending reply');
-                        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://engagr-dm.vercel.app';
-                        const firstName = profile?.name?.split(' ')[0] || 'there';
-                        const replyText = `Hi ${firstName}! 👋 Thanks for sharing! 🎉\n\n🔗 ${appUrl}`;
-                        let templateSent = false;
+                        const reelShareEnabled = automation?.reelShareEnabled ?? true;
 
-                        // Generic template (image card) — works on Instagram when thumbnail available
-                        if (thumbnailUrl) {
-                            try {
-                                await sendGenericTemplate(senderId, [{
-                                    title: `Hi ${firstName}! 👋 Thanks for sharing!`,
-                                    image_url: thumbnailUrl,
-                                    subtitle: 'Check out more content and updates.',
-                                    buttons: [{ type: 'web_url', url: appUrl, title: 'Visit Us 🚀' }]
-                                }], token);
-                                console.log(`[Generic Sent] -> ${senderId}`);
-                                templateSent = true;
-                                replySentForThisMessage = true;
-                            } catch (e) { console.error('[Template Fail]', e.message); }
-                        }
-
-                        // Quick reply fallback (no image needed)
-                        if (!templateSent) {
-                            try {
-                                await sendQuickReply(senderId, replyText, [
-                                    { content_type: 'text', title: 'Visit Us 🚀', payload: 'VISIT_SITE' },
-                                    { content_type: 'text', title: 'Thanks! 👍', payload: 'THANKS' }
-                                ], token);
-                                console.log(`[QuickReply Sent] -> ${senderId}`);
-                                templateSent = true;
-                                replySentForThisMessage = true;
-                            } catch {
-                                try {
-                                    await sendDM(senderId, replyText, token);
-                                    replySentForThisMessage = true;
-                                } catch (e) { console.error('[DM Fallback Fail]', e.message); }
+                        if (automation?.isActive && reelShareEnabled) {
+                            // ── Quota check before sending reel share DM ──────────
+                            const reelQuota = await enforceDmQuota(botUser, accountId, igBusinessId);
+                            if (!reelQuota.allowed) {
+                                await saveEvent({
+                                    type: 'reel_share',
+                                    accountId,
+                                    targetBusinessId: igBusinessId,
+                                    from: fromInfo,
+                                    content: { mediaId: rawMediaId, mediaUrl: permalink ? null : mediaUrl, thumbnailUrl, permalink, attachmentType, text: msgText },
+                                    reply: { status: 'quota_exceeded' },
+                                });
+                                continue;
                             }
-                        }
 
-                        await saveEvent({
-                            type: 'reel_share',
-                            targetBusinessId: botUser.instagramBusinessId,
-                            from: fromInfo,
-                            content: { mediaId: rawMediaId, mediaUrl: permalink ? null : mediaUrl, thumbnailUrl, permalink, attachmentType, text: msgText },
-                            reply: { privateDM: replyText, status: replySentForThisMessage ? 'sent' : 'failed' },
-                        });
+                            console.log('[Shared] Post/Reel detected — sending reply');
+                            const firstName = profile?.name?.split(' ')[0] || 'there';
+                            const customMessage = automation?.reelShareMessage || "Hey! 👋 Thanks for sharing!";
+                            const customLinkUrl = automation?.reelShareLinkUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://engagr-dm.vercel.app';
+                            const customButtonText = automation?.reelShareButtonText || "Check it out 🚀";
+                            const replyText = `${customMessage.replace('{name}', firstName)}\n\n🔗 ${customLinkUrl}`;
+                            let templateSent = false;
+
+                            // Generic template (image card) — works on Instagram when thumbnail available
+                            if (thumbnailUrl) {
+                                try {
+                                    await sendGenericTemplate(senderId, [{
+                                        title: customMessage.replace('{name}', firstName),
+                                        image_url: thumbnailUrl,
+                                        subtitle: 'Check out more content and updates.',
+                                        buttons: [{ type: 'web_url', url: customLinkUrl, title: customButtonText }]
+                                    }], token);
+                                    console.log(`[Generic Sent] -> ${senderId}`);
+                                    templateSent = true;
+                                    replySentForThisMessage = true;
+                                } catch (e) { console.error('[Template Fail]', e.message); }
+                            }
+
+                            // Quick reply fallback (no image needed)
+                            if (!templateSent) {
+                                try {
+                                    await sendQuickReply(senderId, replyText, [
+                                        { content_type: 'text', title: customButtonText, payload: 'VISIT_SITE' },
+                                        { content_type: 'text', title: 'Thanks! 👍', payload: 'THANKS' }
+                                    ], token);
+                                    console.log(`[QuickReply Sent] -> ${senderId}`);
+                                    templateSent = true;
+                                    replySentForThisMessage = true;
+                                } catch {
+                                    try {
+                                        await sendDM(senderId, replyText, token);
+                                        replySentForThisMessage = true;
+                                    } catch (e) { console.error('[DM Fallback Fail]', e.message); }
+                                }
+                            }
+
+                            if (replySentForThisMessage) {
+                                await trackDmUsage(botUser, reelQuota.source);
+                            }
+                            await saveEvent({
+                                type: 'reel_share',
+                                accountId,
+                                targetBusinessId: igBusinessId,
+                                from: fromInfo,
+                                content: { mediaId: rawMediaId, mediaUrl: permalink ? null : mediaUrl, thumbnailUrl, permalink, attachmentType, text: msgText },
+                                reply: { privateDM: replyText, status: replySentForThisMessage ? 'sent' : 'failed' },
+                            });
+                        } else {
+                            // Reel share disabled — log but skip reply
+                            await saveEvent({
+                                type: 'reel_share',
+                                accountId,
+                                targetBusinessId: igBusinessId,
+                                from: fromInfo,
+                                content: { mediaId: rawMediaId, mediaUrl: permalink ? null : mediaUrl, thumbnailUrl, permalink, attachmentType, text: msgText },
+                                reply: { status: 'skipped' },
+                            });
+                        }
 
                     } else if (att.type === 'image' || att.type === 'video' || att.type === 'audio') {
                         // Direct image/video/audio — save without auto-reply
                         await saveEvent({
                             type: 'dm',
-                            targetBusinessId: botUser.instagramBusinessId,
+                            accountId,
+                            targetBusinessId: igBusinessId,
                             from: fromInfo,
                             content: { mediaUrl, thumbnailUrl: thumbnailUrl || mediaUrl, attachmentType, text: msgText },
                             reply: { status: 'skipped' },
@@ -745,7 +888,8 @@ export async function POST(request) {
                 if (msgText && !attachments.length) {
                     await saveEvent({
                         type: 'dm',
-                        targetBusinessId: botUser.instagramBusinessId,
+                        accountId,
+                        targetBusinessId: igBusinessId,
                         from: { id: senderId, username: profile?.username, name: profile?.name },
                         content: { text: msgText },
                         reply: { status: 'skipped' },
@@ -760,33 +904,45 @@ export async function POST(request) {
                 console.log(`[Postback] From ${senderId}: ${title} (${payload})`);
 
                 const pbProfile = await getUser(senderId, token);
-                const automation = botUser.automation;
-                const igUsername = botUser.instagramUsername || '';
+                const pbAutomation = automation;
+                const igUsername = igAccount?.instagramUsername || botUser?.instagramUsername || '';
 
                 // ── "Yes" confirmation postback — user wants the content ─────
                 if (payload?.startsWith('CONFIRM_INTEREST:')) {
                     const commenterIUI = payload.slice('CONFIRM_INTEREST:'.length);
 
-                    // Check if follow gate is enabled
-                    if (automation?.requireFollow) {
+                    if (pbAutomation?.requireFollow) {
                         const isFollower = await checkIsFollower(commenterIUI, token);
 
                         if (isFollower) {
-                            // Already following → deliver content directly
-                            await deliverContent(senderId, token, automation, igUsername);
+                            // ── Quota check before delivering content ─────────
+                            const pbQuota = await enforceDmQuota(botUser, accountId, igBusinessId);
+                            if (!pbQuota.allowed) {
+                                await saveEvent({
+                                    type: 'postback',
+                                    accountId,
+                                    targetBusinessId: igBusinessId,
+                                    from: { id: senderId, username: pbProfile?.username, name: pbProfile?.name },
+                                    content: { text: title },
+                                    reply: { status: 'quota_exceeded' },
+                                });
+                                continue;
+                            }
+                            await deliverContent(senderId, token, pbAutomation, igUsername);
+                            await trackDmUsage(botUser, pbQuota.source);
                             console.log(`[Confirm ✅] @${pbProfile?.username || senderId} is a follower — delivered content`);
                             await saveEvent({
                                 type: 'postback',
+                                accountId,
                                 targetBusinessId: igBusinessId,
                                 from: { id: senderId, username: pbProfile?.username, name: pbProfile?.name },
                                 content: { text: title },
-                                reply: { privateDM: automation.deliveryMessage || automation.dmContent, status: 'sent' },
+                                reply: { privateDM: pbAutomation.deliveryMessage || pbAutomation.dmContent, status: 'sent' },
                             });
                         } else {
-                            // Not following → send follow prompt with 2 buttons
-                            const followPromptText = automation.followPromptDM
+                            const followPromptText = pbAutomation.followPromptDM
                                 || `Hey! It seems you're not following me yet\nWould love it if you could check out my profile and hit follow 😊`;
-                            const followButtonTitle = automation.followButtonText || "I'm following ✅";
+                            const followButtonTitle = pbAutomation.followButtonText || "I'm following ✅";
 
                             try {
                                 const url = new URL(`${IG_BASE}/me/messages`);
@@ -826,6 +982,7 @@ export async function POST(request) {
                             console.log(`[FollowGate] @${pbProfile?.username || senderId} not following — sent follow prompt`);
                             await saveEvent({
                                 type: 'postback',
+                                accountId,
                                 targetBusinessId: igBusinessId,
                                 from: { id: senderId, username: pbProfile?.username, name: pbProfile?.name },
                                 content: { text: title },
@@ -833,15 +990,29 @@ export async function POST(request) {
                             });
                         }
                     } else {
-                        // No follow gate → deliver content immediately
-                        await deliverContent(senderId, token, automation, igUsername);
+                        // ── Quota check before delivering content ─────────
+                        const pbQuota2 = await enforceDmQuota(botUser, accountId, igBusinessId);
+                        if (!pbQuota2.allowed) {
+                            await saveEvent({
+                                type: 'postback',
+                                accountId,
+                                targetBusinessId: igBusinessId,
+                                from: { id: senderId, username: pbProfile?.username, name: pbProfile?.name },
+                                content: { text: title },
+                                reply: { status: 'quota_exceeded' },
+                            });
+                            continue;
+                        }
+                        await deliverContent(senderId, token, pbAutomation, igUsername);
+                        await trackDmUsage(botUser, pbQuota2.source);
                         console.log(`[Confirm ✅] @${pbProfile?.username || senderId} — delivered content (no follow gate)`);
                         await saveEvent({
                             type: 'postback',
+                            accountId,
                             targetBusinessId: igBusinessId,
                             from: { id: senderId, username: pbProfile?.username, name: pbProfile?.name },
                             content: { text: title },
-                            reply: { privateDM: automation.deliveryMessage || automation.dmContent, status: 'sent' },
+                            reply: { privateDM: pbAutomation?.deliveryMessage || pbAutomation?.dmContent, status: 'sent' },
                         });
                     }
                     continue;
@@ -852,22 +1023,35 @@ export async function POST(request) {
                     const commenterIUI = payload.slice('CHECK_FOLLOW:'.length);
                     const isFollower = await checkIsFollower(commenterIUI, token);
 
-                    if (isFollower && automation?.isActive) {
-                        // ✅ Confirmed follower — deliver the content
-                        await deliverContent(senderId, token, automation, igUsername);
+                    if (isFollower && pbAutomation?.isActive) {
+                        // ── Quota check before delivering content ─────────
+                        const fgQuota = await enforceDmQuota(botUser, accountId, igBusinessId);
+                        if (!fgQuota.allowed) {
+                            await saveEvent({
+                                type: 'postback',
+                                accountId,
+                                targetBusinessId: igBusinessId,
+                                from: { id: senderId, username: pbProfile?.username, name: pbProfile?.name },
+                                content: { text: title },
+                                reply: { status: 'quota_exceeded' },
+                            });
+                            continue;
+                        }
+                        await deliverContent(senderId, token, pbAutomation, igUsername);
+                        await trackDmUsage(botUser, fgQuota.source);
 
                         console.log(`[FollowGate ✅] @${pbProfile?.username || senderId} confirmed follow — content delivered`);
                         await saveEvent({
                             type: 'postback',
+                            accountId,
                             targetBusinessId: igBusinessId,
                             from: { id: senderId, username: pbProfile?.username, name: pbProfile?.name },
                             content: { text: title },
-                            reply: { privateDM: automation.deliveryMessage || automation.dmContent, status: 'sent' },
+                            reply: { privateDM: pbAutomation?.deliveryMessage || pbAutomation?.dmContent, status: 'sent' },
                         });
                     } else {
-                        // ❌ Not following yet — explain and resend the buttons
                         const notYetText = `Hmm, I can't see your follow yet 🤔\n\nPlease make sure you've followed @${igUsername} and try again!`;
-                        const followButtonTitle = automation?.followButtonText || "I'm following ✅";
+                        const followButtonTitle = pbAutomation?.followButtonText || "I'm following ✅";
 
                         try {
                             const url = new URL(`${IG_BASE}/me/messages`);
@@ -907,6 +1091,7 @@ export async function POST(request) {
                         console.log(`[FollowGate ❌] @${pbProfile?.username || senderId} not yet following — re-sent buttons`);
                         await saveEvent({
                             type: 'postback',
+                            accountId,
                             targetBusinessId: igBusinessId,
                             from: { id: senderId, username: pbProfile?.username, name: pbProfile?.name },
                             content: { text: title },
@@ -926,11 +1111,12 @@ export async function POST(request) {
                 }
 
                 const dmResult = await sendDM(senderId, replyText, token);
-                checkTokenError(dmResult, botUser);
+                checkTokenError(dmResult, botUser, accountId);
 
                 await saveEvent({
                     type: 'postback',
-                    targetBusinessId: botUser.instagramBusinessId,
+                    accountId,
+                    targetBusinessId: igBusinessId,
                     from: { id: senderId, username: pbProfile?.username, name: pbProfile?.name },
                     content: { text: title, url: payload },
                     reply: { privateDM: replyText, status: 'sent' },

@@ -93,6 +93,30 @@ export async function getAdminStats() {
     .limit(15)
     .lean();
 
+  // ── Subscription stats ──────────────────────────────────────────────────
+  const planBreakdown = await User.aggregate([
+    { $group: { _id: "$subscription.plan", count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+  ]);
+
+  const activeSubscribers = await User.countDocuments({
+    "subscription.status": "active",
+  });
+
+  // MRR calculation: count active users by plan × price
+  const planPrices = { silver: 499, gold: 999, platinum: 1499 };
+  let mrr = 0;
+  for (const entry of planBreakdown) {
+    if (entry._id && planPrices[entry._id]) {
+      // Only count active subscriptions for MRR
+      const activeCount = await User.countDocuments({
+        "subscription.plan": entry._id,
+        "subscription.status": "active",
+      });
+      mrr += activeCount * planPrices[entry._id];
+    }
+  }
+
   return {
     totalUsers,
     connectedUsers,
@@ -103,5 +127,75 @@ export async function getAdminStats() {
     eventsByType,
     users: JSON.parse(JSON.stringify(users)),
     recentEvents: JSON.parse(JSON.stringify(recentEvents)),
+    planBreakdown: JSON.parse(JSON.stringify(planBreakdown)),
+    activeSubscribers,
+    mrr,
   };
+}
+
+// ── Admin: Change user plan ───────────────────────────────────────────────
+export async function adminChangePlan(userId, newPlan) {
+  const cookieStore = await cookies();
+  const adminSession = cookieStore.get("admin_session")?.value;
+  if (adminSession !== process.env.ADMIN_KEY) return { error: "Unauthorized" };
+
+  await dbConnect();
+  const now = new Date();
+  const periodEnd = new Date(now);
+  periodEnd.setDate(periodEnd.getDate() + 30);
+
+  await User.findOneAndUpdate({ userId }, {
+    "subscription.plan": newPlan,
+    "subscription.status": newPlan === "trial" ? "trialing" : "active",
+    "subscription.currentPeriodStart": now,
+    "subscription.currentPeriodEnd": periodEnd,
+  });
+
+  revalidatePath("/admin/dashboard");
+  return { success: true };
+}
+
+// ── Admin: Grant bonus DMs ────────────────────────────────────────────────
+export async function adminGrantDms(userId, amount) {
+  const cookieStore = await cookies();
+  const adminSession = cookieStore.get("admin_session")?.value;
+  if (adminSession !== process.env.ADMIN_KEY) return { error: "Unauthorized" };
+
+  const dms = parseInt(amount);
+  if (!dms || dms <= 0) return { error: "Invalid amount" };
+
+  await dbConnect();
+  await User.findOneAndUpdate({ userId }, {
+    $inc: { "usage.topUpDmsRemaining": dms },
+  });
+
+  revalidatePath("/admin/dashboard");
+  return { success: true };
+}
+
+// ── Admin: Extend trial ──────────────────────────────────────────────────
+export async function adminExtendTrial(userId, days) {
+  const cookieStore = await cookies();
+  const adminSession = cookieStore.get("admin_session")?.value;
+  if (adminSession !== process.env.ADMIN_KEY) return { error: "Unauthorized" };
+
+  const d = parseInt(days);
+  if (!d || d <= 0) return { error: "Invalid days" };
+
+  await dbConnect();
+  const user = await User.findOne({ userId });
+  if (!user) return { error: "User not found" };
+
+  const currentEnd = user.subscription?.trialEndsAt || new Date();
+  const newEnd = new Date(Math.max(Date.now(), new Date(currentEnd).getTime()));
+  newEnd.setDate(newEnd.getDate() + d);
+
+  await User.findOneAndUpdate({ userId }, {
+    "subscription.trialEndsAt": newEnd,
+    "subscription.status": "trialing",
+    "subscription.plan": "trial",
+  });
+
+  revalidatePath("/admin/dashboard");
+  return { success: true };
 }

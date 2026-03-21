@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, MessageCircle, Clock, ExternalLink } from "lucide-react";
+import { Bell, MessageCircle, Clock, ExternalLink, AlertTriangle, CheckCircle2, CreditCard, Zap } from "lucide-react";
 import { getNotifications } from '@/app/dashboard/actions';
+import { getSubscriptionStatus } from '@/app/dashboard/billing-actions';
+import { getTrialWarning, getDmQuotaWarning } from '@/lib/gating';
 import { cn } from '@/lib/utils';
 
 function NotificationSkeleton() {
@@ -29,8 +31,38 @@ export default function NotificationCenter() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const data = await getNotifications();
-      setNotifications(data);
+      const [data, sub] = await Promise.all([
+        getNotifications(),
+        getSubscriptionStatus(),
+      ]);
+
+      // Build subscription-related system notifications
+      const systemNotifs = [];
+      if (sub.success) {
+        const trialWarning = getTrialWarning({ subscription: sub });
+        if (trialWarning) {
+          systemNotifs.push({
+            _id: "trial-warning",
+            type: "system",
+            systemIcon: "trial",
+            systemMessage: trialWarning.message,
+            createdAt: new Date().toISOString(),
+          });
+        }
+
+        const quotaWarning = getDmQuotaWarning({ subscription: sub, usage: { dmsSentThisMonth: sub.dmsSent, topUpDmsRemaining: sub.topUpRemaining } });
+        if (quotaWarning) {
+          systemNotifs.push({
+            _id: "quota-warning",
+            type: "system",
+            systemIcon: quotaWarning.level === "critical" ? "quota-critical" : "quota-warning",
+            systemMessage: quotaWarning.message,
+            createdAt: new Date().toISOString(),
+          });
+        }
+      }
+
+      setNotifications([...systemNotifs, ...data]);
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     } finally {
@@ -123,38 +155,74 @@ export default function NotificationCenter() {
                     onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-alt)'}
                     onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
-                    <div className="flex gap-3">
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: 'var(--info-light)' }}
-                      >
-                        <MessageCircle size={14} style={{ color: 'var(--info)' }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
-                          <span className="font-bold" style={{ color: 'var(--text-primary)' }}>@{notif.from?.username || 'User'}</span>
-                          <span className="mx-1">matched a trigger and received a</span>
-                          <span className="font-bold italic" style={{ color: 'var(--primary)' }}>private DM</span>
-                        </p>
-                        <div className="flex items-center gap-3 mt-2">
-                          <div className="flex items-center gap-1 text-[10px] font-medium" style={{ color: 'var(--text-placeholder)' }}>
-                            <Clock size={10} />
-                            {formatTime(notif.createdAt)}
-                          </div>
-                          {notif.content?.url && (
-                             <a
-                               href={notif.content.url}
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               className="flex items-center gap-1 text-[10px] font-bold hover:underline"
-                               style={{ color: 'var(--info)' }}
-                             >
-                               View Post <ExternalLink size={8} />
-                             </a>
+                    {notif.type === "system" ? (
+                      <div className="flex gap-3">
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{
+                            backgroundColor: notif.systemIcon === "quota-critical"
+                              ? 'var(--error-light, rgba(239,68,68,0.1))'
+                              : notif.systemIcon === "quota-warning"
+                              ? 'var(--warning-light, rgba(245,158,11,0.1))'
+                              : notif.systemIcon === "trial"
+                              ? 'var(--warning-light, rgba(245,158,11,0.1))'
+                              : 'var(--info-light)'
+                          }}
+                        >
+                          {notif.systemIcon === "quota-critical" ? (
+                            <AlertTriangle size={14} style={{ color: 'var(--error, #ef4444)' }} />
+                          ) : notif.systemIcon === "quota-warning" ? (
+                            <Zap size={14} style={{ color: 'var(--warning, #f59e0b)' }} />
+                          ) : notif.systemIcon === "trial" ? (
+                            <Clock size={14} style={{ color: 'var(--warning, #f59e0b)' }} />
+                          ) : (
+                            <CreditCard size={14} style={{ color: 'var(--info)' }} />
                           )}
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] leading-snug font-medium" style={{ color: 'var(--text-primary)' }}>
+                            {notif.systemMessage}
+                          </p>
+                          <div className="flex items-center gap-1 mt-2 text-[10px] font-medium" style={{ color: 'var(--text-placeholder)' }}>
+                            <CheckCircle2 size={10} />
+                            System
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="flex gap-3">
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: 'var(--info-light)' }}
+                        >
+                          <MessageCircle size={14} style={{ color: 'var(--info)' }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] leading-snug" style={{ color: 'var(--text-secondary)' }}>
+                            <span className="font-bold" style={{ color: 'var(--text-primary)' }}>@{notif.from?.username || 'User'}</span>
+                            <span className="mx-1">matched a trigger and received a</span>
+                            <span className="font-bold italic" style={{ color: 'var(--primary)' }}>private DM</span>
+                          </p>
+                          <div className="flex items-center gap-3 mt-2">
+                            <div className="flex items-center gap-1 text-[10px] font-medium" style={{ color: 'var(--text-placeholder)' }}>
+                              <Clock size={10} />
+                              {formatTime(notif.createdAt)}
+                            </div>
+                            {notif.content?.url && (
+                               <a
+                                 href={notif.content.url}
+                                 target="_blank"
+                                 rel="noopener noreferrer"
+                                 className="flex items-center gap-1 text-[10px] font-bold hover:underline"
+                                 style={{ color: 'var(--info)' }}
+                               >
+                                 View Post <ExternalLink size={8} />
+                               </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

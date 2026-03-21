@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ShieldCheck, Check, X as XIcon, ArrowRight, ChevronRight,
   Instagram, Zap, Crown, Gem, Star, Menu, X, HelpCircle, Sun, Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
+import { getLoggedInPlan } from "@/app/dashboard/billing-actions";
 
 /* ─────────────────────────── ICONS ─────────────────────────── */
 
@@ -81,7 +82,7 @@ const PLANS = [
     id: "platinum",
     name: "Platinum",
     icon: Gem,
-    price: 1999,
+    price: 1499,
     period: "month",
     tagline: "For agencies and brands managing multiple accounts",
     tierColors: {
@@ -90,7 +91,7 @@ const PLANS = [
       borderColor: "var(--primary-light)",
     },
     features: [
-      { text: "Up to 3 Instagram accounts", included: true },
+      { text: "Up to 5 Instagram accounts", included: true },
       { text: "Comment-to-DM automation", included: true },
       { text: "Unlimited automated DMs", included: true },
       { text: "Smart reply presets", included: true },
@@ -100,7 +101,7 @@ const PLANS = [
       { text: "Mentions tracker", included: true },
       { text: "Contact management", included: true },
       { text: "Activity feed & logs", included: true },
-      { text: "Dedicated account manager", included: true },
+      { text: "API access & white-label", included: true },
       { text: "Custom automation templates", included: true },
     ],
     cta: "Start with Platinum",
@@ -255,6 +256,27 @@ function FAQItem({ q, a }) {
 /* ─────────────────────────── PAGE ─────────────────────────── */
 
 export default function PricingPage() {
+  const [userPlan, setUserPlan] = useState(null); // null = loading, { loggedIn: false } = guest
+
+  useEffect(() => {
+    getLoggedInPlan().then(setUserPlan).catch(() => setUserPlan({ loggedIn: false }));
+  }, []);
+
+  const getCtaText = (planId) => {
+    if (!userPlan || !userPlan.loggedIn) return PLANS.find(p => p.id === planId)?.cta || "Get Started";
+    if (userPlan.plan === planId) return "Current Plan";
+    const planOrder = ["trial", "silver", "gold", "platinum"];
+    return planOrder.indexOf(planId) > planOrder.indexOf(userPlan.plan) ? `Upgrade to ${planId.charAt(0).toUpperCase() + planId.slice(1)}` : `Switch to ${planId.charAt(0).toUpperCase() + planId.slice(1)}`;
+  };
+
+  const getCtaHref = (planId) => {
+    if (!userPlan || !userPlan.loggedIn) return "/sign-up";
+    if (userPlan.plan === planId) return "/dashboard";
+    return "/dashboard"; // navigates to billing
+  };
+
+  const isCurrentPlan = (planId) => userPlan?.loggedIn && userPlan.plan === planId;
+
   return (
     <div className="min-h-screen theme-transition" style={{ backgroundColor: "var(--bg)" }}>
       <Navbar />
@@ -358,15 +380,20 @@ export default function PricingPage() {
 
                 {/* CTA */}
                 <Link
-                  href="/sign-up"
-                  className="w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                  href={getCtaHref(plan.id)}
+                  className={cn(
+                    "w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all",
+                    isCurrentPlan(plan.id) && "opacity-60 pointer-events-none"
+                  )}
                   style={
-                    plan.popular
+                    isCurrentPlan(plan.id)
+                      ? { backgroundColor: "var(--surface-alt)", color: "var(--text-muted)", border: "1px solid var(--border)" }
+                      : plan.popular
                       ? { backgroundColor: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", boxShadow: "0 4px 16px var(--primary-light)" }
                       : { backgroundColor: "var(--text-primary)", color: "var(--bg)" }
                   }
                 >
-                  {plan.cta} <ArrowRight size={15} />
+                  {getCtaText(plan.id)} {!isCurrentPlan(plan.id) && <ArrowRight size={15} />}
                 </Link>
               </div>
             );
@@ -417,7 +444,7 @@ export default function PricingPage() {
               </thead>
               <tbody>
                 {[
-                  { feature: "Instagram accounts", silver: "1", gold: "1", platinum: "3" },
+                  { feature: "Instagram accounts", silver: "1", gold: "1", platinum: "5" },
                   { feature: "Monthly DM limit", silver: "500", gold: "Unlimited", platinum: "Unlimited" },
                   { feature: "Comment-to-DM", silver: true, gold: true, platinum: true },
                   { feature: "Smart reply presets", silver: true, gold: true, platinum: true },
@@ -497,11 +524,11 @@ export default function PricingPage() {
               7 days free on any plan. No credit card required. Set up your first automation in under 3 minutes.
             </p>
             <Link
-              href="/sign-up"
+              href={userPlan?.loggedIn ? "/dashboard" : "/sign-up"}
               className="inline-flex items-center gap-2 px-10 py-4 font-bold text-base rounded-2xl transition-all shadow-xl"
               style={{ backgroundColor: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
             >
-              Get Started Free <ArrowRight size={18} />
+              {userPlan?.loggedIn ? "Go to Dashboard" : "Get Started Free"} <ArrowRight size={18} />
             </Link>
           </div>
         </div>
