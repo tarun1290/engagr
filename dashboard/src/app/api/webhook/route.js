@@ -631,14 +631,29 @@ export async function POST(request) {
                 for (const att of attachments) {
                     if (replySentForThisMessage) break;
 
-                    const isSharedContent = !!(att.payload?.reel_video_id || att.payload?.media?.id);
+                    // Detect shared content — Instagram sends shares in multiple formats:
+                    // 1. att.payload.reel_video_id — shared reel
+                    // 2. att.payload.media.id — shared post
+                    // 3. att.type === "share" with att.payload.url — shared post/reel link
+                    // 4. att.type === "ig_reel" — shared reel (newer format)
+                    const isShareType = att.type === 'share' || att.type === 'ig_reel';
+                    const hasMediaId = !!(att.payload?.reel_video_id || att.payload?.media?.id);
+                    const isSharedContent = hasMediaId || isShareType;
+
                     const rawMediaId = att.payload?.reel_video_id || att.payload?.media?.id || att.payload?.id;
                     let mediaUrl = att.payload?.url || att.url || null;
                     let thumbnailUrl = null;
                     let permalink = null;
                     const attachmentType = att.payload?.reel_video_id ? 'reel'
+                        : att.type === 'ig_reel' ? 'reel'
                         : att.payload?.media?.id ? 'post_share'
+                        : att.type === 'share' ? 'post_share'
                         : (att.type || 'media');
+
+                    // If the share URL looks like an Instagram permalink, use it as permalink
+                    if (isShareType && mediaUrl && /instagram\.com/.test(mediaUrl)) {
+                        permalink = mediaUrl;
+                    }
 
                     // Fetch rich metadata for shared posts/reels
                     if (rawMediaId) {
@@ -662,6 +677,8 @@ export async function POST(request) {
                         username: profile?.username,
                         name: profile?.name,
                     };
+
+                    console.log(`[Attachment] type=${att.type} isShared=${isSharedContent} rawMediaId=${rawMediaId} url=${mediaUrl?.substring(0, 60)}`);
 
                     if (isSharedContent) {
                         // Shared reel/post — send auto-reply
