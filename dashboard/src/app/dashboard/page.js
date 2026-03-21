@@ -23,7 +23,6 @@ import {
   SkipForward,
   AlertTriangle,
   Image,
-  ToggleRight,
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,22 +32,38 @@ import Contacts from "@/components/Contacts";
 import Activity from "@/components/Activity";
 import { getDashboardStats, deleteAutomation, toggleAutomation } from './actions';
 
+/* ── Data-driven config maps ───────────────────────────────────────────────── */
+
 const INTERACTION_TYPE_CONFIG = {
-  comment:    { label: "Comment",    icon: MessageCircle, color: "text-blue-500",   bg: "bg-blue-50",   border: "border-blue-100"   },
-  mention:    { label: "Mention",    icon: AtSign,        color: "text-purple-500", bg: "bg-purple-50", border: "border-purple-100" },
-  dm:         { label: "DM",         icon: MessageSquare, color: "text-pink-500",   bg: "bg-pink-50",   border: "border-pink-100"   },
-  reel_share: { label: "Reel Share", icon: Play,          color: "text-amber-500",  bg: "bg-amber-50",  border: "border-amber-100"  },
-  reaction:   { label: "Reaction",   icon: Heart,         color: "text-rose-500",   bg: "bg-rose-50",   border: "border-rose-100"   },
-  postback:   { label: "Button Tap", icon: MousePointer2, color: "text-cyan-500",   bg: "bg-cyan-50",   border: "border-cyan-100"   },
+  comment:    { label: "Comment",    icon: MessageCircle, color: 'var(--info)',    bg: 'var(--info-light)',    border: 'var(--info)' },
+  mention:    { label: "Mention",    icon: AtSign,        color: 'var(--primary)', bg: 'var(--primary-light)', border: 'var(--primary)' },
+  dm:         { label: "DM",         icon: MessageSquare, color: 'var(--accent)',  bg: 'var(--accent-light)',  border: 'var(--accent)' },
+  reel_share: { label: "Reel Share", icon: Play,          color: 'var(--warning)', bg: 'var(--warning-light)', border: 'var(--warning)' },
+  reaction:   { label: "Reaction",   icon: Heart,         color: 'var(--error)',   bg: 'var(--error-light)',   border: 'var(--error)' },
+  postback:   { label: "Button Tap", icon: MousePointer2, color: 'var(--accent)',  bg: 'var(--accent-light)',  border: 'var(--accent)' },
 };
 
 const REPLY_STATUS_CONFIG = {
-  sent:          { label: "Replied",  icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
-  failed:        { label: "Failed",   icon: XCircle,      color: "text-rose-600",    bg: "bg-rose-50",    border: "border-rose-100"    },
-  fallback:      { label: "Fallback", icon: RefreshCw,    color: "text-amber-600",   bg: "bg-amber-50",   border: "border-amber-100"   },
-  skipped:       { label: "Skipped",  icon: SkipForward,  color: "text-slate-400",   bg: "bg-slate-50",   border: "border-slate-200"   },
-  token_expired: { label: "Expired",  icon: XCircle,      color: "text-orange-600",  bg: "bg-orange-50",  border: "border-orange-100"  },
+  sent:          { label: "Replied",  icon: CheckCircle2, color: 'var(--success)',      bg: 'var(--success-light)', border: 'var(--success)' },
+  failed:        { label: "Failed",   icon: XCircle,      color: 'var(--error)',        bg: 'var(--error-light)',   border: 'var(--error)' },
+  fallback:      { label: "Fallback", icon: RefreshCw,    color: 'var(--warning)',      bg: 'var(--warning-light)', border: 'var(--warning)' },
+  skipped:       { label: "Skipped",  icon: SkipForward,  color: 'var(--text-muted)',   bg: 'var(--surface-alt)',   border: 'var(--border)' },
+  token_expired: { label: "Expired",  icon: XCircle,      color: 'var(--warning)',      bg: 'var(--warning-light)', border: 'var(--warning)' },
 };
+
+const ACTIVE_MODULES = [
+  { id: 'comment-to-dm', icon: MessageSquare, title: "Comment-to-DM", description: "Automatically reply to post comments and send private DMs instantly.", tab: "Automation" },
+  { id: 'mentions-tracker', icon: BellRing, title: "Mentions Tracker", description: "Capture every time someone mentions @yourbrand in stories or posts." },
+  { id: 'reel-share', icon: Share2, title: "Reel Share Linker", description: "Detect when reels are shared in DMs and provide direct watch links." },
+  { id: 'interactive', icon: MousePointer2, title: "Interactive Flows", description: "Use button templates and generic cards to engage users visually.", badge: true, tab: "Automation" },
+];
+
+const ATTACHMENT_LABELS = {
+  reel: "Reel", post_share: "Post", image: "Image",
+  video: "Video", audio: "Voice", media: "Media",
+};
+
+/* ── Helpers ───────────────────────────────────────────────────────────────── */
 
 function timeAgo(date) {
   const diff = (Date.now() - new Date(date)) / 1000;
@@ -58,10 +73,33 @@ function timeAgo(date) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
-const ATTACHMENT_LABELS = {
-  reel: "Reel", post_share: "Post", image: "Image",
-  video: "Video", audio: "Voice", media: "Media",
-};
+/* ── Skeleton loaders ──────────────────────────────────────────────────────── */
+
+function SkeletonRow() {
+  return (
+    <div className="flex items-center gap-4 px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+      <div className="w-9 h-9 rounded-xl skeleton" />
+      <div className="flex-1 space-y-2">
+        <div className="w-24 h-3 skeleton" />
+        <div className="w-48 h-3 skeleton" />
+      </div>
+      <div className="w-16 h-6 rounded-full skeleton" />
+      <div className="w-12 h-3 skeleton" />
+    </div>
+  );
+}
+
+function SkeletonStat() {
+  return (
+    <div className="p-10 rounded-[40px] flex flex-col justify-center" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
+      <div className="w-32 h-3 skeleton mb-4" />
+      <div className="w-20 h-10 skeleton mb-2" />
+      <div className="w-40 h-3 skeleton" />
+    </div>
+  );
+}
+
+/* ── Sub-components ────────────────────────────────────────────────────────── */
 
 function InteractionRow({ event }) {
   const typeConf = INTERACTION_TYPE_CONFIG[event.type] || INTERACTION_TYPE_CONFIG.comment;
@@ -75,110 +113,122 @@ function InteractionRow({ event }) {
   const displayText = event.content?.text
     || (attachmentLabel ? `Sent a ${attachmentLabel.toLowerCase()}` : null)
     || event.reply?.publicReply
-    || "—";
+    || "\u2014";
 
   return (
-    <div className="flex items-start gap-4 px-6 py-4 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
-      {/* Type icon */}
-      <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border mt-0.5", typeConf.bg, typeConf.border)}>
-        <TypeIcon size={15} className={typeConf.color} />
+    <div className="flex items-start gap-4 px-6 py-4 last:border-0 transition-colors"
+      style={{ borderBottom: '1px solid var(--border)' }}
+      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--surface-alt)'}
+      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+    >
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+        style={{ backgroundColor: typeConf.bg, border: `1px solid ${typeConf.border}20` }}
+      >
+        <TypeIcon size={15} style={{ color: typeConf.color }} />
       </div>
 
-      {/* Main content */}
       <div className="flex-1 min-w-0">
-        {/* Header row: type · avatar · username · attachment pill */}
         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-          <span className={cn("text-[10px] font-black uppercase tracking-widest", typeConf.color)}>
+          <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: typeConf.color }}>
             {typeConf.label}
           </span>
           {event.from?.username ? (
-            <span className="text-[12px] font-bold text-slate-700">@{event.from.username}</span>
+            <span className="text-[12px] font-bold" style={{ color: 'var(--text-secondary)' }}>@{event.from.username}</span>
           ) : event.from?.name ? (
-            <span className="text-[12px] font-semibold text-slate-600">{event.from.name}</span>
+            <span className="text-[12px] font-semibold" style={{ color: 'var(--text-secondary)' }}>{event.from.name}</span>
           ) : event.from?.id ? (
-            <span className="text-[11px] font-mono text-slate-400">{event.from.id}</span>
+            <span className="text-[11px] font-mono" style={{ color: 'var(--text-muted)' }}>{event.from.id}</span>
           ) : null}
           {attachmentLabel && (
-            <span className="text-[9px] font-black text-slate-400 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded uppercase tracking-wide">
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wide"
+              style={{ color: 'var(--text-muted)', backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)' }}
+            >
               {attachmentLabel}
             </span>
           )}
         </div>
 
-        {/* Content row: thumbnail + text */}
         <div className="flex items-center gap-3">
           {thumbnail && (
             mediaLink ? (
               <a href={mediaLink} target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                <img
-                  src={thumbnail}
-                  alt="media"
-                  className="w-11 h-11 rounded-xl object-cover border border-slate-200 hover:border-primary transition-colors"
+                <img src={thumbnail} alt="media" className="w-11 h-11 rounded-xl object-cover transition-colors"
+                  style={{ border: '1px solid var(--border)' }}
                 />
               </a>
             ) : (
-              <img
-                src={thumbnail}
-                alt="media"
-                className="w-11 h-11 rounded-xl object-cover border border-slate-200 flex-shrink-0"
+              <img src={thumbnail} alt="media" className="w-11 h-11 rounded-xl object-cover flex-shrink-0"
+                style={{ border: '1px solid var(--border)' }}
               />
             )
           )}
-          <p className="text-[13px] text-slate-500 truncate leading-tight">{displayText}</p>
+          <p className="text-[13px] truncate leading-tight" style={{ color: 'var(--text-muted)' }}>{displayText}</p>
         </div>
       </div>
 
-      {/* Reply status */}
-      <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-full border flex-shrink-0 mt-0.5", statusConf.bg, statusConf.border)}>
-        <StatusIcon size={11} className={statusConf.color} />
-        <span className={cn("text-[10px] font-bold uppercase tracking-wider", statusConf.color)}>
+      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full flex-shrink-0 mt-0.5"
+        style={{ backgroundColor: statusConf.bg, border: `1px solid ${statusConf.border}20` }}
+      >
+        <StatusIcon size={11} style={{ color: statusConf.color }} />
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: statusConf.color }}>
           {statusConf.label}
         </span>
       </div>
 
-      {/* Time */}
-      <span className="text-[11px] text-slate-400 flex-shrink-0 mt-1">{timeAgo(event.createdAt)}</span>
+      <span className="text-[11px] flex-shrink-0 mt-1" style={{ color: 'var(--text-placeholder)' }}>{timeAgo(event.createdAt)}</span>
     </div>
   );
 }
 
-const FeatureCard = ({ icon: Icon, title, description, badge, activeStatus = "Active", onClick }) => (
-  <div
-    onClick={onClick}
-    className={cn(
-      "bg-white p-7 border-r border-slate-100 last:border-0 flex-1 group transition-all",
-      onClick ? "cursor-pointer hover:bg-slate-50/50" : "cursor-default"
-    )}
-  >
-    <div className="flex flex-col h-full justify-between gap-6">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-white group-hover:shadow-sm transition-all">
-            <Icon size={20} className="text-slate-600 group-hover:text-primary transition-colors" />
+function FeatureCard({ icon: Icon, title, description, badge, activeStatus = "Active", onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className={cn("p-7 flex-1 group transition-all", onClick ? "cursor-pointer" : "cursor-default")}
+      style={{ backgroundColor: 'var(--card)', borderRight: '1px solid var(--border)' }}
+      onMouseEnter={(e) => { if (onClick) e.currentTarget.style.backgroundColor = 'var(--surface-alt)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--card)'; }}
+    >
+      <div className="flex flex-col h-full justify-between gap-6">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-all"
+              style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)' }}
+            >
+              <Icon size={20} style={{ color: 'var(--text-secondary)' }} />
+            </div>
+            {badge && (
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter"
+                style={{ backgroundColor: 'var(--warning-light)', color: 'var(--warning-dark)', border: '1px solid var(--warning)' }}
+              >New</span>
+            )}
           </div>
-          {badge && <span className="text-[9px] bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter ring-1 ring-amber-200">New</span>}
+          <div>
+            <h4 className="text-[16px] font-bold mb-1" style={{ color: 'var(--text-primary)' }}>{title}</h4>
+            <p className="text-[13px] leading-snug" style={{ color: 'var(--text-muted)' }}>{description}</p>
+          </div>
         </div>
-        <div>
-          <h4 className="text-[16px] font-bold text-slate-900 mb-1">{title}</h4>
-          <p className="text-[13px] text-slate-500 leading-snug">{description}</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--success)' }} />
+            <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>{activeStatus}</span>
+          </div>
+          <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" style={{ color: 'var(--text-placeholder)' }} />
         </div>
-      </div>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{activeStatus}</span>
-        </div>
-        <ChevronRight size={14} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
       </div>
     </div>
-  </div>
-);
+  );
+}
+
+/* ── Main component ────────────────────────────────────────────────────────── */
 
 export default function Home() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState("Home");
   const [showDeleteAutomation, setShowDeleteAutomation] = useState(false);
   const [deletingAutomation, setDeletingAutomation] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [togglingAutomation, setTogglingAutomation] = useState(false);
   const [stats, setStats] = useState({
     contacts: 0,
     sentToday: 0,
@@ -195,6 +245,8 @@ export default function Home() {
         setStats(data);
       } catch (error) {
         console.error("Failed to fetch dashboard stats:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -203,8 +255,6 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  const [togglingAutomation, setTogglingAutomation] = useState(false);
-
   const handleToggleAutomation = async () => {
     if (togglingAutomation) return;
     setTogglingAutomation(true);
@@ -212,10 +262,7 @@ export default function Home() {
       const newState = !stats.automation.isActive;
       const res = await toggleAutomation(newState);
       if (res.success) {
-        setStats(prev => ({
-          ...prev,
-          automation: { ...prev.automation, isActive: res.isActive }
-        }));
+        setStats(prev => ({ ...prev, automation: { ...prev.automation, isActive: res.isActive } }));
       }
     } catch (err) {
       console.error("Failed to toggle automation:", err);
@@ -250,15 +297,18 @@ export default function Home() {
           <div className="space-y-16">
             {/* Token expiry warning */}
             {stats.tokenExpired && (
-              <div className="flex items-start gap-4 px-6 py-4 bg-orange-50 border border-orange-200 rounded-2xl">
-                <AlertTriangle size={20} className="text-orange-500 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-4 px-6 py-4 rounded-2xl"
+                style={{ backgroundColor: 'var(--warning-light)', border: '1px solid var(--warning)' }}
+              >
+                <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--warning)' }} />
                 <div className="flex-1">
-                  <p className="text-[14px] font-bold text-orange-800">Instagram token has expired</p>
-                  <p className="text-[12px] text-orange-600 mt-0.5">Your automation has stopped working. Reconnect your Instagram account to restore it.</p>
+                  <p className="text-[14px] font-bold" style={{ color: 'var(--warning-dark)' }}>Instagram token has expired</p>
+                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--warning-dark)' }}>Your automation has stopped working. Reconnect your Instagram account to restore it.</p>
                 </div>
                 <button
                   onClick={() => window.location.href = '/onboarding'}
-                  className="px-4 py-2 bg-orange-500 text-white text-[12px] font-bold rounded-xl hover:bg-orange-600 transition-colors flex-shrink-0"
+                  className="px-4 py-2 text-[12px] font-bold rounded-xl transition-colors flex-shrink-0"
+                  style={{ backgroundColor: 'var(--warning)', color: 'var(--btn-primary-text)' }}
                 >
                   Reconnect
                 </button>
@@ -266,33 +316,40 @@ export default function Home() {
             )}
 
             {/* Hero header */}
-            <section className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10 border-b border-slate-100">
+            <section className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10"
+              style={{ borderBottom: '1px solid var(--border)' }}
+            >
               <div className="space-y-3">
-                <h2 className="text-6xl font-black text-black tracking-tight leading-none flex items-center gap-6">
+                <h2 className="text-6xl font-black tracking-tight leading-none flex items-center gap-6"
+                  style={{ color: 'var(--text-primary)' }}
+                >
                   Hello, {stats.instagram?.username || "there"}!
                   {stats.instagram?.isConnected && stats.instagram.profilePic && (
-                    <div className="w-14 h-14 rounded-full p-1 bg-gradient-to-tr from-[#FFDA3A] via-[#FF3040] to-[#E5266E] animate-in zoom-in-50 duration-500">
-                      <img src={stats.instagram.profilePic} alt="" className="w-full h-full rounded-full border-2 border-white object-cover" />
+                    <div className="w-14 h-14 rounded-full p-1 animate-in zoom-in-50 duration-500 premium-gradient">
+                      <img src={stats.instagram.profilePic} alt="" className="w-full h-full rounded-full object-cover" style={{ border: '2px solid var(--card)' }} />
                     </div>
                   )}
                 </h2>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full"
+                    style={{ backgroundColor: 'var(--success-light)', color: 'var(--success)', border: '1px solid var(--success)' }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--success)' }} />
                     <span className="text-[10px] font-bold uppercase tracking-widest">Active System</span>
                   </div>
-                  <p className="text-[15px] font-medium text-slate-400">
+                  <p className="text-[15px] font-medium" style={{ color: 'var(--text-muted)' }}>
                     {stats.contacts} registered contacts across your linked{" "}
                     {stats.instagram?.isConnected ? (
-                      <span className="text-primary font-bold lowercase tracking-tight">@{stats.instagram.username}</span>
+                      <span className="font-bold lowercase tracking-tight" style={{ color: 'var(--primary)' }}>@{stats.instagram.username}</span>
                     ) : (
                       "Instagram Account"
                     )}.
                   </p>
-                  <div className="w-1 h-1 rounded-full bg-slate-200" />
+                  <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
                   <button
                     onClick={() => document.getElementById("interactions-section")?.scrollIntoView({ behavior: "smooth" })}
-                    className="text-primary text-[14px] font-bold hover:underline"
+                    className="text-[14px] font-bold hover:underline"
+                    style={{ color: 'var(--primary)' }}
                   >
                     View Insights
                   </button>
@@ -300,122 +357,116 @@ export default function Home() {
               </div>
               <button
                 onClick={() => setActiveTab("Automation")}
-                className="bg-primary text-white px-8 py-4 rounded-2xl font-bold text-[14px] hover:opacity-90 transition-all shadow-xl shadow-pink-100 flex items-center gap-2"
+                className="px-8 py-4 rounded-2xl font-bold text-[14px] transition-all shadow-xl flex items-center gap-2"
+                style={{ backgroundColor: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--btn-primary-hover)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--btn-primary-bg)'}
               >
                 <Plus size={20} /> Create Automation
               </button>
             </section>
 
-            {/* Active Modules */}
+            {/* Active Modules — data-driven */}
             <section>
               <div className="flex items-center justify-between mb-8">
-                <h3 className="text-2xl font-black text-black">Active Modules</h3>
+                <h3 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Active Modules</h3>
                 <button
                   onClick={() => setActiveTab("Automation")}
-                  className="text-slate-400 text-[14px] font-bold hover:text-primary flex items-center gap-1 transition-colors"
+                  className="text-[14px] font-bold flex items-center gap-1 transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
                 >
                   Explore Templates <ArrowUpRight size={16} />
                 </button>
               </div>
-              <div className="bg-white border border-slate-100 rounded-[32px] flex flex-col lg:flex-row overflow-hidden shadow-sm">
-                <FeatureCard
-                  icon={MessageSquare}
-                  title="Comment-to-DM"
-                  description="Automatically reply to post comments and send private DMs instantly."
-                  onClick={() => setActiveTab("Automation")}
-                />
-                <FeatureCard
-                  icon={BellRing}
-                  title="Mentions Tracker"
-                  description="Capture every time someone mentions @yourbrand in stories or posts."
-                />
-                <FeatureCard
-                  icon={Share2}
-                  title="Reel Share Linker"
-                  description="Detect when reels are shared in DMs and provide direct watch links."
-                />
-                <FeatureCard
-                  icon={MousePointer2}
-                  title="Interactive Flows"
-                  description="Use button templates and generic cards to engage users visually."
-                  badge
-                  onClick={() => setActiveTab("Automation")}
-                />
+              <div className="rounded-[32px] flex flex-col lg:flex-row overflow-hidden shadow-sm"
+                style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+              >
+                {ACTIVE_MODULES.map((mod) => (
+                  <FeatureCard
+                    key={mod.id}
+                    icon={mod.icon}
+                    title={mod.title}
+                    description={mod.description}
+                    badge={mod.badge}
+                    onClick={mod.tab ? () => setActiveTab(mod.tab) : undefined}
+                  />
+                ))}
               </div>
             </section>
 
             {/* Automation Status Card */}
             {stats.automation && (
               <section>
-                <h3 className="text-2xl font-black text-black mb-6">Automation Status</h3>
-                <div className="bg-white border border-slate-100 rounded-[28px] p-8 shadow-sm">
+                <h3 className="text-2xl font-black mb-6" style={{ color: 'var(--text-primary)' }}>Automation Status</h3>
+                <div className="rounded-[28px] p-8 shadow-sm"
+                  style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+                >
                   <div className="flex flex-col md:flex-row md:items-start gap-8">
-                    {/* Status toggle */}
+                    {/* Toggle */}
                     <div className="flex items-center gap-4">
                       <button
                         onClick={handleToggleAutomation}
                         disabled={togglingAutomation}
-                        className={cn(
-                          "relative w-14 h-8 rounded-full transition-all duration-300 flex-shrink-0",
-                          stats.automation.isActive ? "bg-emerald-500" : "bg-slate-300",
-                          togglingAutomation && "opacity-60"
-                        )}
+                        className={cn("relative w-14 h-8 rounded-full transition-all duration-300 flex-shrink-0", togglingAutomation && "opacity-60")}
+                        style={{ backgroundColor: stats.automation.isActive ? 'var(--success)' : 'var(--text-placeholder)' }}
                       >
-                        <span className={cn(
-                          "absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300",
-                          stats.automation.isActive ? "left-7" : "left-1"
-                        )} />
+                        <span className={cn("absolute top-1 w-6 h-6 rounded-full shadow-md transition-all duration-300", stats.automation.isActive ? "left-7" : "left-1")}
+                          style={{ backgroundColor: 'var(--card)' }}
+                        />
                       </button>
                       <div>
-                        <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Status</p>
-                        <p className={cn("text-[16px] font-black", stats.automation.isActive ? "text-emerald-600" : "text-slate-400")}>
+                        <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>Status</p>
+                        <p className="text-[16px] font-black"
+                          style={{ color: stats.automation.isActive ? 'var(--success)' : 'var(--text-muted)' }}
+                        >
                           {togglingAutomation ? "Updating..." : stats.automation.isActive ? "Live & Active" : "Paused"}
                         </p>
                       </div>
                     </div>
 
-                    <div className="h-px md:h-auto md:w-px bg-slate-100" />
+                    <div className="h-px md:h-auto md:w-px" style={{ backgroundColor: 'var(--border)' }} />
 
-                    {/* Trigger type */}
                     <div>
-                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">Trigger</p>
-                      <p className="text-[14px] font-bold text-slate-700">
+                      <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-placeholder)' }}>Trigger</p>
+                      <p className="text-[14px] font-bold" style={{ color: 'var(--text-secondary)' }}>
                         {stats.automation.postTrigger === "any" ? "Any post or reel" : "Specific post"}
                       </p>
-                      <p className="text-[12px] text-slate-400 mt-0.5">
+                      <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
                         {stats.automation.commentTrigger === "any"
                           ? "Any comment fires automation"
                           : `Keywords: ${(stats.automation.keywords || []).join(', ') || 'none'}`}
                       </p>
                     </div>
 
-                    <div className="h-px md:h-auto md:w-px bg-slate-100" />
+                    <div className="h-px md:h-auto md:w-px" style={{ backgroundColor: 'var(--border)' }} />
 
-                    {/* Public reply */}
                     <div>
-                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">Public Reply</p>
-                      <p className="text-[14px] font-bold text-slate-700">
+                      <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-placeholder)' }}>Public Reply</p>
+                      <p className="text-[14px] font-bold" style={{ color: 'var(--text-secondary)' }}>
                         {stats.automation.replyEnabled ? "Enabled" : "Disabled"}
                       </p>
                       {stats.automation.replyEnabled && stats.automation.replyMessages?.length > 0 && (
-                        <p className="text-[12px] text-slate-400 mt-0.5 max-w-[200px] truncate">
-                          "{stats.automation.replyMessages[0]}"
+                        <p className="text-[12px] mt-0.5 max-w-[200px] truncate" style={{ color: 'var(--text-muted)' }}>
+                          &ldquo;{stats.automation.replyMessages[0]}&rdquo;
                         </p>
                       )}
                     </div>
 
-                    <div className="h-px md:h-auto md:w-px bg-slate-100" />
+                    <div className="h-px md:h-auto md:w-px" style={{ backgroundColor: 'var(--border)' }} />
 
-                    {/* DM preview */}
                     <div className="flex-1">
-                      <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-1">DM Message</p>
-                      <p className="text-[13px] text-slate-600 leading-snug line-clamp-2">
-                        {stats.automation.dmContent || <span className="text-slate-300 italic">No message set</span>}
+                      <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-placeholder)' }}>DM Message</p>
+                      <p className="text-[13px] leading-snug line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                        {stats.automation.dmContent || <span style={{ color: 'var(--text-placeholder)' }} className="italic">No message set</span>}
                       </p>
                       {stats.automation.linkUrl && (
-                        <div className="flex items-center gap-2 mt-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-xl w-fit">
-                          <Image size={11} className="text-primary flex-shrink-0" />
-                          <span className="text-[11px] font-bold text-primary truncate max-w-[180px]">
+                        <div className="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-xl w-fit"
+                          style={{ backgroundColor: 'var(--primary-light)', border: '1px solid var(--primary-medium)' }}
+                        >
+                          <Image size={11} className="flex-shrink-0" style={{ color: 'var(--primary)' }} />
+                          <span className="text-[11px] font-bold truncate max-w-[180px]" style={{ color: 'var(--primary)' }}>
                             {stats.automation.buttonText || "Link"}
                           </span>
                         </div>
@@ -425,13 +476,17 @@ export default function Home() {
                     <div className="flex gap-2 flex-shrink-0 self-start">
                       <button
                         onClick={() => setActiveTab("Automation")}
-                        className="px-5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[13px] font-bold text-slate-600 hover:bg-white hover:border-primary/30 hover:text-primary transition-all"
+                        className="px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all"
+                        style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-medium)'; e.currentTarget.style.color = 'var(--primary)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => setShowDeleteAutomation(true)}
-                        className="px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-red-500 hover:bg-red-100 hover:border-red-300 transition-all"
+                        className="px-3 py-2.5 rounded-xl transition-all"
+                        style={{ backgroundColor: 'var(--error-light)', border: '1px solid var(--error)', color: 'var(--error)' }}
                         title="Delete automation"
                       >
                         <Trash2 size={16} />
@@ -442,30 +497,38 @@ export default function Home() {
               </section>
             )}
 
-            {/* Delete Automation Confirm Dialog */}
+            {/* Delete Automation Dialog */}
             {showDeleteAutomation && (
-              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-                <div className="bg-white rounded-[24px] p-8 max-w-sm w-full space-y-6 shadow-2xl">
-                  <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto">
-                    <Trash2 size={22} className="text-red-500" />
+              <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+                style={{ backgroundColor: 'var(--overlay)' }}
+              >
+                <div className="rounded-[24px] p-8 max-w-sm w-full space-y-6 shadow-2xl"
+                  style={{ backgroundColor: 'var(--card)' }}
+                >
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
+                    style={{ backgroundColor: 'var(--error-light)' }}
+                  >
+                    <Trash2 size={22} style={{ color: 'var(--error)' }} />
                   </div>
                   <div className="text-center space-y-2">
-                    <h3 className="text-xl font-black text-slate-900">Delete Automation?</h3>
-                    <p className="text-slate-500 text-sm font-medium leading-relaxed">
+                    <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Delete Automation?</h3>
+                    <p className="text-sm font-medium leading-relaxed" style={{ color: 'var(--text-muted)' }}>
                       This will remove your automation settings including triggers, keywords, reply messages, and DM content. You can create a new one anytime.
                     </p>
                   </div>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowDeleteAutomation(false)}
-                      className="flex-1 py-3 border border-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all"
+                      className="flex-1 py-3 rounded-xl font-bold text-sm transition-all"
+                      style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)', backgroundColor: 'var(--card)' }}
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleDeleteAutomation}
                       disabled={deletingAutomation}
-                      className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm transition-all disabled:opacity-60"
+                      className="flex-1 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-60"
+                      style={{ backgroundColor: 'var(--btn-destructive-bg)', color: 'var(--btn-destructive-text)' }}
                     >
                       {deletingAutomation ? "Deleting..." : "Delete"}
                     </button>
@@ -476,50 +539,70 @@ export default function Home() {
 
             {/* Stats strip */}
             <section className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              <div className="lg:col-span-2 bg-pink-50 p-10 rounded-[40px] border border-pink-100 flex flex-col justify-between group overflow-hidden relative min-h-[240px]">
-                <div className="relative z-10">
-                  <p className="text-pink-400 text-[12px] font-black uppercase tracking-[0.2em] mb-4">Transmission Health</p>
-                  <h2 className="text-6xl font-black tracking-tighter mb-2 text-primary">{stats.sentToday}</h2>
-                  <p className="text-primary/70 text-sm font-medium">Successful replies processed today.</p>
-                </div>
-                <div className="relative z-10 flex items-center gap-3">
-                  <div className="flex-1 h-1.5 bg-pink-200 rounded-full overflow-hidden">
-                    <div className="w-full h-full bg-primary shadow-[0_0_15px_rgba(229,38,110,0.5)]"></div>
+              {loading ? (
+                <>
+                  <div className="lg:col-span-2"><SkeletonStat /></div>
+                  <SkeletonStat />
+                  <SkeletonStat />
+                </>
+              ) : (
+                <>
+                  <div className="lg:col-span-2 p-10 rounded-[40px] flex flex-col justify-between group overflow-hidden relative min-h-[240px]"
+                    style={{ backgroundColor: 'var(--primary-light)', border: '1px solid var(--primary-medium)' }}
+                  >
+                    <div className="relative z-10">
+                      <p className="text-[12px] font-black uppercase tracking-[0.2em] mb-4" style={{ color: 'var(--primary)' }}>Transmission Health</p>
+                      <h2 className="text-6xl font-black tracking-tighter mb-2" style={{ color: 'var(--primary)' }}>{stats.sentToday}</h2>
+                      <p className="text-sm font-medium" style={{ color: 'var(--primary)', opacity: 0.7 }}>Successful replies processed today.</p>
+                    </div>
+                    <div className="relative z-10 flex items-center gap-3">
+                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--primary-medium)' }}>
+                        <div className="w-full h-full" style={{ backgroundColor: 'var(--primary)' }} />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--primary)' }}>Optimal</span>
+                    </div>
+                    <Zap size={180} className="absolute -bottom-10 -right-10 -rotate-12 group-hover:scale-110 transition-transform duration-1000" style={{ color: 'var(--primary)', opacity: 0.1 }} />
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary">Optimal</span>
-                </div>
-                <Zap size={180} className="absolute -bottom-10 -right-10 text-primary/10 -rotate-12 group-hover:scale-110 transition-transform duration-1000" />
-              </div>
 
-              <div className="bg-white p-10 rounded-[40px] border border-slate-100 flex flex-col justify-center">
-                <p className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-4">Active Trend</p>
-                <h3 className={cn("text-5xl font-black mb-1", stats.transmissionTrend >= 0 ? "text-emerald-500" : "text-rose-500")}>
-                  {stats.transmissionTrend > 0 ? '+' : ''}{stats.transmissionTrend}%
-                </h3>
-                <p className="text-slate-500 text-sm font-medium">Growth vs yesterday.</p>
-              </div>
+                  <div className="p-10 rounded-[40px] flex flex-col justify-center"
+                    style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+                  >
+                    <p className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--text-placeholder)' }}>Active Trend</p>
+                    <h3 className="text-5xl font-black mb-1"
+                      style={{ color: stats.transmissionTrend >= 0 ? 'var(--success)' : 'var(--error)' }}
+                    >
+                      {stats.transmissionTrend > 0 ? '+' : ''}{stats.transmissionTrend}%
+                    </h3>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Growth vs yesterday.</p>
+                  </div>
 
-              <div className="bg-slate-50 p-10 rounded-[40px] flex flex-col justify-center border border-slate-100">
-                <p className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-4">Total Interactions</p>
-                <h3 className="text-5xl font-black text-slate-900 mb-1">{stats.totalInteractions ?? stats.contacts}</h3>
-                <p className="text-slate-500 text-sm font-medium">All-time events tracked.</p>
-              </div>
+                  <div className="p-10 rounded-[40px] flex flex-col justify-center"
+                    style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)' }}
+                  >
+                    <p className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--text-placeholder)' }}>Total Interactions</p>
+                    <h3 className="text-5xl font-black mb-1" style={{ color: 'var(--text-primary)' }}>{stats.totalInteractions ?? stats.contacts}</h3>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>All-time events tracked.</p>
+                  </div>
+                </>
+              )}
             </section>
 
             {/* Interaction Type Breakdown */}
             {stats.interactionsByType?.length > 0 && (
               <section>
-                <h3 className="text-2xl font-black text-black mb-6">Interaction Breakdown</h3>
+                <h3 className="text-2xl font-black mb-6" style={{ color: 'var(--text-primary)' }}>Interaction Breakdown</h3>
                 <div className="flex flex-wrap gap-3">
                   {stats.interactionsByType.map((item) => {
                     const conf = INTERACTION_TYPE_CONFIG[item._id];
                     if (!conf) return null;
                     const Icon = conf.icon;
                     return (
-                      <div key={item._id} className={cn("flex items-center gap-3 px-5 py-3 rounded-2xl border", conf.bg, conf.border)}>
-                        <Icon size={16} className={conf.color} />
-                        <span className="text-xl font-black text-slate-900">{item.count}</span>
-                        <span className={cn("text-[11px] font-bold uppercase tracking-widest", conf.color)}>{conf.label}</span>
+                      <div key={item._id} className="flex items-center gap-3 px-5 py-3 rounded-2xl"
+                        style={{ backgroundColor: conf.bg, border: `1px solid ${conf.border}20` }}
+                      >
+                        <Icon size={16} style={{ color: conf.color }} />
+                        <span className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{item.count}</span>
+                        <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: conf.color }}>{conf.label}</span>
                       </div>
                     );
                   })}
@@ -530,30 +613,35 @@ export default function Home() {
             {/* Interactions Feed */}
             <section id="interactions-section">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-black text-black">Recent Interactions</h3>
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                <h3 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Recent Interactions</h3>
+                <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>
                   {stats.recentInteractions?.length ?? 0} shown
                 </span>
               </div>
 
-              <div className="bg-white border border-slate-100 rounded-[28px] overflow-hidden shadow-sm">
-                {/* Table header */}
-                <div className="grid grid-cols-[1fr_auto] gap-4 px-6 py-3 border-b border-slate-100 bg-slate-50/80">
+              <div className="rounded-[28px] overflow-hidden shadow-sm"
+                style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+              >
+                <div className="grid grid-cols-[1fr_auto] gap-4 px-6 py-3"
+                  style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface-alt)' }}
+                >
                   <div className="flex items-center gap-16">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest w-24">Type</span>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">User · Content</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest w-24" style={{ color: 'var(--text-placeholder)' }}>Type</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>User &middot; Content</span>
                   </div>
                   <div className="flex items-center gap-8 pr-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reply</span>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">When</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>Reply</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>When</span>
                   </div>
                 </div>
 
-                {!stats.recentInteractions?.length ? (
+                {loading ? (
+                  <>{[1,2,3].map(i => <SkeletonRow key={i} />)}</>
+                ) : !stats.recentInteractions?.length ? (
                   <div className="py-16 text-center">
-                    <Send size={32} className="text-slate-200 mx-auto mb-3" />
-                    <p className="text-slate-400 text-sm font-medium">No interactions yet.</p>
-                    <p className="text-slate-300 text-xs mt-1">They'll appear here once your automation receives events.</p>
+                    <Send size={32} className="mx-auto mb-3" style={{ color: 'var(--text-placeholder)' }} />
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>No interactions yet.</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--text-placeholder)' }}>They&apos;ll appear here once your automation receives events.</p>
                   </div>
                 ) : (
                   stats.recentInteractions.map((event) => (
@@ -574,7 +662,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen theme-transition" style={{ backgroundColor: 'var(--bg)' }}>
       <Sidebar
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}

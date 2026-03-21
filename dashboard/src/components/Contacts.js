@@ -6,12 +6,12 @@ import { cn } from '@/lib/utils';
 import { getContacts } from '@/app/dashboard/actions';
 
 const TYPE_CONFIG = {
-  comment:    { label: "Comment",    icon: MessageCircle, color: "text-blue-500",   bg: "bg-blue-50",   border: "border-blue-100"   },
-  mention:    { label: "Mention",    icon: AtSign,        color: "text-purple-500", bg: "bg-purple-50", border: "border-purple-100" },
-  dm:         { label: "DM",         icon: MessageSquare, color: "text-pink-500",   bg: "bg-pink-50",   border: "border-pink-100"   },
-  reel_share: { label: "Reel",       icon: Play,          color: "text-amber-500",  bg: "bg-amber-50",  border: "border-amber-100"  },
-  reaction:   { label: "Reaction",   icon: Heart,         color: "text-rose-500",   bg: "bg-rose-50",   border: "border-rose-100"   },
-  postback:   { label: "Button",     icon: MousePointer2, color: "text-cyan-500",   bg: "bg-cyan-50",   border: "border-cyan-100"   },
+  comment:    { label: "Comment",    icon: MessageCircle, color: 'var(--info)',    bg: 'var(--info-light)',    border: 'var(--border)' },
+  mention:    { label: "Mention",    icon: AtSign,        color: 'var(--primary)', bg: 'var(--primary-light)', border: 'var(--border)' },
+  dm:         { label: "DM",         icon: MessageSquare, color: 'var(--primary)', bg: 'var(--primary-light)', border: 'var(--border)' },
+  reel_share: { label: "Reel",       icon: Play,          color: 'var(--warning)', bg: 'var(--warning-light)', border: 'var(--border)' },
+  reaction:   { label: "Reaction",   icon: Heart,         color: 'var(--error)',   bg: 'var(--error-light)',   border: 'var(--border)' },
+  postback:   { label: "Button",     icon: MousePointer2, color: 'var(--accent)',  bg: 'var(--accent-light)',  border: 'var(--border)' },
 };
 
 function timeAgo(date) {
@@ -23,23 +23,61 @@ function timeAgo(date) {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function SkeletonRow() {
+  return (
+    <div className="flex items-center gap-4 px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+      <div className="w-10 h-10 rounded-full animate-pulse" style={{ backgroundColor: 'var(--surface-alt)' }} />
+      <div className="w-44 flex-shrink-0 space-y-2">
+        <div className="h-3 w-24 rounded animate-pulse" style={{ backgroundColor: 'var(--surface-alt)' }} />
+        <div className="h-2 w-16 rounded animate-pulse" style={{ backgroundColor: 'var(--surface-alt)' }} />
+      </div>
+      <div className="flex-1 flex items-center gap-1.5">
+        <div className="h-5 w-16 rounded-full animate-pulse" style={{ backgroundColor: 'var(--surface-alt)' }} />
+        <div className="h-5 w-14 rounded-full animate-pulse" style={{ backgroundColor: 'var(--surface-alt)' }} />
+      </div>
+      <div className="flex items-center gap-8 flex-shrink-0">
+        <div className="w-20 space-y-1">
+          <div className="h-4 w-8 rounded animate-pulse ml-auto" style={{ backgroundColor: 'var(--surface-alt)' }} />
+          <div className="h-2 w-16 rounded animate-pulse ml-auto" style={{ backgroundColor: 'var(--surface-alt)' }} />
+        </div>
+        <div className="w-16 space-y-1">
+          <div className="h-4 w-6 rounded animate-pulse ml-auto" style={{ backgroundColor: 'var(--surface-alt)' }} />
+          <div className="h-2 w-12 rounded animate-pulse ml-auto" style={{ backgroundColor: 'var(--surface-alt)' }} />
+        </div>
+        <div className="w-20 space-y-1">
+          <div className="h-3 w-14 rounded animate-pulse ml-auto" style={{ backgroundColor: 'var(--surface-alt)' }} />
+          <div className="h-2 w-12 rounded animate-pulse ml-auto" style={{ backgroundColor: 'var(--surface-alt)' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ContactRow({ contact }) {
   const displayName = contact.username ? `@${contact.username}` : contact.name || contact._id;
   const subName = contact.username && contact.name ? contact.name : null;
 
   return (
-    <div className="flex items-center gap-4 px-6 py-4 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 transition-colors">
+    <div
+      className="flex items-center gap-4 px-6 py-4 last:border-0 transition-colors theme-transition"
+      style={{ borderBottom: '1px solid var(--border)' }}
+      onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--surface-alt)'}
+      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+    >
       {/* Avatar */}
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-pink-300/20 flex items-center justify-center flex-shrink-0 border border-slate-100">
-        <span className="text-[13px] font-black text-primary">
+      <div
+        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+        style={{ background: 'linear-gradient(to bottom right, var(--primary-light), var(--primary-light))', border: '1px solid var(--border)' }}
+      >
+        <span className="text-[13px] font-black" style={{ color: 'var(--primary)' }}>
           {(contact.username || contact.name || "?")[0].toUpperCase()}
         </span>
       </div>
 
       {/* Name */}
       <div className="w-44 flex-shrink-0 min-w-0">
-        <p className="text-[13px] font-bold text-slate-900 truncate">{displayName}</p>
-        {subName && <p className="text-[11px] text-slate-400 truncate">{subName}</p>}
+        <p className="text-[13px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{displayName}</p>
+        {subName && <p className="text-[11px] truncate" style={{ color: 'var(--text-placeholder)' }}>{subName}</p>}
       </div>
 
       {/* Interaction type badges */}
@@ -49,7 +87,11 @@ function ContactRow({ contact }) {
           if (!conf) return null;
           const Icon = conf.icon;
           return (
-            <div key={type} className={cn("flex items-center gap-1 px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-widest", conf.bg, conf.border, conf.color)}>
+            <div
+              key={type}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest"
+              style={{ color: conf.color, backgroundColor: conf.bg, border: `1px solid ${conf.border}` }}
+            >
               <Icon size={9} />
               {conf.label}
             </div>
@@ -60,18 +102,18 @@ function ContactRow({ contact }) {
       {/* Stats */}
       <div className="flex items-center gap-8 flex-shrink-0 text-right">
         <div className="w-20">
-          <p className="text-[14px] font-black text-slate-900">{contact.totalInteractions}</p>
-          <p className="text-[10px] text-slate-400 font-medium">interactions</p>
+          <p className="text-[14px] font-black" style={{ color: 'var(--text-primary)' }}>{contact.totalInteractions}</p>
+          <p className="text-[10px] font-medium" style={{ color: 'var(--text-placeholder)' }}>interactions</p>
         </div>
         <div className="w-16">
-          <p className={cn("text-[14px] font-black", contact.dmsSent > 0 ? "text-emerald-600" : "text-slate-300")}>
+          <p className="text-[14px] font-black" style={{ color: contact.dmsSent > 0 ? 'var(--success)' : 'var(--text-placeholder)' }}>
             {contact.dmsSent}
           </p>
-          <p className="text-[10px] text-slate-400 font-medium">DMs sent</p>
+          <p className="text-[10px] font-medium" style={{ color: 'var(--text-placeholder)' }}>DMs sent</p>
         </div>
         <div className="w-20 text-right">
-          <p className="text-[12px] font-semibold text-slate-500">{timeAgo(contact.lastSeen)}</p>
-          <p className="text-[10px] text-slate-400 font-medium">last seen</p>
+          <p className="text-[12px] font-semibold" style={{ color: 'var(--text-muted)' }}>{timeAgo(contact.lastSeen)}</p>
+          <p className="text-[10px] font-medium" style={{ color: 'var(--text-placeholder)' }}>last seen</p>
         </div>
       </div>
     </div>
@@ -105,32 +147,54 @@ export default function Contacts() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-primary" size={36} />
+      <div className="space-y-8 theme-transition">
+        {/* Header skeleton */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div>
+            <div className="h-12 w-64 rounded-lg animate-pulse" style={{ backgroundColor: 'var(--surface-alt)' }} />
+            <div className="h-4 w-80 rounded mt-2 animate-pulse" style={{ backgroundColor: 'var(--surface-alt)' }} />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-16 w-36 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--surface-alt)' }} />
+            <div className="h-16 w-36 rounded-2xl animate-pulse" style={{ backgroundColor: 'var(--surface-alt)' }} />
+          </div>
+        </div>
+        {/* Filter skeleton */}
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-64 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--surface-alt)' }} />
+          <div className="h-10 w-56 rounded-xl animate-pulse" style={{ backgroundColor: 'var(--surface-alt)' }} />
+        </div>
+        {/* Table skeleton */}
+        <div className="rounded-[28px] overflow-hidden" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
+          <div className="px-6 py-3" style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface-alt)' }}>
+            <div className="h-3 w-full rounded animate-pulse" style={{ backgroundColor: 'var(--border)' }} />
+          </div>
+          {[...Array(6)].map((_, i) => <SkeletonRow key={i} />)}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 theme-transition">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b border-slate-100">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8" style={{ borderBottom: '1px solid var(--border)' }}>
         <div>
-          <h2 className="text-5xl font-black text-black tracking-tight leading-none">Contacts</h2>
-          <p className="text-slate-400 text-[14px] font-medium mt-2">
+          <h2 className="text-5xl font-black tracking-tight leading-none" style={{ color: 'var(--text-primary)' }}>Contacts</h2>
+          <p className="text-[14px] font-medium mt-2" style={{ color: 'var(--text-placeholder)' }}>
             {contacts.length} unique users who have interacted with your account.
           </p>
         </div>
 
         {/* Summary pills */}
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl">
-            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Total Contacts</p>
-            <p className="text-2xl font-black text-slate-900">{contacts.length}</p>
+          <div className="px-4 py-2 rounded-2xl" style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)' }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>Total Contacts</p>
+            <p className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>{contacts.length}</p>
           </div>
-          <div className="px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-2xl">
-            <p className="text-[11px] text-emerald-600 font-bold uppercase tracking-widest">DMs Sent</p>
-            <p className="text-2xl font-black text-emerald-700">
+          <div className="px-4 py-2 rounded-2xl" style={{ backgroundColor: 'var(--success-light)', border: '1px solid var(--border)' }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--success)' }}>DMs Sent</p>
+            <p className="text-2xl font-black" style={{ color: 'var(--success-dark)' }}>
               {contacts.reduce((s, c) => s + c.dmsSent, 0)}
             </p>
           </div>
@@ -140,59 +204,67 @@ export default function Contacts() {
       {/* Filters */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-placeholder)' }} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by username or name…"
-            className="w-full pl-9 pr-4 h-10 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+            className="w-full pl-9 pr-4 h-10 rounded-xl text-sm outline-none transition-all"
+            style={{
+              backgroundColor: 'var(--input-bg)',
+              border: '1px solid var(--input-border)',
+              color: 'var(--input-text)',
+            }}
+            onFocus={e => e.target.style.boxShadow = '0 0 0 2px var(--input-focus-ring)'}
+            onBlur={e => e.target.style.boxShadow = 'none'}
           />
         </div>
-        <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-xl p-1">
+        <div className="flex items-center gap-1 rounded-xl p-1" style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)' }}>
           {[['lastSeen', 'Recent'], ['interactions', 'Interactions'], ['dms', 'DMs']].map(([key, label]) => (
             <button
               key={key}
               onClick={() => setSortBy(key)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all",
-                sortBy === key ? "bg-white shadow-sm text-slate-900 border border-slate-100" : "text-slate-400 hover:text-slate-600"
-              )}
+              className="px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all"
+              style={sortBy === key
+                ? { backgroundColor: 'var(--card)', color: 'var(--text-primary)', border: '1px solid var(--border)', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }
+                : { color: 'var(--text-placeholder)', border: '1px solid transparent' }
+              }
             >
               {label}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1.5 text-slate-400">
+        <div className="flex items-center gap-1.5" style={{ color: 'var(--text-placeholder)' }}>
           <ArrowUpDown size={13} />
           <span className="text-[11px] font-bold">{filtered.length} shown</span>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-slate-100 rounded-[28px] overflow-hidden shadow-sm">
+      <div className="rounded-[28px] overflow-hidden shadow-sm theme-transition" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
         {/* Header */}
-        <div className="px-6 py-3 border-b border-slate-100 bg-slate-50/80 flex items-center gap-4">
+        <div className="px-6 py-3 flex items-center gap-4" style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface-alt)' }}>
           <div className="w-10 flex-shrink-0" />
           <div className="w-44 flex-shrink-0">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">User</span>
+            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>User</span>
           </div>
           <div className="flex-1">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Interaction Types</span>
+            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>Interaction Types</span>
           </div>
           <div className="flex items-center gap-8 flex-shrink-0">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest w-20">Events</span>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest w-16">DMs</span>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest w-20 text-right">Last Seen</span>
+            <span className="text-[10px] font-black uppercase tracking-widest w-20" style={{ color: 'var(--text-placeholder)' }}>Events</span>
+            <span className="text-[10px] font-black uppercase tracking-widest w-16" style={{ color: 'var(--text-placeholder)' }}>DMs</span>
+            <span className="text-[10px] font-black uppercase tracking-widest w-20 text-right" style={{ color: 'var(--text-placeholder)' }}>Last Seen</span>
           </div>
         </div>
 
         {filtered.length === 0 ? (
           <div className="py-20 text-center">
-            <Users2 size={36} className="text-slate-200 mx-auto mb-3" />
-            <p className="text-slate-400 text-sm font-medium">
+            <Users2 size={36} className="mx-auto mb-3" style={{ color: 'var(--border)' }} />
+            <p className="text-sm font-medium" style={{ color: 'var(--text-placeholder)' }}>
               {search ? 'No contacts match your search.' : 'No contacts yet.'}
             </p>
-            <p className="text-slate-300 text-xs mt-1">Contacts appear once someone interacts with your account.</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Contacts appear once someone interacts with your account.</p>
           </div>
         ) : (
           filtered.map((contact) => <ContactRow key={contact._id} contact={contact} />)

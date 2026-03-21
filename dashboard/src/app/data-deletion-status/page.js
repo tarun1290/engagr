@@ -5,30 +5,42 @@ export default async function DataDeletionStatus({ searchParams }) {
   const confirmationCode = params?.id || "";
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+    <div
+      className="min-h-screen flex items-center justify-center p-6 theme-transition"
+      style={{ backgroundColor: 'var(--bg)' }}
+    >
       <div className="w-full max-w-lg space-y-8 text-center">
-        <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto">
-          <CheckCircle2 className="text-emerald-400" size={30} />
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
+          style={{ backgroundColor: 'var(--success-light)', border: '1px solid var(--success-light)' }}
+        >
+          <CheckCircle2 size={30} style={{ color: 'var(--success)' }} />
         </div>
 
         <div className="space-y-3">
-          <h1 className="text-3xl font-black text-white tracking-tight">Data Deletion Request</h1>
-          <p className="text-slate-400 font-medium leading-relaxed">
+          <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Data Deletion Request</h1>
+          <p className="font-medium leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
             Your data deletion request has been received and processed. All personal data associated with your account has been permanently removed from our systems.
           </p>
         </div>
 
         {confirmationCode && (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-left space-y-2">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Confirmation Code</p>
-            <p className="font-mono text-emerald-400 text-sm break-all">{confirmationCode}</p>
+          <div
+            className="rounded-2xl p-6 text-left space-y-2"
+            style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+          >
+            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>Confirmation Code</p>
+            <p className="font-mono text-sm break-all" style={{ color: 'var(--success)' }}>{confirmationCode}</p>
           </div>
         )}
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-left space-y-4">
+        <div
+          className="rounded-2xl p-6 text-left space-y-4"
+          style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+        >
           <div className="flex items-center gap-2">
-            <Trash2 size={16} className="text-slate-500" />
-            <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest">What was deleted</p>
+            <Trash2 size={16} style={{ color: 'var(--text-placeholder)' }} />
+            <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>What was deleted</p>
           </div>
           <ul className="space-y-2">
             {[
@@ -38,15 +50,15 @@ export default async function DataDeletionStatus({ searchParams }) {
               "Automation configurations",
               "Any stored contact identifiers",
             ].map((item) => (
-              <li key={item} className="flex items-center gap-2 text-sm text-slate-400 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+              <li key={item} className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--success)' }} />
                 {item}
               </li>
             ))}
           </ul>
         </div>
 
-        <p className="text-slate-600 text-xs">
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
           Engagr · If you have questions contact us at support@engagr.app
         </p>
       </div>

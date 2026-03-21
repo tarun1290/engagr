@@ -4,14 +4,15 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   ShieldCheck, Check, X as XIcon, ArrowRight, ChevronRight,
-  Instagram, Zap, Crown, Gem, Star, Menu, X, HelpCircle,
+  Instagram, Zap, Crown, Gem, Star, Menu, X, HelpCircle, Sun, Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/ThemeProvider";
 
 /* ─────────────────────────── ICONS ─────────────────────────── */
 
-const SilverShield = ({ size, className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+const SilverShield = ({ size, className, style }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
     <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
   </svg>
 );
@@ -26,10 +27,11 @@ const PLANS = [
     price: 499,
     period: "month",
     tagline: "Perfect for creators just getting started",
-    color: "from-slate-400 to-slate-500",
-    borderColor: "border-slate-200",
-    iconBg: "bg-slate-100",
-    iconColor: "text-slate-500",
+    tierColors: {
+      iconBg: "var(--surface-alt)",
+      iconColor: "var(--text-muted)",
+      borderColor: "var(--border)",
+    },
     features: [
       { text: "1 Instagram account", included: true },
       { text: "Comment-to-DM automation", included: true },
@@ -53,10 +55,11 @@ const PLANS = [
     price: 999,
     period: "month",
     tagline: "For growing businesses that want every feature",
-    color: "from-amber-500 to-yellow-500",
-    borderColor: "border-amber-200",
-    iconBg: "bg-amber-50",
-    iconColor: "text-amber-600",
+    tierColors: {
+      iconBg: "var(--warning-light)",
+      iconColor: "var(--warning)",
+      borderColor: "var(--warning-light)",
+    },
     popular: true,
     features: [
       { text: "1 Instagram account", included: true },
@@ -81,10 +84,11 @@ const PLANS = [
     price: 1999,
     period: "month",
     tagline: "For agencies and brands managing multiple accounts",
-    color: "from-violet-500 to-purple-600",
-    borderColor: "border-violet-200",
-    iconBg: "bg-violet-50",
-    iconColor: "text-violet-600",
+    tierColors: {
+      iconBg: "var(--primary-light)",
+      iconColor: "var(--primary)",
+      borderColor: "var(--primary-light)",
+    },
     features: [
       { text: "Up to 3 Instagram accounts", included: true },
       { text: "Comment-to-DM automation", included: true },
@@ -134,40 +138,90 @@ const FAQS = [
 
 function Navbar() {
   const [open, setOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+
   return (
-    <nav className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100">
+    <nav
+      className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl theme-transition"
+      style={{
+        backgroundColor: "color-mix(in srgb, var(--card) 80%, transparent)",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center shadow-sm shadow-pink-200">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm"
+            style={{ backgroundColor: "var(--primary)" }}
+          >
             <ShieldCheck className="text-white" size={17} />
           </div>
-          <span className="text-lg font-black text-slate-900 uppercase tracking-tight">Engagr</span>
+          <span className="text-lg font-black uppercase tracking-tight" style={{ color: "var(--text-primary)" }}>Engagr</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8">
-          <Link href="/#features" className="text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Features</Link>
-          <Link href="/#case-studies" className="text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors">Case Studies</Link>
-          <Link href="/pricing" className="text-sm font-semibold text-primary">Pricing</Link>
+          <Link href="/#features" className="text-sm font-semibold transition-colors" style={{ color: "var(--text-muted)" }}>Features</Link>
+          <Link href="/#case-studies" className="text-sm font-semibold transition-colors" style={{ color: "var(--text-muted)" }}>Case Studies</Link>
+          <Link href="/pricing" className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Pricing</Link>
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/sign-in" className="px-5 py-2 text-sm font-bold text-slate-700 hover:text-primary transition-colors">Sign In</Link>
-          <Link href="/sign-up" className="px-5 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:opacity-90 transition-all shadow-lg shadow-pink-200">Get Started Free</Link>
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg transition-all"
+            style={{ color: "var(--text-muted)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--surface-alt)"; e.currentTarget.style.color = "var(--primary)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          <Link href="/sign-in" className="px-5 py-2 text-sm font-bold transition-colors" style={{ color: "var(--text-secondary)" }}>Sign In</Link>
+          <Link
+            href="/sign-up"
+            className="px-5 py-2.5 text-sm font-bold rounded-xl transition-all shadow-lg"
+            style={{ backgroundColor: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
+          >
+            Get Started Free
+          </Link>
         </div>
 
-        <button onClick={() => setOpen(!open)} className="md:hidden p-2 text-slate-600">
+        <button onClick={() => setOpen(!open)} className="md:hidden p-2" style={{ color: "var(--text-secondary)" }}>
           {open ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
 
       {open && (
-        <div className="md:hidden bg-white border-t border-slate-100 px-6 py-6 space-y-4">
-          <Link href="/#features" className="block text-sm font-semibold text-slate-600">Features</Link>
-          <Link href="/#case-studies" className="block text-sm font-semibold text-slate-600">Case Studies</Link>
-          <Link href="/pricing" className="block text-sm font-semibold text-primary">Pricing</Link>
-          <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
-            <Link href="/sign-in" className="text-center py-3 text-sm font-bold text-slate-700 border border-slate-200 rounded-xl">Sign In</Link>
-            <Link href="/sign-up" className="text-center py-3 bg-primary text-white text-sm font-bold rounded-xl">Get Started Free</Link>
+        <div
+          className="md:hidden px-6 py-6 space-y-4"
+          style={{ backgroundColor: "var(--card)", borderTop: "1px solid var(--border)" }}
+        >
+          <Link href="/#features" className="block text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>Features</Link>
+          <Link href="/#case-studies" className="block text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>Case Studies</Link>
+          <Link href="/pricing" className="block text-sm font-semibold" style={{ color: "var(--primary)" }}>Pricing</Link>
+          <div className="pt-4 flex flex-col gap-3" style={{ borderTop: "1px solid var(--border)" }}>
+            <button
+              onClick={toggleTheme}
+              className="flex items-center justify-center gap-2 py-3 text-sm font-bold rounded-xl"
+              style={{ color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+              {theme === "dark" ? "Light Mode" : "Dark Mode"}
+            </button>
+            <Link
+              href="/sign-in"
+              className="text-center py-3 text-sm font-bold rounded-xl"
+              style={{ color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/sign-up"
+              className="text-center py-3 text-sm font-bold rounded-xl"
+              style={{ backgroundColor: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
+            >
+              Get Started Free
+            </Link>
           </div>
         </div>
       )}
@@ -178,17 +232,20 @@ function Navbar() {
 function FAQItem({ q, a }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border border-slate-100 rounded-2xl overflow-hidden transition-all">
+    <div
+      className="rounded-2xl overflow-hidden transition-all"
+      style={{ border: "1px solid var(--border)" }}
+    >
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-slate-50/50 transition-colors"
+        className="w-full flex items-center justify-between px-6 py-5 text-left transition-colors"
       >
-        <span className="text-[14px] font-bold text-slate-900 pr-4">{q}</span>
-        <ChevronRight size={16} className={cn("text-slate-400 flex-shrink-0 transition-transform", open && "rotate-90")} />
+        <span className="text-[14px] font-bold pr-4" style={{ color: "var(--text-primary)" }}>{q}</span>
+        <ChevronRight size={16} className={cn("flex-shrink-0 transition-transform", open && "rotate-90")} style={{ color: "var(--text-placeholder)" }} />
       </button>
       {open && (
         <div className="px-6 pb-5 -mt-1">
-          <p className="text-[13px] text-slate-500 leading-relaxed">{a}</p>
+          <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-muted)" }}>{a}</p>
         </div>
       )}
     </div>
@@ -199,22 +256,25 @@ function FAQItem({ q, a }) {
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen theme-transition" style={{ backgroundColor: "var(--bg)" }}>
       <Navbar />
 
       {/* ── HEADER ─────────────────────────────────────────────── */}
       <section className="pt-32 pb-16 px-6 text-center relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-purple-50/60 via-pink-50/30 to-transparent rounded-full blur-3xl -z-10 pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full blur-3xl -z-10 pointer-events-none" style={{ background: "radial-gradient(ellipse, var(--primary-light), transparent 70%)", opacity: 0.5 }} />
 
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/5 border border-primary/10 rounded-full mb-6">
-          <Zap size={13} className="text-primary" />
-          <span className="text-xs font-bold text-primary uppercase tracking-widest">Simple Pricing</span>
+        <div
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6"
+          style={{ backgroundColor: "var(--primary-light)", border: "1px solid var(--primary-medium)" }}
+        >
+          <Zap size={13} style={{ color: "var(--primary)" }} />
+          <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--primary)" }}>Simple Pricing</span>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight mb-4">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight mb-4" style={{ color: "var(--text-primary)" }}>
           Choose Your Plan
         </h1>
-        <p className="text-slate-500 text-base sm:text-lg font-medium max-w-lg mx-auto">
+        <p className="text-base sm:text-lg font-medium max-w-lg mx-auto" style={{ color: "var(--text-muted)" }}>
           Start with a 7-day free trial on any plan. No credit card required. Upgrade, downgrade, or cancel anytime.
         </p>
       </section>
@@ -228,13 +288,21 @@ export default function PricingPage() {
               <div
                 key={plan.id}
                 className={cn(
-                  "relative bg-white border rounded-[32px] p-8 flex flex-col transition-all hover:shadow-xl hover:shadow-slate-100 hover:-translate-y-1 duration-300",
-                  plan.popular ? "border-primary/30 ring-1 ring-primary/10 shadow-lg shadow-pink-100/50" : "border-slate-200"
+                  "relative rounded-[32px] p-8 flex flex-col transition-all hover:-translate-y-1 duration-300",
+                  plan.popular ? "shadow-lg" : ""
                 )}
+                style={{
+                  backgroundColor: "var(--card)",
+                  border: plan.popular ? "1px solid var(--primary-medium)" : "1px solid var(--border)",
+                  boxShadow: plan.popular ? "0 4px 24px var(--primary-light)" : undefined,
+                }}
               >
                 {plan.popular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <div className="px-4 py-1 bg-gradient-to-r from-[#FF3040] to-[#E5266E] text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg shadow-pink-200">
+                    <div
+                      className="px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg"
+                      style={{ backgroundColor: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
+                    >
                       Most Popular
                     </div>
                   </div>
@@ -243,24 +311,30 @@ export default function PricingPage() {
                 {/* Plan header */}
                 <div className="mb-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center border", plan.iconBg, plan.borderColor)}>
-                      <PlanIcon size={20} className={plan.iconColor} />
+                    <div
+                      className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                      style={{
+                        backgroundColor: plan.tierColors.iconBg,
+                        border: `1px solid ${plan.tierColors.borderColor}`,
+                      }}
+                    >
+                      <PlanIcon size={20} style={{ color: plan.tierColors.iconColor }} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-slate-900">{plan.name}</h3>
+                      <h3 className="text-lg font-black" style={{ color: "var(--text-primary)" }}>{plan.name}</h3>
                     </div>
                   </div>
-                  <p className="text-[13px] text-slate-400 font-medium">{plan.tagline}</p>
+                  <p className="text-[13px] font-medium" style={{ color: "var(--text-placeholder)" }}>{plan.tagline}</p>
                 </div>
 
                 {/* Price */}
                 <div className="mb-8">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-[13px] text-slate-400 font-bold">&#8377;</span>
-                    <span className="text-5xl font-black text-slate-900 tracking-tight">{plan.price.toLocaleString("en-IN")}</span>
-                    <span className="text-sm text-slate-400 font-medium">/{plan.period}</span>
+                    <span className="text-[13px] font-bold" style={{ color: "var(--text-placeholder)" }}>&#8377;</span>
+                    <span className="text-5xl font-black tracking-tight" style={{ color: "var(--text-primary)" }}>{plan.price.toLocaleString("en-IN")}</span>
+                    <span className="text-sm font-medium" style={{ color: "var(--text-placeholder)" }}>/{plan.period}</span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">+ GST where applicable</p>
+                  <p className="text-[11px] mt-1" style={{ color: "var(--text-placeholder)" }}>+ GST where applicable</p>
                 </div>
 
                 {/* Features */}
@@ -268,11 +342,14 @@ export default function PricingPage() {
                   {plan.features.map((f) => (
                     <li key={f.text} className="flex items-start gap-3">
                       {f.included ? (
-                        <Check size={15} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+                        <Check size={15} className="mt-0.5 flex-shrink-0" style={{ color: "var(--success)" }} />
                       ) : (
-                        <XIcon size={15} className="text-slate-300 mt-0.5 flex-shrink-0" />
+                        <XIcon size={15} className="mt-0.5 flex-shrink-0" style={{ color: "var(--text-placeholder)" }} />
                       )}
-                      <span className={cn("text-[13px] font-medium", f.included ? "text-slate-700" : "text-slate-400")}>
+                      <span
+                        className="text-[13px] font-medium"
+                        style={{ color: f.included ? "var(--text-secondary)" : "var(--text-placeholder)" }}
+                      >
                         {f.text}
                       </span>
                     </li>
@@ -282,12 +359,12 @@ export default function PricingPage() {
                 {/* CTA */}
                 <Link
                   href="/sign-up"
-                  className={cn(
-                    "w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all",
+                  className="w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+                  style={
                     plan.popular
-                      ? "bg-gradient-to-r from-[#FF3040] to-[#E5266E] text-white shadow-lg shadow-pink-200 hover:opacity-90"
-                      : "bg-slate-900 text-white hover:bg-slate-800"
-                  )}
+                      ? { backgroundColor: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", boxShadow: "0 4px 16px var(--primary-light)" }
+                      : { backgroundColor: "var(--text-primary)", color: "var(--bg)" }
+                  }
                 >
                   {plan.cta} <ArrowRight size={15} />
                 </Link>
@@ -298,7 +375,7 @@ export default function PricingPage() {
 
         {/* All plans include */}
         <div className="max-w-3xl mx-auto mt-14 text-center">
-          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-5">All plans include</p>
+          <p className="text-sm font-bold uppercase tracking-widest mb-5" style={{ color: "var(--text-placeholder)" }}>All plans include</p>
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-3">
             {[
               "7-day free trial",
@@ -309,8 +386,8 @@ export default function PricingPage() {
               "Auto-updates",
             ].map((item) => (
               <div key={item} className="flex items-center gap-2">
-                <Check size={13} className="text-emerald-500" />
-                <span className="text-sm text-slate-600 font-medium">{item}</span>
+                <Check size={13} style={{ color: "var(--success)" }} />
+                <span className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>{item}</span>
               </div>
             ))}
           </div>
@@ -318,18 +395,24 @@ export default function PricingPage() {
       </section>
 
       {/* ── COMPARISON TABLE ───────────────────────────────────── */}
-      <section className="py-20 px-6 bg-slate-50 border-y border-slate-100">
+      <section
+        className="py-20 px-6"
+        style={{ backgroundColor: "var(--surface-alt)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}
+      >
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-black text-slate-900 text-center mb-10 tracking-tight">Plan Comparison</h2>
+          <h2 className="text-3xl font-black text-center mb-10 tracking-tight" style={{ color: "var(--text-primary)" }}>Plan Comparison</h2>
 
-          <div className="bg-white border border-slate-200 rounded-[24px] overflow-hidden shadow-sm">
+          <div
+            className="rounded-[24px] overflow-hidden shadow-sm"
+            style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
+          >
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/80">
-                  <th className="text-left py-4 px-6 text-[11px] font-black text-slate-400 uppercase tracking-widest w-1/3">Feature</th>
-                  <th className="text-center py-4 px-4 text-[11px] font-black text-slate-400 uppercase tracking-widest">Silver</th>
-                  <th className="text-center py-4 px-4 text-[11px] font-black text-primary uppercase tracking-widest">Gold</th>
-                  <th className="text-center py-4 px-4 text-[11px] font-black text-violet-600 uppercase tracking-widest">Platinum</th>
+                <tr style={{ borderBottom: "1px solid var(--border)", backgroundColor: "var(--surface-alt)" }}>
+                  <th className="text-left py-4 px-6 text-[11px] font-black uppercase tracking-widest w-1/3" style={{ color: "var(--text-placeholder)" }}>Feature</th>
+                  <th className="text-center py-4 px-4 text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Silver</th>
+                  <th className="text-center py-4 px-4 text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--warning)" }}>Gold</th>
+                  <th className="text-center py-4 px-4 text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--primary)" }}>Platinum</th>
                 </tr>
               </thead>
               <tbody>
@@ -347,18 +430,24 @@ export default function PricingPage() {
                   { feature: "Custom templates", silver: false, gold: false, platinum: true },
                   { feature: "Support", silver: "Email", gold: "Priority", platinum: "Dedicated" },
                 ].map((row, i) => (
-                  <tr key={row.feature} className={cn("border-b border-slate-100 last:border-0", i % 2 === 0 ? "bg-white" : "bg-slate-50/30")}>
-                    <td className="py-3.5 px-6 text-[13px] font-semibold text-slate-700">{row.feature}</td>
+                  <tr
+                    key={row.feature}
+                    style={{
+                      borderBottom: "1px solid var(--border)",
+                      backgroundColor: i % 2 === 0 ? "var(--card)" : "var(--surface-alt)",
+                    }}
+                  >
+                    <td className="py-3.5 px-6 text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>{row.feature}</td>
                     {["silver", "gold", "platinum"].map((plan) => {
                       const val = row[plan];
                       return (
                         <td key={plan} className="py-3.5 px-4 text-center">
                           {val === true ? (
-                            <Check size={16} className="text-emerald-500 mx-auto" />
+                            <Check size={16} className="mx-auto" style={{ color: "var(--success)" }} />
                           ) : val === false ? (
-                            <XIcon size={16} className="text-slate-300 mx-auto" />
+                            <XIcon size={16} className="mx-auto" style={{ color: "var(--text-placeholder)" }} />
                           ) : (
-                            <span className="text-[13px] font-bold text-slate-600">{val}</span>
+                            <span className="text-[13px] font-bold" style={{ color: "var(--text-secondary)" }}>{val}</span>
                           )}
                         </td>
                       );
@@ -375,11 +464,14 @@ export default function PricingPage() {
       <section className="py-24 px-6">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 border border-slate-200 rounded-full mb-4">
-              <HelpCircle size={13} className="text-slate-500" />
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">FAQ</span>
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4"
+              style={{ backgroundColor: "var(--surface-alt)", border: "1px solid var(--border)" }}
+            >
+              <HelpCircle size={13} style={{ color: "var(--text-muted)" }} />
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>FAQ</span>
             </div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Frequently Asked Questions</h2>
+            <h2 className="text-3xl font-black tracking-tight" style={{ color: "var(--text-primary)" }}>Frequently Asked Questions</h2>
           </div>
 
           <div className="space-y-3">
@@ -392,18 +484,22 @@ export default function PricingPage() {
 
       {/* ── BOTTOM CTA ──────────────────────────────────────────── */}
       <section className="pb-24 px-6">
-        <div className="max-w-4xl mx-auto bg-gradient-to-br from-slate-950 to-slate-900 rounded-[32px] p-10 sm:p-14 text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(229,38,110,0.15),transparent_60%)] pointer-events-none" />
+        <div
+          className="max-w-4xl mx-auto rounded-[32px] p-10 sm:p-14 text-center relative overflow-hidden"
+          style={{ backgroundColor: "var(--primary-darker)" }}
+        >
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 0%, var(--primary-glow), transparent 60%)" }} />
           <div className="relative">
             <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-4">
               Start Your Free Trial Today
             </h2>
-            <p className="text-slate-400 text-base font-medium max-w-md mx-auto mb-8">
+            <p className="text-base font-medium max-w-md mx-auto mb-8" style={{ color: "var(--primary-medium)" }}>
               7 days free on any plan. No credit card required. Set up your first automation in under 3 minutes.
             </p>
             <Link
               href="/sign-up"
-              className="inline-flex items-center gap-2 px-10 py-4 bg-gradient-to-r from-[#FF3040] to-[#E5266E] text-white font-bold text-base rounded-2xl hover:opacity-90 transition-all shadow-xl shadow-pink-900/30"
+              className="inline-flex items-center gap-2 px-10 py-4 font-bold text-base rounded-2xl transition-all shadow-xl"
+              style={{ backgroundColor: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
             >
               Get Started Free <ArrowRight size={18} />
             </Link>
@@ -412,50 +508,56 @@ export default function PricingPage() {
       </section>
 
       {/* ── FOOTER ──────────────────────────────────────────────── */}
-      <footer className="bg-slate-950 text-white">
+      <footer style={{ backgroundColor: "var(--primary-darker)", color: "white" }}>
         <div className="max-w-7xl mx-auto px-6 py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: "var(--primary)" }}
+                >
                   <ShieldCheck className="text-white" size={17} />
                 </div>
                 <span className="text-lg font-black uppercase tracking-tight">Engagr</span>
               </div>
-              <p className="text-sm text-slate-400 leading-relaxed">
+              <p className="text-sm leading-relaxed" style={{ color: "var(--primary-medium)" }}>
                 Next-generation Instagram automation for businesses that want to turn every comment into a conversion.
               </p>
             </div>
             <div>
-              <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Product</h4>
-              <ul className="space-y-2.5 text-sm text-slate-400">
+              <h4 className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: "var(--primary-medium)" }}>Product</h4>
+              <ul className="space-y-2.5 text-sm" style={{ color: "var(--primary-medium)" }}>
                 <li><Link href="/#features" className="hover:text-white transition-colors">Features</Link></li>
                 <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
                 <li><Link href="/#case-studies" className="hover:text-white transition-colors">Case Studies</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Account</h4>
-              <ul className="space-y-2.5 text-sm text-slate-400">
+              <h4 className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: "var(--primary-medium)" }}>Account</h4>
+              <ul className="space-y-2.5 text-sm" style={{ color: "var(--primary-medium)" }}>
                 <li><Link href="/sign-in" className="hover:text-white transition-colors">Sign In</Link></li>
                 <li><Link href="/sign-up" className="hover:text-white transition-colors">Create Account</Link></li>
                 <li><Link href="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Legal</h4>
-              <ul className="space-y-2.5 text-sm text-slate-400">
+              <h4 className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: "var(--primary-medium)" }}>Legal</h4>
+              <ul className="space-y-2.5 text-sm" style={{ color: "var(--primary-medium)" }}>
                 <li><span className="cursor-default">Privacy Policy</span></li>
                 <li><span className="cursor-default">Terms of Service</span></li>
                 <li><Link href="/data-deletion-status" className="hover:text-white transition-colors">Data Deletion</Link></li>
               </ul>
             </div>
           </div>
-          <div className="mt-14 pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-xs text-slate-500">&copy; {new Date().getFullYear()} Engagr. All rights reserved.</p>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-full">
-              <Instagram size={13} className="text-slate-400" />
-              <span className="text-xs text-slate-400 font-medium">Built on Meta Instagram API</span>
+          <div className="mt-14 pt-8 flex flex-col md:flex-row items-center justify-between gap-4" style={{ borderTop: "1px solid var(--primary-dark)" }}>
+            <p className="text-xs" style={{ color: "var(--primary-medium)" }}>&copy; {new Date().getFullYear()} Engagr. All rights reserved.</p>
+            <div
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+              style={{ backgroundColor: "var(--primary-dark)", border: "1px solid var(--primary-medium)" }}
+            >
+              <Instagram size={13} style={{ color: "var(--primary-medium)" }} />
+              <span className="text-xs font-medium" style={{ color: "var(--primary-medium)" }}>Built on Meta Instagram API</span>
             </div>
           </div>
         </div>

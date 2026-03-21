@@ -17,20 +17,26 @@ const REPLY_PRESETS = [
 
 const RadioOption = ({ selected, onClick, label }) => (
   <div onClick={onClick} className="flex items-center gap-3 cursor-pointer group select-none">
-    <div className={cn(
-      "w-[18px] h-[18px] rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all",
-      selected ? "border-primary bg-primary" : "border-slate-300 group-hover:border-slate-400"
-    )}>
+    <div
+      className={cn(
+        "w-[18px] h-[18px] rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all"
+      )}
+      style={
+        selected
+          ? { borderColor: 'var(--primary)', backgroundColor: 'var(--primary)' }
+          : { borderColor: 'var(--text-placeholder)' }
+      }
+    >
       {selected && <div className="w-[7px] h-[7px] rounded-full bg-white" />}
     </div>
-    <span className="text-[14px] text-slate-700 font-medium">{label}</span>
+    <span className="text-[14px] font-medium" style={{ color: 'var(--text-secondary)' }}>{label}</span>
   </div>
 );
 
 function MediaGrid({ media, selectedPost, setSelectedPost }) {
   if (!media?.length) {
     return (
-      <p className="text-xs text-slate-400 italic py-2">
+      <p className="text-xs italic py-2" style={{ color: 'var(--text-placeholder)' }}>
         No recent posts found. Make sure your account has public posts.
       </p>
     );
@@ -51,17 +57,21 @@ function MediaGrid({ media, selectedPost, setSelectedPost }) {
               key={p.id}
               onClick={() => setSelectedPost(p.id)}
               className={cn(
-                "relative aspect-square rounded-xl overflow-hidden cursor-pointer transition-all bg-slate-100 group",
+                "relative aspect-square rounded-xl overflow-hidden cursor-pointer transition-all group",
                 isSelected
-                  ? "ring-2 ring-primary ring-offset-2"
+                  ? "ring-2 ring-offset-2"
                   : "opacity-70 hover:opacity-100"
               )}
+              style={{
+                backgroundColor: 'var(--surface-alt)',
+                ...(isSelected ? { '--tw-ring-color': 'var(--primary)' } : {})
+              }}
             >
               {thumb ? (
                 <img src={thumb} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-slate-200 flex items-center justify-center">
-                  <span className="text-[9px] text-slate-400 font-bold uppercase">No Preview</span>
+                <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: 'var(--surface-alt)' }}>
+                  <span className="text-[9px] font-bold uppercase" style={{ color: 'var(--text-placeholder)' }}>No Preview</span>
                 </div>
               )}
 
@@ -75,7 +85,7 @@ function MediaGrid({ media, selectedPost, setSelectedPost }) {
               {/* Selected checkmark */}
               {isSelected && (
                 <div className="absolute top-1.5 left-1.5">
-                  <CheckCircle2 size={18} className="text-primary fill-white drop-shadow" />
+                  <CheckCircle2 size={18} className="fill-white drop-shadow" style={{ color: 'var(--primary)' }} />
                 </div>
               )}
             </div>
@@ -85,8 +95,11 @@ function MediaGrid({ media, selectedPost, setSelectedPost }) {
 
       {/* Selected post detail */}
       {selected && (
-        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex gap-4 animate-in fade-in duration-200">
-          <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-slate-200">
+        <div
+          className="rounded-2xl p-4 flex gap-4 animate-in fade-in duration-200"
+          style={{ backgroundColor: 'var(--surface-alt)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)' }}
+        >
+          <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0" style={{ backgroundColor: 'var(--surface-alt)' }}>
             {(selected.media_type === "VIDEO" ? selected.thumbnail_url : selected.media_url) ? (
               <img
                 src={selected.media_type === "VIDEO" ? selected.thumbnail_url : selected.media_url}
@@ -97,25 +110,27 @@ function MediaGrid({ media, selectedPost, setSelectedPost }) {
           </div>
           <div className="flex-1 min-w-0 space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className={cn(
-                "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded",
-                selected.media_type === "VIDEO"
-                  ? "bg-purple-50 text-purple-600 border border-purple-100"
-                  : "bg-blue-50 text-blue-600 border border-blue-100"
-              )}>
+              <span
+                className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded"
+                style={
+                  selected.media_type === "VIDEO"
+                    ? { backgroundColor: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-medium)' }
+                    : { backgroundColor: 'var(--info-light)', color: 'var(--info)', border: '1px solid var(--info-light)' }
+                }
+              >
                 {selected.media_type === "VIDEO" ? "Reel / Video" : "Photo"}
               </span>
             </div>
             {selected.caption ? (
-              <p className="text-[12px] text-slate-600 leading-snug line-clamp-2">{selected.caption}</p>
+              <p className="text-[12px] leading-snug line-clamp-2" style={{ color: 'var(--text-secondary)' }}>{selected.caption}</p>
             ) : (
-              <p className="text-[12px] text-slate-400 italic">No caption</p>
+              <p className="text-[12px] italic" style={{ color: 'var(--text-placeholder)' }}>No caption</p>
             )}
             <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
+              <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--text-placeholder)' }}>
                 <Heart size={11} /> {(selected.like_count || 0).toLocaleString()}
               </span>
-              <span className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
+              <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: 'var(--text-placeholder)' }}>
                 <MessageCircle size={11} /> {(selected.comments_count || 0).toLocaleString()}
               </span>
               {selected.permalink && (
@@ -123,7 +138,8 @@ function MediaGrid({ media, selectedPost, setSelectedPost }) {
                   href={selected.permalink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-[11px] text-primary font-bold hover:underline ml-auto"
+                  className="flex items-center gap-1 text-[11px] font-bold hover:underline ml-auto"
+                  style={{ color: 'var(--primary)' }}
                 >
                   View <ExternalLink size={10} />
                 </a>
@@ -151,11 +167,11 @@ export default function TriggerForm({
   media = []
 }) {
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 theme-transition">
 
       {/* ── Section 1: Which post/reel ── */}
       <div>
-        <h2 className="text-[15px] font-black text-slate-900 uppercase tracking-widest mb-5">
+        <h2 className="text-[15px] font-black uppercase tracking-widest mb-5" style={{ color: 'var(--text-primary)' }}>
           Trigger on
         </h2>
         <div className="space-y-3">
@@ -178,11 +194,11 @@ export default function TriggerForm({
         </div>
       </div>
 
-      <div className="h-px bg-slate-100" />
+      <div className="h-px" style={{ backgroundColor: 'var(--border)' }} />
 
       {/* ── Section 2: Comment trigger ── */}
       <div>
-        <h2 className="text-[15px] font-black text-slate-900 uppercase tracking-widest mb-5">
+        <h2 className="text-[15px] font-black uppercase tracking-widest mb-5" style={{ color: 'var(--text-primary)' }}>
           When the comment has
         </h2>
         <div className="space-y-3">
@@ -198,15 +214,19 @@ export default function TriggerForm({
                 value={keywords}
                 onChange={(e) => setKeywords(e.target.value)}
                 placeholder="e.g. price, link, details (comma-separated)"
-                className="w-full bg-white border border-slate-200 rounded-xl h-11 px-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                className="w-full rounded-xl h-11 px-4 text-sm outline-none transition-all"
+                style={{ backgroundColor: 'var(--input-bg)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--input-border)', color: 'var(--input-text)' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--input-focus-ring)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--input-border)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Quick add:</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-placeholder)' }}>Quick add:</span>
                 {["Price", "Link", "Shop", "Details", "Info"].map(word => (
                   <button
                     key={word}
                     onClick={() => setKeywords(prev => prev ? `${prev}, ${word}` : word)}
-                    className="text-[11px] font-bold text-primary bg-pink-50 border border-pink-100 px-2 py-1 rounded-lg hover:bg-pink-100 transition-colors"
+                    className="text-[11px] font-bold px-2 py-1 rounded-lg transition-colors"
+                    style={{ color: 'var(--primary)', backgroundColor: 'var(--primary-light)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--primary-medium)' }}
                   >
                     + {word}
                   </button>
@@ -223,16 +243,16 @@ export default function TriggerForm({
         </div>
       </div>
 
-      <div className="h-px bg-slate-100" />
+      <div className="h-px" style={{ backgroundColor: 'var(--border)' }} />
 
       {/* ── Section 3: Public comment reply toggle ── */}
       <div>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-[15px] font-black text-slate-900 uppercase tracking-widest">
+            <h2 className="text-[15px] font-black uppercase tracking-widest" style={{ color: 'var(--text-primary)' }}>
               Public reply to comment
             </h2>
-            <p className="text-[12px] text-slate-400 font-medium mt-0.5">
+            <p className="text-[12px] font-medium mt-0.5" style={{ color: 'var(--text-placeholder)' }}>
               Bot replies publicly on the post before sending a DM
             </p>
           </div>
@@ -243,7 +263,7 @@ export default function TriggerForm({
           <div className="space-y-4 mt-4">
             {/* Presets — single select */}
             <div>
-              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2.5">
+              <p className="text-[11px] font-black uppercase tracking-widest mb-2.5" style={{ color: 'var(--text-placeholder)' }}>
                 Presets — select one
               </p>
               <div className="flex flex-wrap gap-2">
@@ -253,12 +273,12 @@ export default function TriggerForm({
                     <button
                       key={preset}
                       onClick={() => setReplyMessages([preset])}
-                      className={cn(
-                        "text-[12px] font-semibold px-3 py-1.5 rounded-xl border transition-all",
+                      className="text-[12px] font-semibold px-3 py-1.5 rounded-xl transition-all"
+                      style={
                         isSelected
-                          ? "bg-primary/10 border-primary/30 text-primary"
-                          : "bg-white border-slate-200 text-slate-600 hover:border-primary/30 hover:text-primary"
-                      )}
+                          ? { backgroundColor: 'var(--primary-light)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--primary-medium)', color: 'var(--primary)' }
+                          : { backgroundColor: 'var(--card)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)', color: 'var(--text-secondary)' }
+                      }
                     >
                       {isSelected && "✓ "}{preset}
                     </button>
@@ -269,7 +289,7 @@ export default function TriggerForm({
 
             {/* Single reply input */}
             <div>
-              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">
+              <p className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-placeholder)' }}>
                 Reply message
               </p>
               <input
@@ -277,26 +297,29 @@ export default function TriggerForm({
                 value={replyMessages[0] || ""}
                 onChange={(e) => setReplyMessages([e.target.value])}
                 placeholder="Type your public reply here…"
-                className="w-full bg-white border border-slate-200 rounded-xl h-10 px-4 text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
+                className="w-full rounded-xl h-10 px-4 text-sm outline-none transition-all"
+                style={{ backgroundColor: 'var(--input-bg)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--input-border)', color: 'var(--input-text)' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--input-focus-ring)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--input-border)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
           </div>
         )}
       </div>
 
-      <div className="h-px bg-slate-100" />
+      <div className="h-px" style={{ backgroundColor: 'var(--border)' }} />
 
       {/* ── Section 4: Follow gate ── */}
       <div>
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <UserCheck size={15} className="text-slate-500" />
-              <h2 className="text-[15px] font-black text-slate-900 uppercase tracking-widest">
+              <UserCheck size={15} style={{ color: 'var(--text-muted)' }} />
+              <h2 className="text-[15px] font-black uppercase tracking-widest" style={{ color: 'var(--text-primary)' }}>
                 Followers only
               </h2>
             </div>
-            <p className="text-[12px] text-slate-400 font-medium mt-0.5">
+            <p className="text-[12px] font-medium mt-0.5" style={{ color: 'var(--text-placeholder)' }}>
               Only send the automation DM to people who already follow you
             </p>
           </div>
@@ -304,17 +327,23 @@ export default function TriggerForm({
         </div>
 
         {requireFollow && (
-          <div className="space-y-5 mt-5 bg-slate-50 border border-slate-100 rounded-2xl p-5">
-            <div className="flex items-start gap-3 pb-4 border-b border-slate-100">
-              <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <UserCheck size={14} className="text-amber-500" />
+          <div
+            className="space-y-5 mt-5 rounded-2xl p-5"
+            style={{ backgroundColor: 'var(--surface-alt)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)' }}
+          >
+            <div className="flex items-start gap-3 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                style={{ backgroundColor: 'var(--warning-light)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--warning-light)' }}
+              >
+                <UserCheck size={14} style={{ color: 'var(--warning)' }} />
               </div>
               <div>
-                <p className="text-[12px] font-bold text-slate-700">How this works</p>
-                <p className="text-[11px] text-slate-400 leading-relaxed mt-0.5">
+                <p className="text-[12px] font-bold" style={{ color: 'var(--text-secondary)' }}>How this works</p>
+                <p className="text-[11px] leading-relaxed mt-0.5" style={{ color: 'var(--text-placeholder)' }}>
                   When a non-follower comments, the bot publicly replies and sends them a DM asking them to follow first. Once they follow and comment again, they receive the automation message normally.
                 </p>
-                <p className="text-[11px] text-amber-600 font-medium mt-1.5">
+                <p className="text-[11px] font-medium mt-1.5" style={{ color: 'var(--warning-dark)' }}>
                   Checks up to ~2,000 followers. Works best for accounts under 10k followers.
                 </p>
               </div>
@@ -322,10 +351,10 @@ export default function TriggerForm({
 
             {/* Non-follower public reply */}
             <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+              <label className="text-[11px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>
                 Public reply for non-followers
               </label>
-              <p className="text-[11px] text-slate-400">Visible on the post to everyone.</p>
+              <p className="text-[11px]" style={{ color: 'var(--text-placeholder)' }}>Visible on the post to everyone.</p>
               <input
                 type="text"
                 value={followPromptPublicReply}
@@ -333,7 +362,10 @@ export default function TriggerForm({
                 placeholder={instagramUsername
                   ? `Follow @${instagramUsername} and comment again to get my message! 💌`
                   : "Follow us and comment again to get my message! 💌"}
-                className="w-full bg-white border border-slate-200 rounded-xl h-10 px-4 text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
+                className="w-full rounded-xl h-10 px-4 text-sm outline-none transition-all"
+                style={{ backgroundColor: 'var(--input-bg)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--input-border)', color: 'var(--input-text)' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--input-focus-ring)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--input-border)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
               <div className="flex flex-wrap gap-1.5 mt-1">
                 {[
@@ -344,7 +376,10 @@ export default function TriggerForm({
                   <button
                     key={preset}
                     onClick={() => setFollowPromptPublicReply(preset)}
-                    className="text-[10px] font-semibold px-2.5 py-1 rounded-lg border bg-white border-slate-200 text-slate-500 hover:border-primary/30 hover:text-primary transition-all"
+                    className="text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-all"
+                    style={{ backgroundColor: 'var(--card)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-medium)'; e.currentTarget.style.color = 'var(--primary)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                   >
                     {preset}
                   </button>
@@ -354,10 +389,10 @@ export default function TriggerForm({
 
             {/* Non-follower DM */}
             <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+              <label className="text-[11px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>
                 DM sent to non-followers
               </label>
-              <p className="text-[11px] text-slate-400">Sent as the first message. The confirm button is automatically added below it.</p>
+              <p className="text-[11px]" style={{ color: 'var(--text-placeholder)' }}>Sent as the first message. The confirm button is automatically added below it.</p>
               <textarea
                 value={followPromptDM}
                 onChange={(e) => setFollowPromptDM(e.target.value)}
@@ -365,7 +400,10 @@ export default function TriggerForm({
                   ? `Hey! 👋 Follow @${instagramUsername} to receive my message 💌\n\nhttps://instagram.com/${instagramUsername}`
                   : "Hey! 👋 Follow our account to receive my message 💌"}
                 rows={4}
-                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none leading-relaxed"
+                className="w-full rounded-xl p-4 text-sm outline-none transition-all resize-none leading-relaxed"
+                style={{ backgroundColor: 'var(--input-bg)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--input-border)', color: 'var(--input-text)' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--input-focus-ring)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--input-border)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
               <div className="flex flex-wrap gap-1.5 mt-1">
                 {[
@@ -376,7 +414,10 @@ export default function TriggerForm({
                   <button
                     key={preset.label}
                     onClick={() => setFollowPromptDM(preset.text)}
-                    className="text-[10px] font-bold px-2.5 py-1 rounded-lg border bg-white border-slate-200 text-slate-500 hover:border-primary/30 hover:text-primary transition-all"
+                    className="text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all"
+                    style={{ backgroundColor: 'var(--card)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-medium)'; e.currentTarget.style.color = 'var(--primary)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                   >
                     {preset.label}
                   </button>
@@ -386,10 +427,10 @@ export default function TriggerForm({
 
             {/* Confirm button label */}
             <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+              <label className="text-[11px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>
                 Confirm button label
               </label>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px]" style={{ color: 'var(--text-placeholder)' }}>
                 The button text the user taps to confirm they've followed. Max 20 characters.
               </p>
               <input
@@ -398,19 +439,22 @@ export default function TriggerForm({
                 value={followButtonText}
                 onChange={(e) => setFollowButtonText(e.target.value)}
                 placeholder="I'm following now! ✓"
-                className="w-full bg-white border border-slate-200 rounded-xl h-10 px-4 text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
+                className="w-full rounded-xl h-10 px-4 text-sm outline-none transition-all"
+                style={{ backgroundColor: 'var(--input-bg)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--input-border)', color: 'var(--input-text)' }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--input-focus-ring)'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--input-border)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
               <div className="flex flex-wrap gap-1.5 mt-1">
                 {["I'm following now! ✓", "Done! I followed ✓", "Following! Send it 🚀", "Followed! Confirm ✅"].map((preset) => (
                   <button
                     key={preset}
                     onClick={() => setFollowButtonText(preset)}
-                    className={cn(
-                      "text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all",
+                    className="text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all"
+                    style={
                       followButtonText === preset
-                        ? "bg-primary/10 border-primary/30 text-primary"
-                        : "bg-white border-slate-200 text-slate-500 hover:border-primary/30 hover:text-primary"
-                    )}
+                        ? { backgroundColor: 'var(--primary-light)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--primary-medium)', color: 'var(--primary)' }
+                        : { backgroundColor: 'var(--card)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)', color: 'var(--text-muted)' }
+                    }
                   >
                     {preset}
                   </button>
@@ -418,11 +462,17 @@ export default function TriggerForm({
               </div>
 
               {/* Preview */}
-              <div className="mt-3 bg-white border border-slate-200 rounded-2xl p-4 space-y-2">
-                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Preview</p>
-                <p className="text-[13px] text-slate-600 leading-snug">Once you've followed, tap the button below to confirm! 👇</p>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/5 border border-primary/20 rounded-xl">
-                  <span className="text-[13px] font-bold text-primary">{followButtonText || "I'm following now! ✓"}</span>
+              <div
+                className="mt-3 rounded-2xl p-4 space-y-2"
+                style={{ backgroundColor: 'var(--card)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)' }}
+              >
+                <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>Preview</p>
+                <p className="text-[13px] leading-snug" style={{ color: 'var(--text-secondary)' }}>Once you've followed, tap the button below to confirm! 👇</p>
+                <div
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl"
+                  style={{ backgroundColor: 'var(--primary-light)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--primary-medium)' }}
+                >
+                  <span className="text-[13px] font-bold" style={{ color: 'var(--primary)' }}>{followButtonText || "I'm following now! ✓"}</span>
                 </div>
               </div>
             </div>

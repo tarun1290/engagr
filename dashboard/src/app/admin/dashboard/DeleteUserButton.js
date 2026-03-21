@@ -32,7 +32,7 @@ export default function DeleteUserButton({ userId }) {
 
   if (error) {
     return (
-      <span className="text-[10px] text-rose-500 font-medium">{error}</span>
+      <span className="text-[10px] font-medium" style={{ color: 'var(--error)' }}>{error}</span>
     );
   }
 
@@ -40,7 +40,10 @@ export default function DeleteUserButton({ userId }) {
     return (
       <button
         onClick={() => setConfirming(true)}
-        className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+        className="p-1.5 rounded-lg transition-all"
+        style={{ color: 'var(--admin-text-muted)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--error)'; e.currentTarget.style.backgroundColor = 'var(--error-light)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--admin-text-muted)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
         title="Delete user"
       >
         <Trash2 size={13} />
@@ -50,18 +53,22 @@ export default function DeleteUserButton({ userId }) {
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[10px] text-rose-500 font-bold whitespace-nowrap">Delete?</span>
+      <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: 'var(--error)' }}>Delete?</span>
       <button
         onClick={handleDelete}
         disabled={loading}
-        className="px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded text-[10px] font-bold hover:bg-rose-100 transition-all disabled:opacity-60"
+        className="px-2 py-0.5 rounded text-[10px] font-bold transition-all disabled:opacity-60"
+        style={{ backgroundColor: 'var(--error-light)', color: 'var(--error)', border: '1px solid var(--error-light)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
       >
         {loading ? "..." : "Yes"}
       </button>
       <button
         onClick={() => setConfirming(false)}
         disabled={loading}
-        className="px-2 py-0.5 bg-white text-slate-500 border border-slate-200 rounded text-[10px] font-bold hover:bg-slate-50 transition-all disabled:opacity-40"
+        className="px-2 py-0.5 rounded text-[10px] font-bold transition-all disabled:opacity-40"
+        style={{ backgroundColor: 'var(--admin-card)', color: 'var(--admin-text-muted)', border: '1px solid var(--admin-border)' }}
       >
         No
       </button>

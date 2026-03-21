@@ -1,27 +1,36 @@
 import { ShieldCheck, Users, Zap, MessageSquare, Activity, LogOut, Instagram, TrendingUp, UserCheck, Calendar } from "lucide-react";
 import { getAdminStats, adminLogout } from "../actions";
 import DeleteUserButton from "./DeleteUserButton";
+import AdminThemeToggle from "./AdminThemeToggle";
 
 // Force dynamic rendering — admin dashboard must always show fresh DB data
 export const dynamic = "force-dynamic";
 
 function StatCard({ label, value, sub, icon: Icon, color = "slate" }) {
-  const colors = {
-    pink:    "bg-pink-50 text-pink-500 border-pink-100",
-    emerald: "bg-emerald-50 text-emerald-500 border-emerald-100",
-    blue:    "bg-blue-50 text-blue-500 border-blue-100",
-    amber:   "bg-amber-50 text-amber-500 border-amber-100",
-    slate:   "bg-slate-100 text-slate-500 border-slate-200",
+  const colorMap = {
+    pink:    { bg: "var(--error-light)",   text: "var(--error)",   border: "var(--error-light)" },
+    emerald: { bg: "var(--success-light)", text: "var(--success)", border: "var(--success-light)" },
+    blue:    { bg: "var(--info-light)",    text: "var(--info)",    border: "var(--info-light)" },
+    amber:   { bg: "var(--warning-light)", text: "var(--warning)", border: "var(--warning-light)" },
+    slate:   { bg: "var(--admin-surface-alt)", text: "var(--admin-text-muted)", border: "var(--admin-border)" },
   };
+  const c = colorMap[color] || colorMap.slate;
+
   return (
-    <div className="bg-white border border-slate-200 rounded-[20px] p-6 space-y-4 shadow-sm hover:shadow-md transition-shadow">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${colors[color]}`}>
+    <div
+      className="rounded-[20px] p-6 space-y-4 shadow-sm hover:shadow-md transition-shadow"
+      style={{ backgroundColor: "var(--admin-card)", border: `1px solid var(--admin-border)` }}
+    >
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center"
+        style={{ backgroundColor: c.bg, color: c.text, border: `1px solid ${c.border}` }}
+      >
         <Icon size={18} />
       </div>
       <div>
-        <p className="text-3xl font-black text-slate-900">{value}</p>
-        <p className="text-[13px] font-semibold text-slate-500 mt-0.5">{label}</p>
-        {sub && <p className="text-[11px] text-slate-400 mt-1">{sub}</p>}
+        <p className="text-3xl font-black" style={{ color: "var(--admin-text-primary)" }}>{value}</p>
+        <p className="text-[13px] font-semibold mt-0.5" style={{ color: "var(--admin-text-muted)" }}>{label}</p>
+        {sub && <p className="text-[11px] mt-1" style={{ color: "var(--admin-text-muted)" }}>{sub}</p>}
       </div>
     </div>
   );
@@ -29,27 +38,39 @@ function StatCard({ label, value, sub, icon: Icon, color = "slate" }) {
 
 function StatusBadge({ active }) {
   return active ? (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-full text-[10px] font-bold uppercase tracking-wider">
-      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Active
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+      style={{ backgroundColor: "var(--success-light)", color: "var(--success)", border: "1px solid var(--success)" }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: "var(--success)" }} /> Active
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-400 border border-slate-200 rounded-full text-[10px] font-bold uppercase tracking-wider">
-      <span className="w-1.5 h-1.5 rounded-full bg-slate-300" /> Inactive
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+      style={{ backgroundColor: "var(--admin-surface-alt)", color: "var(--admin-text-muted)", border: "1px solid var(--admin-border)" }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--admin-text-muted)" }} /> Inactive
     </span>
   );
 }
 
 function EventTypeBadge({ type }) {
   const map = {
-    comment:    "bg-blue-50 text-blue-600 border-blue-200",
-    mention:    "bg-purple-50 text-purple-600 border-purple-200",
-    dm:         "bg-pink-50 text-pink-600 border-pink-200",
-    reel_share: "bg-amber-50 text-amber-600 border-amber-200",
-    reaction:   "bg-rose-50 text-rose-600 border-rose-200",
-    postback:   "bg-cyan-50 text-cyan-600 border-cyan-200",
+    comment:    { bg: "var(--info-light)",    text: "var(--info)",    border: "var(--info)" },
+    mention:    { bg: "var(--primary-light)",  text: "var(--primary)", border: "var(--primary)" },
+    dm:         { bg: "var(--error-light)",    text: "var(--error)",   border: "var(--error)" },
+    reel_share: { bg: "var(--warning-light)",  text: "var(--warning)", border: "var(--warning)" },
+    reaction:   { bg: "var(--error-light)",    text: "var(--error)",   border: "var(--error)" },
+    postback:   { bg: "var(--accent-light)",   text: "var(--accent)",  border: "var(--accent)" },
   };
+  const fallback = { bg: "var(--admin-surface-alt)", text: "var(--admin-text-muted)", border: "var(--admin-border)" };
+  const c = map[type] || fallback;
+
   return (
-    <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${map[type] || "bg-slate-100 text-slate-500 border-slate-200"}`}>
+    <span
+      className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
+      style={{ backgroundColor: c.bg, color: c.text, border: `1px solid ${c.border}` }}
+    >
       {type?.replace("_", " ")}
     </span>
   );
@@ -57,13 +78,18 @@ function EventTypeBadge({ type }) {
 
 function EventStatusBadge({ status }) {
   const map = {
-    sent:     "bg-emerald-50 text-emerald-600 border-emerald-200",
-    failed:   "bg-rose-50 text-rose-600 border-rose-200",
-    fallback: "bg-amber-50 text-amber-600 border-amber-200",
-    skipped:  "bg-slate-100 text-slate-400 border-slate-200",
+    sent:     { bg: "var(--success-light)", text: "var(--success)", border: "var(--success)" },
+    failed:   { bg: "var(--error-light)",   text: "var(--error)",   border: "var(--error)" },
+    fallback: { bg: "var(--warning-light)", text: "var(--warning)", border: "var(--warning)" },
+    skipped:  { bg: "var(--admin-surface-alt)", text: "var(--admin-text-muted)", border: "var(--admin-border)" },
   };
+  const c = map[status] || map.skipped;
+
   return (
-    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${map[status] || map.skipped}`}>
+    <span
+      className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+      style={{ backgroundColor: c.bg, color: c.text, border: `1px solid ${c.border}` }}
+    >
       {status || "skipped"}
     </span>
   );
@@ -84,31 +110,51 @@ export default async function AdminDashboard() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen theme-transition" style={{ backgroundColor: "var(--admin-bg)", color: "var(--admin-text-primary)" }}>
 
       {/* Header */}
-      <header className="border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur z-50 shadow-sm">
+      <header
+        className="px-8 py-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur shadow-sm"
+        style={{
+          backgroundColor: "color-mix(in srgb, var(--admin-card) 90%, transparent)",
+          borderBottom: "1px solid var(--admin-border)",
+        }}
+      >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-slate-200 shadow-sm">
-            <ShieldCheck className="text-primary" size={16} />
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm"
+            style={{ backgroundColor: "var(--admin-card)", border: "1px solid var(--admin-border)" }}
+          >
+            <ShieldCheck style={{ color: "var(--primary)" }} size={16} />
           </div>
           <div>
-            <p className="text-sm font-black text-slate-900">Admin Panel</p>
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Engagr</p>
+            <p className="text-sm font-black" style={{ color: "var(--admin-text-primary)" }}>Admin Panel</p>
+            <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "var(--admin-text-muted)" }}>Engagr</p>
           </div>
         </div>
-        <form action={adminLogout}>
-          <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-900 text-sm font-bold transition-all shadow-sm">
-            <LogOut size={14} /> Sign Out
-          </button>
-        </form>
+        <div className="flex items-center gap-2">
+          <AdminThemeToggle />
+          <form action={adminLogout}>
+            <button
+              type="submit"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm"
+              style={{
+                backgroundColor: "var(--admin-card)",
+                border: "1px solid var(--admin-border)",
+                color: "var(--admin-text-muted)",
+              }}
+            >
+              <LogOut size={14} /> Sign Out
+            </button>
+          </form>
+        </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-8 py-10 space-y-10">
 
         {/* Stats Grid */}
         <section>
-          <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">Overview</h2>
+          <h2 className="text-xs font-black uppercase tracking-widest mb-5" style={{ color: "var(--admin-text-muted)" }}>Overview</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={Users}       label="Total Users"   value={stats.totalUsers}         color="slate"   />
             <StatCard icon={Instagram}   label="Connected"     value={stats.connectedUsers}      sub="Instagram linked"    color="pink"    />
@@ -125,12 +171,16 @@ export default async function AdminDashboard() {
         {/* Interaction Breakdown */}
         {stats.eventsByType.length > 0 && (
           <section>
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">Interaction Breakdown</h2>
+            <h2 className="text-xs font-black uppercase tracking-widest mb-5" style={{ color: "var(--admin-text-muted)" }}>Interaction Breakdown</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {stats.eventsByType.map((e) => (
-                <div key={e._id} className="bg-white border border-slate-200 rounded-2xl px-4 py-4 flex flex-col gap-2 shadow-sm">
+                <div
+                  key={e._id}
+                  className="rounded-2xl px-4 py-4 flex flex-col gap-2 shadow-sm"
+                  style={{ backgroundColor: "var(--admin-card)", border: "1px solid var(--admin-border)" }}
+                >
                   <EventTypeBadge type={e._id} />
-                  <span className="text-2xl font-black text-slate-900">{e.count}</span>
+                  <span className="text-2xl font-black" style={{ color: "var(--admin-text-primary)" }}>{e.count}</span>
                 </div>
               ))}
             </div>
@@ -140,47 +190,56 @@ export default async function AdminDashboard() {
         {/* Users Table */}
         <section>
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">
+            <h2 className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>
               Registered Users ({stats.users.length})
             </h2>
           </div>
-          <div className="bg-white border border-slate-200 rounded-[20px] overflow-hidden shadow-sm">
+          <div
+            className="rounded-[20px] overflow-hidden shadow-sm"
+            style={{ backgroundColor: "var(--admin-card)", border: "1px solid var(--admin-border)" }}
+          >
             {stats.users.length === 0 ? (
-              <div className="py-16 text-center text-slate-400 text-sm font-medium">No users registered yet.</div>
+              <div className="py-16 text-center text-sm font-medium" style={{ color: "var(--admin-text-muted)" }}>No users registered yet.</div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/80">
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">User</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Instagram</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Automation</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Keywords</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Joined</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Delete</th>
+                  <tr style={{ borderBottom: "1px solid var(--admin-border)", backgroundColor: "var(--admin-surface-alt)" }}>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>User</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Instagram</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Automation</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Keywords</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Joined</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right" style={{ color: "var(--admin-text-muted)" }}>Delete</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stats.users.map((user, i) => (
-                    <tr key={user._id} className={`border-b border-slate-100 hover:bg-slate-50/80 transition-colors ${i === stats.users.length - 1 ? "border-0" : ""}`}>
+                    <tr
+                      key={user._id}
+                      className="transition-colors"
+                      style={{
+                        borderBottom: i === stats.users.length - 1 ? "none" : "1px solid var(--admin-border)",
+                      }}
+                    >
                       <td className="px-6 py-4">
                         <div>
-                          <p className="font-bold text-slate-800 text-[13px]">{user.name || "—"}</p>
-                          <p className="text-slate-400 text-[11px] mt-0.5">{user.email || user.userId}</p>
+                          <p className="font-bold text-[13px]" style={{ color: "var(--admin-text-primary)" }}>{user.name || "—"}</p>
+                          <p className="text-[11px] mt-0.5" style={{ color: "var(--admin-text-muted)" }}>{user.email || user.userId}</p>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         {user.isConnected ? (
                           <div className="flex items-center gap-3">
                             {user.instagramProfilePic && (
-                              <img src={user.instagramProfilePic} alt="" className="w-7 h-7 rounded-full border border-slate-200 object-cover" />
+                              <img src={user.instagramProfilePic} alt="" className="w-7 h-7 rounded-full object-cover" style={{ border: "1px solid var(--admin-border)" }} />
                             )}
                             <div>
-                              <p className="font-bold text-slate-900 text-[13px]">@{user.instagramUsername}</p>
-                              <p className="text-[10px] text-slate-400">{user.instagramBusinessId}</p>
+                              <p className="font-bold text-[13px]" style={{ color: "var(--admin-text-primary)" }}>@{user.instagramUsername}</p>
+                              <p className="text-[10px]" style={{ color: "var(--admin-text-muted)" }}>{user.instagramBusinessId}</p>
                             </div>
                           </div>
                         ) : (
-                          <span className="text-slate-400 text-xs">Not connected</span>
+                          <span className="text-xs" style={{ color: "var(--admin-text-muted)" }}>Not connected</span>
                         )}
                       </td>
                       <td className="px-6 py-4">
@@ -190,18 +249,24 @@ export default async function AdminDashboard() {
                         {user.automation?.keywords?.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {user.automation.keywords.slice(0, 3).map((k) => (
-                              <span key={k} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[10px] font-mono border border-slate-200">{k}</span>
+                              <span
+                                key={k}
+                                className="px-2 py-0.5 rounded-md text-[10px] font-mono"
+                                style={{ backgroundColor: "var(--admin-surface-alt)", color: "var(--admin-text-secondary)", border: "1px solid var(--admin-border)" }}
+                              >
+                                {k}
+                              </span>
                             ))}
                             {user.automation.keywords.length > 3 && (
-                              <span className="text-slate-400 text-[10px]">+{user.automation.keywords.length - 3}</span>
+                              <span className="text-[10px]" style={{ color: "var(--admin-text-muted)" }}>+{user.automation.keywords.length - 3}</span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-slate-300 text-xs">Any</span>
+                          <span className="text-xs" style={{ color: "var(--admin-text-muted)" }}>Any</span>
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5 text-slate-400">
+                        <div className="flex items-center gap-1.5" style={{ color: "var(--admin-text-muted)" }}>
                           <Calendar size={11} />
                           <span className="text-xs">{timeAgo(user.createdAt)}</span>
                         </div>
@@ -219,49 +284,58 @@ export default async function AdminDashboard() {
 
         {/* Recent Events */}
         <section>
-          <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">
+          <h2 className="text-xs font-black uppercase tracking-widest mb-5" style={{ color: "var(--admin-text-muted)" }}>
             Recent Events ({stats.recentEvents.length})
           </h2>
-          <div className="bg-white border border-slate-200 rounded-[20px] overflow-hidden shadow-sm">
+          <div
+            className="rounded-[20px] overflow-hidden shadow-sm"
+            style={{ backgroundColor: "var(--admin-card)", border: "1px solid var(--admin-border)" }}
+          >
             {stats.recentEvents.length === 0 ? (
-              <div className="py-16 text-center text-slate-400 text-sm font-medium">No events recorded yet.</div>
+              <div className="py-16 text-center text-sm font-medium" style={{ color: "var(--admin-text-muted)" }}>No events recorded yet.</div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/80">
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">From</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Content</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Reply Sent</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Time</th>
+                  <tr style={{ borderBottom: "1px solid var(--admin-border)", backgroundColor: "var(--admin-surface-alt)" }}>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Type</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>From</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Content</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Reply Sent</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Status</th>
+                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Time</th>
                   </tr>
                 </thead>
                 <tbody>
                   {stats.recentEvents.map((event, i) => (
-                    <tr key={event._id} className={`border-b border-slate-100 hover:bg-slate-50/80 transition-colors ${i === stats.recentEvents.length - 1 ? "border-0" : ""}`}>
+                    <tr
+                      key={event._id}
+                      className="transition-colors"
+                      style={{
+                        borderBottom: i === stats.recentEvents.length - 1 ? "none" : "1px solid var(--admin-border)",
+                      }}
+                    >
                       <td className="px-6 py-4">
                         <EventTypeBadge type={event.type} />
                       </td>
                       <td className="px-6 py-4">
-                        <p className="font-semibold text-slate-700 text-[13px]">
+                        <p className="font-semibold text-[13px]" style={{ color: "var(--admin-text-secondary)" }}>
                           {event.from?.username ? `@${event.from.username}` : event.from?.id || "—"}
                         </p>
                         {event.from?.name && (
-                          <p className="text-[10px] text-slate-400 mt-0.5">{event.from.name}</p>
+                          <p className="text-[10px] mt-0.5" style={{ color: "var(--admin-text-muted)" }}>{event.from.name}</p>
                         )}
                       </td>
                       <td className="px-6 py-4 max-w-[200px]">
-                        <p className="text-slate-500 text-xs truncate">{event.content?.text || "—"}</p>
+                        <p className="text-xs truncate" style={{ color: "var(--admin-text-muted)" }}>{event.content?.text || "—"}</p>
                       </td>
                       <td className="px-6 py-4 max-w-[180px]">
-                        <p className="text-slate-400 text-xs truncate">{event.reply?.privateDM || event.reply?.publicReply || "—"}</p>
+                        <p className="text-xs truncate" style={{ color: "var(--admin-text-muted)" }}>{event.reply?.privateDM || event.reply?.publicReply || "—"}</p>
                       </td>
                       <td className="px-6 py-4">
                         <EventStatusBadge status={event.reply?.status} />
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-slate-400 text-xs">{timeAgo(event.createdAt)}</span>
+                        <span className="text-xs" style={{ color: "var(--admin-text-muted)" }}>{timeAgo(event.createdAt)}</span>
                       </td>
                     </tr>
                   ))}

@@ -9,7 +9,7 @@ export default function PreviewPhone({ data, dmContent, buttonText, linkUrl, sel
   return (
     <div className="flex-1 flex justify-center sticky top-24 h-fit pb-12">
       <div className="relative w-[240px] h-[480px] bg-black rounded-[36px] border-[7px] border-[#222] shadow-2xl overflow-hidden">
-        
+
         {/* Status Bar */}
         <div className="px-4 pt-2.5 pb-1 flex justify-between items-center text-[9px] text-white/90">
           <span>10:27</span>
@@ -53,9 +53,9 @@ export default function PreviewPhone({ data, dmContent, buttonText, linkUrl, sel
               </div>
               {currentPost && (
                 <div className="bg-slate-900 border-y border-white/5 h-[240px] flex items-center justify-center overflow-hidden">
-                  <img 
-                    src={currentPost.media_type === "VIDEO" ? currentPost.thumbnail_url : currentPost.media_url} 
-                    alt="Preview" 
+                  <img
+                    src={currentPost.media_type === "VIDEO" ? currentPost.thumbnail_url : currentPost.media_url}
+                    alt="Preview"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -91,9 +91,9 @@ export default function PreviewPhone({ data, dmContent, buttonText, linkUrl, sel
               </div>
               {currentPost && (
                 <div className="h-[120px] flex items-center justify-center overflow-hidden opacity-80">
-                  <img 
-                    src={currentPost.media_type === "VIDEO" ? currentPost.thumbnail_url : currentPost.media_url} 
-                    alt="Preview" 
+                  <img
+                    src={currentPost.media_type === "VIDEO" ? currentPost.thumbnail_url : currentPost.media_url}
+                    alt="Preview"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -147,13 +147,18 @@ export default function PreviewPhone({ data, dmContent, buttonText, linkUrl, sel
         {/* Quick Tabs */}
         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 p-1 rounded-full bg-black/80 backdrop-blur-md">
           {['Post', 'Comments', 'DM'].map(t => (
-            <button 
+            <button
               key={t}
               onClick={() => setTab(t)}
               className={cn(
                 "px-2.5 py-1 rounded-full text-[8px] font-bold transition-all",
-                tab === t ? "bg-[#2a2a2a] text-white border border-white/10" : "text-slate-500"
+                tab === t ? "text-white" : ""
               )}
+              style={
+                tab === t
+                  ? { backgroundColor: 'var(--primary)', color: '#fff', border: '1px solid var(--primary-medium)' }
+                  : { color: 'var(--text-muted)' }
+              }
             >
               {t}
             </button>

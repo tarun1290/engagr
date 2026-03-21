@@ -16,7 +16,6 @@ export default function SignUpPage() {
 
   const passwordStrength = password.length === 0 ? 0 : password.length < 8 ? 1 : password.length < 12 ? 2 : 3;
   const strengthLabel = ["", "Weak", "Good", "Strong"];
-  const strengthColor = ["", "bg-red-400", "bg-amber-400", "bg-emerald-500"];
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -32,12 +31,29 @@ export default function SignUpPage() {
     }
   }
 
+  const strengthBarColor = (level) => {
+    if (level === 1) return 'var(--error)';
+    if (level === 2) return 'var(--warning)';
+    if (level === 3) return 'var(--success)';
+    return 'var(--border)';
+  };
+
+  const strengthTextColor = (level) => {
+    if (level === 1) return 'var(--error)';
+    if (level === 2) return 'var(--warning)';
+    if (level === 3) return 'var(--success)';
+    return 'var(--text-muted)';
+  };
+
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="theme-transition min-h-screen flex" style={{ backgroundColor: 'var(--bg)' }}>
       {/* Left panel */}
-      <div className="hidden lg:flex flex-col justify-between w-[480px] bg-slate-950 p-12 flex-shrink-0">
+      <div className="hidden lg:flex flex-col justify-between w-[480px] p-12 flex-shrink-0" style={{ backgroundColor: 'var(--primary-darker)' }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-pink-900/40">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+            style={{ backgroundColor: 'var(--primary)', boxShadow: '0 10px 15px -3px rgba(var(--primary), 0.4)' }}
+          >
             <Bot className="text-white" size={22} />
           </div>
           <span className="text-white font-black text-lg uppercase tracking-tight">Engagr</span>
@@ -45,18 +61,21 @@ export default function SignUpPage() {
 
         <div className="space-y-8">
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/20 rounded-full border border-primary/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-primary text-[11px] font-black uppercase tracking-widest">Next-Gen Automation</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full" style={{ backgroundColor: 'color-mix(in srgb, var(--primary) 20%, transparent)', border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)' }}>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--primary)' }} />
+              <span className="text-[11px] font-black uppercase tracking-widest" style={{ color: 'var(--primary)' }}>Next-Gen Automation</span>
             </div>
             <h2 className="text-5xl font-black text-white leading-[1.05] tracking-tight">
               Automate your<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFB133] via-[#FF3040] to-[#E5266E]">
+              <span
+                className="text-transparent bg-clip-text"
+                style={{ backgroundImage: 'linear-gradient(to right, var(--accent), var(--primary), var(--primary-dark))' }}
+              >
                 Instagram
               </span><br />
               in minutes.
             </h2>
-            <p className="text-slate-400 text-base font-medium leading-relaxed">
+            <p className="text-base font-medium leading-relaxed" style={{ color: 'var(--text-placeholder)' }}>
               Set up automated DMs, comment replies, and engagement flows — no code required.
             </p>
           </div>
@@ -64,32 +83,35 @@ export default function SignUpPage() {
           <div className="space-y-3">
             {["Auto-reply to comments & DMs", "Detect reel shares & mentions", "Smart button & link flows"].map((f) => (
               <div key={f} className="flex items-center gap-3">
-                <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0" />
-                <span className="text-slate-300 text-sm font-medium">{f}</span>
+                <CheckCircle2 size={16} className="flex-shrink-0" style={{ color: 'var(--success)' }} />
+                <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>{f}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="text-slate-600 text-xs">© 2025 Engagr Inc.</p>
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>&copy; 2025 Engagr Inc.</p>
       </div>
 
       {/* Right panel — form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md space-y-8">
           <div className="space-y-2">
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">Create account</h1>
-            <p className="text-slate-500 font-medium">
+            <h1 className="text-4xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Create account</h1>
+            <p className="font-medium" style={{ color: 'var(--text-secondary)' }}>
               Already have one?{" "}
-              <Link href="/sign-in" className="text-primary font-bold hover:underline">
+              <Link href="/sign-in" className="font-bold hover:underline" style={{ color: 'var(--primary)' }}>
                 Sign in
               </Link>
             </p>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 bg-red-50 border border-red-100 text-red-600 rounded-2xl px-4 py-3 text-sm font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+            <div
+              className="flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium"
+              style={{ backgroundColor: 'var(--error-light)', border: '1px solid var(--error-light)', color: 'var(--error)' }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--error)' }} />
               {error}
             </div>
           )}
@@ -97,54 +119,72 @@ export default function SignUpPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Full Name */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Full Name</label>
+              <label className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Full Name</label>
               <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
                 <input
                   name="name"
                   type="text"
                   placeholder="John Doe"
                   required
                   autoFocus
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-medium text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
+                  className="w-full rounded-2xl pl-11 pr-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 transition-all"
+                  style={{
+                    backgroundColor: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--input-text)',
+                    '--tw-ring-color': 'var(--input-focus-ring)',
+                  }}
                 />
               </div>
             </div>
 
             {/* Email */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Email</label>
+              <label className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Email</label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
                 <input
                   name="email"
                   type="email"
                   placeholder="you@example.com"
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-medium text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
+                  className="w-full rounded-2xl pl-11 pr-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 transition-all"
+                  style={{
+                    backgroundColor: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--input-text)',
+                    '--tw-ring-color': 'var(--input-focus-ring)',
+                  }}
                 />
               </div>
             </div>
 
             {/* Instagram Handle */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Instagram Handle</label>
+              <label className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Instagram Handle</label>
               <div className="relative">
-                <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                <AtSign className="absolute left-4 top-1/2 -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
                 <input
                   name="instagramHandle"
                   type="text"
                   placeholder="yourusername"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-medium text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
+                  className="w-full rounded-2xl pl-11 pr-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 transition-all"
+                  style={{
+                    backgroundColor: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--input-text)',
+                    '--tw-ring-color': 'var(--input-focus-ring)',
+                  }}
                 />
               </div>
             </div>
 
             {/* Password */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Password</label>
+              <label className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Password</label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
                 <input
                   name="password"
                   type={showPassword ? "text" : "password"}
@@ -153,12 +193,19 @@ export default function SignUpPage() {
                   minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-12 py-3.5 text-sm font-medium text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
+                  className="w-full rounded-2xl pl-11 pr-12 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 transition-all"
+                  style={{
+                    backgroundColor: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--input-text)',
+                    '--tw-ring-color': 'var(--input-focus-ring)',
+                  }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -169,11 +216,15 @@ export default function SignUpPage() {
                     {[1, 2, 3].map((i) => (
                       <div
                         key={i}
-                        className={`h-1 flex-1 rounded-full transition-all ${i <= passwordStrength ? strengthColor[passwordStrength] : "bg-slate-100"}`}
+                        className="h-1 flex-1 rounded-full transition-all"
+                        style={{ backgroundColor: i <= passwordStrength ? strengthBarColor(passwordStrength) : 'var(--border)' }}
                       />
                     ))}
                   </div>
-                  <span className={`text-[10px] font-black uppercase tracking-widest ${passwordStrength === 1 ? "text-red-400" : passwordStrength === 2 ? "text-amber-400" : "text-emerald-500"}`}>
+                  <span
+                    className="text-[10px] font-black uppercase tracking-widest"
+                    style={{ color: strengthTextColor(passwordStrength) }}
+                  >
                     {strengthLabel[passwordStrength]}
                   </span>
                 </div>
@@ -182,20 +233,27 @@ export default function SignUpPage() {
 
             {/* Confirm Password */}
             <div className="space-y-1.5">
-              <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Confirm Password</label>
+              <label className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Confirm Password</label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
                 <input
                   name="confirmPassword"
                   type={showConfirm ? "text" : "password"}
                   placeholder="Repeat your password"
                   required
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-12 py-3.5 text-sm font-medium text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
+                  className="w-full rounded-2xl pl-11 pr-12 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 transition-all"
+                  style={{
+                    backgroundColor: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--input-text)',
+                    '--tw-ring-color': 'var(--input-focus-ring)',
+                  }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -205,7 +263,11 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-gradient-to-r from-[#FF3040] to-[#E5266E] text-white rounded-2xl font-black text-base hover:opacity-90 transition-all shadow-xl shadow-pink-200 flex items-center justify-center gap-3 disabled:opacity-60 mt-2"
+              className="w-full py-4 text-white rounded-2xl font-black text-base hover:opacity-90 transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-60 mt-2"
+              style={{
+                background: 'linear-gradient(to right, var(--primary), var(--primary-dark))',
+                boxShadow: '0 20px 25px -5px var(--primary-glow)',
+              }}
             >
               {loading ? (
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -215,8 +277,8 @@ export default function SignUpPage() {
             </button>
           </form>
 
-          <p className="text-center text-[11px] text-slate-300 uppercase tracking-widest font-bold">
-            Secure · Private · Encrypted
+          <p className="text-center text-[11px] uppercase tracking-widest font-bold" style={{ color: 'var(--text-muted)' }}>
+            Secure &middot; Private &middot; Encrypted
           </p>
         </div>
       </div>

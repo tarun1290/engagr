@@ -96,19 +96,20 @@ export default function Automation() {
   if (fetching) {
     return (
       <div className="flex h-[60vh] w-full items-center justify-center">
-        <Loader2 className="animate-spin text-primary" size={36} />
+        <Loader2 className="animate-spin" size={36} style={{ color: 'var(--primary)' }} />
       </div>
     );
   }
 
   if (!instaData.isConnected) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4 text-center">
-        <h3 className="text-xl font-bold text-slate-900">Instagram Not Connected</h3>
-        <p className="text-slate-500 max-w-xs text-sm">Finish the onboarding to link your Instagram account before setting up automations.</p>
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4 text-center theme-transition">
+        <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Instagram Not Connected</h3>
+        <p className="max-w-xs text-sm" style={{ color: 'var(--text-muted)' }}>Finish the onboarding to link your Instagram account before setting up automations.</p>
         <button
           onClick={() => window.location.href = '/onboarding'}
-          className="mt-4 px-8 py-3 bg-primary text-white rounded-xl font-bold text-sm"
+          className="mt-4 px-8 py-3 text-white rounded-xl font-bold text-sm"
+          style={{ backgroundColor: 'var(--btn-primary-bg)' }}
         >
           Connect Instagram
         </button>
@@ -117,17 +118,20 @@ export default function Automation() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-12 pb-20">
+    <div className="flex flex-col lg:flex-row gap-12 pb-20 theme-transition">
 
       {/* Left — config */}
       <div className="flex-1 max-w-xl space-y-10">
         <AccountSummary data={instaData} onSwitch={() => window.location.href = '/onboarding'} />
 
         {/* Trigger rules */}
-        <div className="bg-white border border-slate-100 rounded-[28px] p-8 shadow-sm">
+        <div
+          className="rounded-[28px] p-8 shadow-sm theme-transition"
+          style={{ backgroundColor: 'var(--card)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)' }}
+        >
           <div className="mb-8">
-            <h2 className="text-xl font-black text-slate-900 tracking-tight">Trigger Rules</h2>
-            <p className="text-[13px] text-slate-400 font-medium mt-1">
+            <h2 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Trigger Rules</h2>
+            <p className="text-[13px] font-medium mt-1" style={{ color: 'var(--text-placeholder)' }}>
               Choose which post and what type of comment activates the automation.
             </p>
           </div>
@@ -151,10 +155,13 @@ export default function Automation() {
         </div>
 
         {/* Response config */}
-        <div className="bg-white border border-slate-100 rounded-[28px] p-8 shadow-sm">
+        <div
+          className="rounded-[28px] p-8 shadow-sm theme-transition"
+          style={{ backgroundColor: 'var(--card)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)' }}
+        >
           <div className="mb-8">
-            <h2 className="text-xl font-black text-slate-900 tracking-tight">Response</h2>
-            <p className="text-[13px] text-slate-400 font-medium mt-1">
+            <h2 className="text-xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Response</h2>
+            <p className="text-[13px] font-medium mt-1" style={{ color: 'var(--text-placeholder)' }}>
               The private DM sent automatically when the trigger fires.
             </p>
           </div>
@@ -173,11 +180,13 @@ export default function Automation() {
           onClick={handlePublish}
           disabled={publishing}
           className={cn(
-            "w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all shadow-xl",
-            saved
-              ? "bg-emerald-500 shadow-emerald-100 text-white"
-              : "bg-gradient-to-r from-primary to-pink-600 shadow-pink-100 text-white hover:opacity-90"
+            "w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all shadow-xl text-white"
           )}
+          style={
+            saved
+              ? { backgroundColor: 'var(--success)' }
+              : { background: 'linear-gradient(to right, var(--primary), var(--primary-dark))' }
+          }
         >
           {publishing && <Loader2 size={18} className="animate-spin" />}
           {saved && <CheckCircle2 size={18} />}
@@ -194,4 +203,3 @@ export default function Automation() {
     </div>
   );
 }
-
