@@ -597,20 +597,33 @@ export async function POST(request) {
     const entries = body.entry || [];
 
     for (const entry of entries) {
-        const targetId = entry.id;
+        const targetId = String(entry.id);
 
         try { await dbConnect(); } catch (e) {
             console.error('[DB Error]', e.message);
             continue;
         }
 
-        // Look up the InstagramAccount first, fall back to legacy User lookup
+        // Look up the InstagramAccount — search ALL possible ID fields
         let igAccount = await InstagramAccount.findOne({
             $or: [
                 { instagramPageScopedId: targetId },
-                { instagramUserId: targetId }
+                { instagramUserId: targetId },
             ]
         }).catch(() => null);
+
+        // If not found with isConnected, try without it (may have been disconnected by mistake)
+        if (!igAccount) {
+            igAccount = await InstagramAccount.findOne({
+                $or: [
+                    { instagramPageScopedId: targetId },
+                    { instagramUserId: targetId },
+                ]
+            }).catch(() => null);
+            if (igAccount && !igAccount.isConnected) {
+                console.log(`[Webhook] Found account @${igAccount.instagramUsername} but isConnected=false — processing anyway`);
+            }
+        }
 
         let botUser = null;
         if (igAccount) {
@@ -628,14 +641,22 @@ export async function POST(request) {
         // Resolve token and automation from InstagramAccount (preferred) or User (legacy)
         const token = igAccount?.accessToken || botUser?.instagramAccessToken;
         if (!token) {
-            console.log(`[Webhook] No active account for ID: ${targetId}`);
+            // Diagnostic logging — helps debug ID mismatches
+            console.error(`[Webhook] No active account for ID: ${targetId}`);
+            try {
+                const allAccounts = await InstagramAccount.find({}, {
+                    instagramUserId: 1, instagramPageScopedId: 1, instagramUsername: 1, isConnected: 1
+                }).lean();
+                console.error(`[Webhook] DB has ${allAccounts.length} accounts:`,
+                    allAccounts.map(a => `@${a.instagramUsername || '?'} uid=${a.instagramUserId} psid=${a.instagramPageScopedId} connected=${a.isConnected}`).join(' | '));
+            } catch { /* non-fatal logging */ }
             continue;
         }
 
         const igBusinessId = igAccount?.instagramUserId || botUser?.instagramBusinessId;
         const accountId = igAccount?._id || null;
         const automation = igAccount?.automation || botUser?.automation;
-        console.log(`[Webhook] ✅ Found account for ID ${targetId} — automation.isActive=${automation?.isActive}`);
+        console.log(`[Webhook] ✅ Found account @${igAccount?.instagramUsername || botUser?.instagramUsername || '?'} for ID ${targetId} (matched ${igAccount?.instagramUserId === targetId ? 'instagramUserId' : 'instagramPageScopedId'})`);
 
         // 1. Comments & Mentions (Feed / Live Comments)
         const changes = entry.changes || [];

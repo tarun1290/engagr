@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 
 const TrackedLinkSchema = new mongoose.Schema({
-  shortCode: { type: String, required: true, unique: true },
-  userId: { type: String, required: true, index: true },
+  shortCode: { type: String, required: true },
+  userId: { type: String, required: true },
   accountId: { type: mongoose.Schema.Types.ObjectId, ref: "InstagramAccount" },
   originalUrl: { type: String, required: true },
   destination: { type: String },

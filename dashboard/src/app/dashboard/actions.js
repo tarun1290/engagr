@@ -250,12 +250,15 @@ export async function getAccountsFromToken(code) {
 
     // Get Instagram user info (app-scoped ID)
     const meRes = await fetch(
-      `https://graph.instagram.com/me?fields=id,username,name&access_token=${token}`
+      `https://graph.instagram.com/me?fields=id,username,name,user_id&access_token=${token}`
     );
     const me = await meRes.json();
     if (me.error) throw new Error(me.error.message);
+    console.log(`[Instagram Auth] Profile: id=${me.id} user_id=${me.user_id} username=${me.username}`);
 
     // Try to get the page-scoped Instagram Business Account ID (used by webhooks)
+    // Note: This requires a Facebook User Token. With Instagram Login tokens,
+    // this call may fail — the app-scoped me.id is then used for both fields.
     let webhookId = null;
     try {
       const pagesRes = await fetch(
@@ -270,8 +273,9 @@ export async function getAccountsFromToken(code) {
           }
         }
       }
+      console.log(`[Instagram Auth] Page-scoped webhook ID: ${webhookId || 'not found (using app-scoped ID)'}`);
     } catch {
-      /* optional */
+      console.log(`[Instagram Auth] Facebook pages API not available (Instagram Login token)`);
     }
 
     return {
@@ -345,6 +349,7 @@ export async function saveDiscoveredAccount(details) {
   const shouldBePrimary = existingCount === 0;
 
   // Upsert the InstagramAccount
+  console.log(`[Instagram Auth] Saving account: igId=${details.igId} webhookId=${details.webhookId} username=${details.username} pageScopedId=${details.webhookId || details.igId}`);
   const account = await InstagramAccount.findOneAndUpdate(
     { userId, instagramUserId: details.igId },
     {
