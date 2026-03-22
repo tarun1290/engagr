@@ -511,13 +511,16 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
         }
     }
 
-    // ── Step 2: Send initial DM with confirmation button (single message) ────
+    // ── Step 2: Send DM with confirmation button ─────────────────────────────
+    // Instagram Private Reply API only supports plain text (recipient: { comment_id }).
+    // We must first call it to initiate the conversation and get the recipient's IG-scoped ID,
+    // then send the button template as the actual message.
+    // To avoid two visible messages, we use a minimal opener for the private reply.
     const greetingText = automation.dmContent || 'Hey there! Thanks for your interest 😊';
     const confirmButtonText = automation.buttonText || 'Yes';
 
-    // Use sendPrivateReply to initiate the conversation (required by Instagram for comment-based DMs)
-    // This sends the greeting text + gets the recipient's IG-scoped ID
-    const firstContact = await sendPrivateReply(commentId, greetingText, token);
+    // Initiate conversation via Private Reply (minimal text — this is an API requirement)
+    const firstContact = await sendPrivateReply(commentId, '👋', token);
     const igScopedId = firstContact?.recipient_id;
 
     if (!firstContact || firstContact.error) {
@@ -534,8 +537,7 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
         return;
     }
 
-    // Send the confirmation button as a FOLLOW-UP message (different content from greeting)
-    // The greeting text was already sent via sendPrivateReply above
+    // Now send the real greeting + confirmation button as a single template card
     if (igScopedId) {
         try {
             const url = new URL(`${IG_BASE}/me/messages`);
@@ -550,7 +552,7 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
                             type: 'template',
                             payload: {
                                 template_type: 'button',
-                                text: 'Tap below to get your content 👇',
+                                text: greetingText,
                                 buttons: [{
                                     type: 'postback',
                                     title: confirmButtonText,
