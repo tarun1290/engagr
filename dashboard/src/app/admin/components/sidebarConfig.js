@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Users, CreditCard, MessageSquare, ShieldCheck,
   Share2, AtSign, Layers, Sparkles, Link2, ShoppingBag, Brain,
   BookOpen, MessageCircle, BarChart3, Code, DollarSign, Flag,
-  Radio, Clock, Settings,
+  Radio, Clock, Settings, Sliders,
 } from "lucide-react";
 
 /**
@@ -47,6 +47,7 @@ export const SIDEBAR_SECTIONS = [
   {
     label: "PLATFORM",
     items: [
+      { id: "plans", label: "Plans & pricing", icon: Sliders, href: "/admin/plans", status: "live" },
       { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/features/analytics", status: "planned" },
       { id: "api-access", label: "API access", icon: Code, href: "/admin/features/api-access", status: "planned" },
       { id: "payments", label: "Payments", icon: DollarSign, href: "/admin/features/payments", status: "disabled" },

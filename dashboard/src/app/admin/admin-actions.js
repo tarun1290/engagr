@@ -494,3 +494,36 @@ export async function adminResetAllFlags() {
   revalidatePath("/admin");
   return { success: true };
 }
+
+// ── Plan Config ─────────────────────────────────────────────────────────────
+
+export async function adminGetPlanConfig() {
+  await requireAdmin();
+  await dbConnect();
+  const PlanConfig = (await import("@/models/PlanConfig")).default;
+  return JSON.parse(JSON.stringify(await PlanConfig.getConfig()));
+}
+
+export async function adminUpdatePlanConfig(updates) {
+  await requireAdmin();
+  await dbConnect();
+  const PlanConfig = (await import("@/models/PlanConfig")).default;
+  const { invalidatePlanConfigCache } = await import("@/lib/planConfig");
+
+  if (updates.plans) {
+    const visiblePlans = Object.values(updates.plans).filter((p) => p.isVisible);
+    if (visiblePlans.length === 0) return { error: "At least one plan must be visible" };
+    const popularPlans = Object.values(updates.plans).filter((p) => p.isPopular);
+    if (popularPlans.length > 1) return { error: "Only one plan can be marked as popular" };
+    for (const [slug, plan] of Object.entries(updates.plans)) {
+      if (plan.price !== undefined && plan.price <= 0) return { error: `${slug} price must be positive` };
+      if (plan.dmLimit !== undefined && plan.dmLimit !== -1 && plan.dmLimit < 100) return { error: `${slug} DM limit must be at least 100 or -1 for unlimited` };
+      if (plan.maxAccounts !== undefined && (plan.maxAccounts < 1 || plan.maxAccounts > 10)) return { error: `${slug} max accounts must be 1-10` };
+    }
+  }
+
+  const config = await PlanConfig.updateConfig(updates, "admin");
+  invalidatePlanConfigCache();
+  revalidatePath("/admin");
+  return { success: true, config: JSON.parse(JSON.stringify(config)) };
+}
