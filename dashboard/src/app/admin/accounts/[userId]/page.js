@@ -96,6 +96,15 @@ export default function AccountDetailPage() {
                 {user.instagramUsername ? `@${user.instagramUsername}` : user.userId}
               </h1>
               <PlanBadge plan={user.subscription?.plan || "early_access"} />
+              {user.accountType && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
+                  style={{
+                    background: user.accountType === "creator" ? "#FDF2F8" : user.accountType === "business" ? "#EEF2FF" : "#F0F9FF",
+                    color: user.accountType === "creator" ? "#EC4899" : user.accountType === "business" ? "#4F46E5" : "#0EA5E9",
+                  }}>
+                  {user.accountType}
+                </span>
+              )}
             </div>
             {user.email && <p className="text-sm" style={{ color: "#52525B" }}>{user.email}</p>}
             <p className="text-xs" style={{ color: "#A1A1AA" }}>Joined {new Date(user.createdAt).toLocaleDateString()}</p>

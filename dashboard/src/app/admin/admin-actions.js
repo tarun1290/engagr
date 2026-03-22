@@ -81,6 +81,7 @@ export async function adminGetAccounts(filters = {}, sort = { field: "createdAt"
     ];
   }
   if (filters.plan) query["subscription.plan"] = filters.plan;
+  if (filters.accountType) query.accountType = filters.accountType;
 
   const total = await User.countDocuments(query);
   const sortObj = { [sort.field]: sort.dir === "asc" ? 1 : -1 };
@@ -511,14 +512,19 @@ export async function adminUpdatePlanConfig(updates) {
   const { invalidatePlanConfigCache } = await import("@/lib/planConfig");
 
   if (updates.plans) {
-    const visiblePlans = Object.values(updates.plans).filter((p) => p.isVisible);
-    if (visiblePlans.length === 0) return { error: "At least one plan must be visible" };
-    const popularPlans = Object.values(updates.plans).filter((p) => p.isPopular);
-    if (popularPlans.length > 1) return { error: "Only one plan can be marked as popular" };
-    for (const [slug, plan] of Object.entries(updates.plans)) {
-      if (plan.price !== undefined && plan.price <= 0) return { error: `${slug} price must be positive` };
-      if (plan.dmLimit !== undefined && plan.dmLimit !== -1 && plan.dmLimit < 100) return { error: `${slug} DM limit must be at least 100 or -1 for unlimited` };
-      if (plan.maxAccounts !== undefined && (plan.maxAccounts < 1 || plan.maxAccounts > 10)) return { error: `${slug} max accounts must be 1-10` };
+    // Validate each account type's plans
+    for (const [accountType, typePlans] of Object.entries(updates.plans)) {
+      if (!["creator", "business", "agency"].includes(accountType)) continue;
+      const plans = Object.values(typePlans || {});
+      const visiblePlans = plans.filter((p) => p.isVisible);
+      if (visiblePlans.length === 0) return { error: `${accountType}: at least one plan must be visible` };
+      const popularPlans = plans.filter((p) => p.isPopular);
+      if (popularPlans.length > 1) return { error: `${accountType}: only one plan can be marked as popular` };
+      for (const [slug, plan] of Object.entries(typePlans || {})) {
+        if (plan.price !== undefined && plan.price <= 0) return { error: `${accountType}/${slug} price must be positive` };
+        if (plan.dmLimit !== undefined && plan.dmLimit !== -1 && plan.dmLimit < 100) return { error: `${accountType}/${slug} DM limit must be at least 100 or -1 for unlimited` };
+        if (plan.maxAccounts !== undefined && (plan.maxAccounts < 1 || plan.maxAccounts > 20)) return { error: `${accountType}/${slug} max accounts must be 1-20` };
+      }
     }
   }
 

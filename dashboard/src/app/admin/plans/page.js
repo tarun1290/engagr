@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Save, AlertTriangle } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import ToggleSwitch from "../components/ToggleSwitch";
 import { adminGetPlanConfig, adminUpdatePlanConfig } from "../admin-actions";
 import { FEATURE_DISPLAY_NAMES, COMING_SOON_FEATURES } from "@/lib/featureNames";
 
-const PLAN_SLUGS = ["silver", "gold", "platinum"];
+const ACCOUNT_TYPES = [
+  { key: "creator", label: "Creator", emoji: "\uD83C\uDFA8", color: "#9333EA", bg: "#F3E8FF" },
+  { key: "business", label: "Business", emoji: "\uD83C\uDFEA", color: "#4F46E5", bg: "#EEF2FF" },
+  { key: "agency", label: "Agency", emoji: "\uD83C\uDFE2", color: "#D97706", bg: "#FFFBEB" },
+];
 
 function SectionCard({ title, badge, badgeColor, disabled, children }) {
   return (
@@ -63,6 +67,7 @@ export default function PlansPage() {
   const [originalConfig, setOriginalConfig] = useState(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeType, setActiveType] = useState("creator");
 
   useEffect(() => {
     adminGetPlanConfig().then((c) => {
@@ -75,17 +80,36 @@ export default function PlansPage() {
     return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#A1A1AA" }} /></div>;
   }
 
+  const typePlans = config.plans?.[activeType] || {};
+  const planSlugs = Object.keys(typePlans);
+  const typeInfo = ACCOUNT_TYPES.find((t) => t.key === activeType);
+
   const updatePlan = (slug, field, value) => {
-    setConfig((prev) => ({ ...prev, plans: { ...prev.plans, [slug]: { ...prev.plans[slug], [field]: value } } }));
+    setConfig((prev) => ({
+      ...prev,
+      plans: {
+        ...prev.plans,
+        [activeType]: {
+          ...prev.plans[activeType],
+          [slug]: { ...prev.plans[activeType][slug], [field]: value },
+        },
+      },
+    }));
   };
 
   const updateFeature = (slug, feature, value) => {
     setConfig((prev) => ({
-      ...prev, plans: {
-        ...prev.plans, [slug]: {
-          ...prev.plans[slug], features: { ...prev.plans[slug].features, [feature]: value }
-        }
-      }
+      ...prev,
+      plans: {
+        ...prev.plans,
+        [activeType]: {
+          ...prev.plans[activeType],
+          [slug]: {
+            ...prev.plans[activeType][slug],
+            features: { ...prev.plans[activeType][slug].features, [feature]: value },
+          },
+        },
+      },
     }));
   };
 
@@ -101,19 +125,24 @@ export default function PlansPage() {
     setSaving(true);
     const result = await adminUpdatePlanConfig(config);
     if (result.error) { toast.error(result.error); setSaving(false); return; }
-    // Check for price changes
-    for (const slug of PLAN_SLUGS) {
-      if (config.plans[slug]?.price !== originalConfig?.plans?.[slug]?.price) {
-        toast.warning("Price changes only affect new subscriptions.");
-        break;
+    // Check for price changes across all types
+    let priceChanged = false;
+    for (const type of ["creator", "business", "agency"]) {
+      for (const slug of Object.keys(config.plans?.[type] || {})) {
+        if (config.plans?.[type]?.[slug]?.price !== originalConfig?.plans?.[type]?.[slug]?.price) {
+          priceChanged = true;
+          break;
+        }
       }
+      if (priceChanged) break;
     }
+    if (priceChanged) toast.warning("Price changes only affect new subscriptions.");
     toast.success("Plan configuration updated. Changes are live.");
     setOriginalConfig(JSON.parse(JSON.stringify(config)));
     setSaving(false);
   };
 
-  const sym = config.display?.currencySymbol || "₹";
+  const sym = config.display?.currencySymbol || "\u20B9";
 
   return (
     <div className="space-y-8 pb-24">
@@ -128,23 +157,52 @@ export default function PlansPage() {
         )}
       </div>
 
-      {/* Plan cards */}
+      {/* Account type tabs */}
+      <div className="flex gap-1 p-1 rounded-xl" style={{ background: "#F4F4F5" }}>
+        {ACCOUNT_TYPES.map((type) => (
+          <button
+            key={type.key}
+            onClick={() => setActiveType(type.key)}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all"
+            style={{
+              background: activeType === type.key ? "#FFFFFF" : "transparent",
+              color: activeType === type.key ? type.color : "#71717A",
+              boxShadow: activeType === type.key ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
+            }}
+          >
+            <span>{type.emoji}</span>
+            <span>{type.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Plan cards for active type */}
       <div>
-        <h2 className="text-sm font-semibold mb-4" style={{ color: "#18181B" }}>Plans</h2>
+        <div className="flex items-center gap-3 mb-4">
+          <h2 className="text-sm font-semibold" style={{ color: "#18181B" }}>
+            {typeInfo?.label} plans
+          </h2>
+          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: typeInfo?.bg, color: typeInfo?.color }}>
+            {planSlugs.length} tiers
+          </span>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {PLAN_SLUGS.map((slug) => {
-            const plan = config.plans?.[slug];
+          {planSlugs.map((slug) => {
+            const plan = typePlans[slug];
             if (!plan) return null;
             return (
               <div key={slug} className="rounded-xl p-6 space-y-4" style={{
                 background: "#fff",
-                border: plan.isPopular ? "2px solid #C7D2FE" : "1px solid #F0F0F0",
+                border: plan.isPopular ? `2px solid ${typeInfo?.color}33` : "1px solid #F0F0F0",
               }}>
                 <div className="flex items-center justify-between">
                   <TextInput label="Plan name" value={plan.name} onChange={(v) => updatePlan(slug, "name", v)} />
                   {plan.isPopular && (
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: "#EEF2FF", color: "#4F46E5" }}>Popular</span>
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: typeInfo?.bg, color: typeInfo?.color }}>Popular</span>
                   )}
+                </div>
+                <div className="text-[10px] font-mono px-2 py-1 rounded" style={{ background: "#F9FAFB", color: "#A1A1AA" }}>
+                  {plan.slug}
                 </div>
                 <NumberInput label="Price" value={plan.price} onChange={(v) => updatePlan(slug, "price", v)} prefix={sym} min={1} suffix="/mo" />
                 <div>
@@ -158,13 +216,13 @@ export default function PlansPage() {
                     <label className="flex items-center gap-1.5 text-xs whitespace-nowrap" style={{ color: "#71717A" }}>
                       <input type="checkbox" checked={plan.dmLimit === -1}
                         onChange={(e) => updatePlan(slug, "dmLimit", e.target.checked ? -1 : 10000)}
-                        style={{ accentColor: "#4F46E5" }} />
+                        style={{ accentColor: typeInfo?.color }} />
                       Unlimited
                     </label>
                   </div>
                 </div>
-                <NumberInput label="Max IG accounts" value={plan.maxAccounts} onChange={(v) => updatePlan(slug, "maxAccounts", v)} min={1} max={10} />
-                <NumberInput label="Max reel rules" value={plan.maxReelRules} onChange={(v) => updatePlan(slug, "maxReelRules", v)} min={0} max={20} />
+                <NumberInput label="Max IG accounts" value={plan.maxAccounts} onChange={(v) => updatePlan(slug, "maxAccounts", v)} min={1} max={20} />
+                <NumberInput label="Max reel rules" value={plan.maxReelRules} onChange={(v) => updatePlan(slug, "maxReelRules", v)} min={-1} max={50} />
                 <NumberInput label="Max knowledge docs" value={plan.maxKnowledgeDocs} onChange={(v) => updatePlan(slug, "maxKnowledgeDocs", v)} min={0} max={50} />
                 <div>
                   <label className="text-xs font-medium mb-1 block" style={{ color: "#71717A" }}>Support level</label>
@@ -179,8 +237,7 @@ export default function PlansPage() {
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-xs" style={{ color: "#71717A" }}>Mark as popular</span>
                   <ToggleSwitch enabled={plan.isPopular} onChange={(v) => {
-                    // Unmark all others first
-                    for (const s of PLAN_SLUGS) { if (s !== slug) updatePlan(s, "isPopular", false); }
+                    for (const s of planSlugs) { if (s !== slug) updatePlan(s, "isPopular", false); }
                     updatePlan(slug, "isPopular", v);
                   }} />
                 </div>
@@ -194,16 +251,16 @@ export default function PlansPage() {
         </div>
       </div>
 
-      {/* Feature matrix */}
-      <SectionCard title="Feature access">
+      {/* Feature matrix for active type */}
+      <SectionCard title={`${typeInfo?.label} feature access`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: "#FAFAFA" }}>
                 <th className="text-left px-4 py-3 text-xs font-medium uppercase tracking-wider" style={{ color: "#A1A1AA" }}>Feature</th>
-                {PLAN_SLUGS.map((s) => (
+                {planSlugs.map((s) => (
                   <th key={s} className="text-center px-4 py-3 text-xs font-medium uppercase tracking-wider" style={{ color: "#A1A1AA" }}>
-                    {config.plans?.[s]?.name || s}
+                    {typePlans[s]?.name || s}
                   </th>
                 ))}
               </tr>
@@ -217,11 +274,11 @@ export default function PlansPage() {
                       <span className="ml-2 text-[9px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: "#F0FDFA", color: "#0D9488" }}>Soon</span>
                     )}
                   </td>
-                  {PLAN_SLUGS.map((slug) => (
+                  {planSlugs.map((slug) => (
                     <td key={slug} className="text-center px-4 py-2.5">
-                      <input type="checkbox" checked={!!config.plans?.[slug]?.features?.[key]}
+                      <input type="checkbox" checked={!!typePlans[slug]?.features?.[key]}
                         onChange={(e) => updateFeature(slug, key, e.target.checked)}
-                        style={{ accentColor: "#4F46E5" }} />
+                        style={{ accentColor: typeInfo?.color }} />
                     </td>
                   ))}
                 </tr>
@@ -233,11 +290,7 @@ export default function PlansPage() {
 
       {/* Overage billing — disabled */}
       <SectionCard title="Overage billing" badge="Payments disabled" badgeColor="amber" disabled>
-        <div className="grid grid-cols-2 gap-4">
-          <NumberInput label="Silver overage rate" value={0.10} onChange={() => {}} disabled prefix={sym} suffix="/DM" />
-          <NumberInput label="Gold overage rate" value={0.05} onChange={() => {}} disabled prefix={sym} suffix="/DM" />
-        </div>
-        <p className="text-xs mt-3" style={{ color: "#A1A1AA" }}>Enable payments to configure overage billing.</p>
+        <p className="text-xs" style={{ color: "#A1A1AA" }}>Enable payments to configure overage billing per account type.</p>
       </SectionCard>
 
       {/* Top-up packs — disabled */}
@@ -275,7 +328,7 @@ export default function PlansPage() {
                   <input type="checkbox" checked={config.earlyAccess?.dmLimit === -1}
                     onChange={(e) => updateEarlyAccess("dmLimit", e.target.checked ? -1 : 10000)}
                     style={{ accentColor: "#4F46E5" }} />
-                  ∞
+                  {"\u221E"}
                 </label>
               </div>
             </div>
@@ -314,13 +367,40 @@ export default function PlansPage() {
 
       {/* Dodo product IDs — disabled */}
       <SectionCard title="Dodo product IDs" badge="Payments disabled" badgeColor="amber" disabled>
-        <div className="space-y-3">
-          {PLAN_SLUGS.map((slug) => (
-            <TextInput key={slug} label={`${config.plans?.[slug]?.name || slug} product ID`}
-              value="" onChange={() => {}} disabled placeholder={`prod_${slug}_xxx`} />
+        <div className="space-y-4">
+          {ACCOUNT_TYPES.map((type) => (
+            <div key={type.key}>
+              <p className="text-xs font-semibold mb-2" style={{ color: type.color }}>{type.emoji} {type.label}</p>
+              <div className="space-y-2 pl-4">
+                {Object.keys(config.plans?.[type.key] || {}).map((slug) => (
+                  <TextInput key={slug} label={`${config.plans?.[type.key]?.[slug]?.name || slug} product ID`}
+                    value="" onChange={() => {}} disabled placeholder={`prod_${type.key}_${slug}_xxx`} />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
         <p className="text-xs mt-3" style={{ color: "#A1A1AA" }}>Enter Dodo product IDs when payments are enabled.</p>
+      </SectionCard>
+
+      {/* Legacy plan mapping */}
+      <SectionCard title="Legacy plan mapping">
+        <p className="text-xs mb-3" style={{ color: "#A1A1AA" }}>
+          Users on old plan slugs (silver, gold, platinum) are mapped to business plans. This mapping is used for DM limit lookups and feature checks.
+        </p>
+        <div className="space-y-2">
+          {[
+            { old: "silver", maps: "business_essentials" },
+            { old: "gold", maps: "business_professional" },
+            { old: "platinum", maps: "business_enterprise" },
+          ].map((m) => (
+            <div key={m.old} className="flex items-center gap-3 text-sm">
+              <span className="font-mono px-2 py-1 rounded" style={{ background: "#F9FAFB", color: "#71717A" }}>{m.old}</span>
+              <span style={{ color: "#A1A1AA" }}>{"\u2192"}</span>
+              <span className="font-mono px-2 py-1 rounded" style={{ background: "#EEF2FF", color: "#4F46E5" }}>{m.maps}</span>
+            </div>
+          ))}
+        </div>
       </SectionCard>
 
       {/* Sticky save button */}

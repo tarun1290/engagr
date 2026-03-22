@@ -55,6 +55,17 @@ export async function deauthorizeInstagram(accountId) {
   return { success: true };
 }
 
+// Update account type
+export async function updateAccountType(accountType) {
+  if (!["creator", "business", "agency"].includes(accountType)) {
+    return { error: "Invalid account type." };
+  }
+  const userId = await getOwnerId();
+  await dbConnect();
+  await User.findOneAndUpdate({ userId }, { accountType });
+  return { success: true };
+}
+
 // Delete all user data and log out
 export async function deleteAccountData() {
   const userId = await getOwnerId();

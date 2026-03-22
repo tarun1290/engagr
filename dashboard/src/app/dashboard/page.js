@@ -45,10 +45,15 @@ import ComingSoonPage from "@/components/ComingSoonPage";
 // import BillingPage from "@/components/BillingPage";
 // import UpgradePrompt from "@/components/UpgradePrompt";
 // [/PLANS DISABLED]
-import { getDashboardStats, deleteAutomation, toggleAutomation } from './actions';
+import { getDashboardStats, deleteAutomation, toggleAutomation, getHomeStats } from './actions';
 import useActivityStream from '@/hooks/useActivityStream';
 import LiveIndicator from '@/components/LiveIndicator';
+import { DashboardConfigProvider } from '@/lib/DashboardConfigContext';
+import { getDashboardConfig } from '@/lib/dashboardConfig';
+import { BETA_FEATURES } from '@/lib/betaFeatures';
 import { getAiDetectionStats, getTopPerformingLinks, getRecentDetections } from './ai-actions';
+import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { ArrowRight, Gift, Users2 as UsersIcon, BarChart3, TrendingUp, ShieldCheck } from "lucide-react";
 // [PLANS DISABLED] Subscription/gating imports not needed
 // import { getSubscriptionStatus } from './billing-actions';
 // import { getTrialWarning, getDmQuotaWarning, canAccessPage } from '@/lib/gating';
@@ -271,12 +276,17 @@ function DashboardContent() {
   const [aiStats, setAiStats] = useState(null);
   const [topLinks, setTopLinks] = useState([]);
   const [recentDetections, setRecentDetections] = useState([]);
+  const [homeStats, setHomeStats] = useState(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const data = await getDashboardStats(selectedAccountId);
+        const [data, homeData] = await Promise.all([
+          getDashboardStats(selectedAccountId),
+          getHomeStats(selectedAccountId),
+        ]);
         setStats(data);
+        setHomeStats(homeData);
         // Load AI stats only if feature is enabled (completely hidden otherwise)
         if (data.aiFeatureEnabled) {
           const [aiRes, linksRes, detectRes] = await Promise.all([
@@ -351,26 +361,66 @@ function DashboardContent() {
       // case "API Keys":
       //   return renderGatedPage("api_keys", <UpgradePrompt ... />);
       // [/PLANS DISABLED]
-      case "Home":
-        return (
-          <div className="space-y-16">
-            {/* [PLANS DISABLED] Trial/quota warnings removed for Early Access */}
+      case "Home": {
+        const dashConfig = getDashboardConfig(stats.accountType);
+        const hc = dashConfig.home;
 
+        // Stat card definitions keyed by config stat names
+        const STAT_CARD_META = {
+          followers_engaged: { label: "Followers Engaged", color: "var(--primary)", bg: "var(--primary-light)", border: "var(--primary-medium)", suffix: "this month" },
+          dms_sent: { label: "DMs Sent", color: "var(--success)", bg: "var(--success-light)", border: "var(--success)", suffix: "this month" },
+          comments_detected: { label: "Comments Detected", color: "var(--info)", bg: "var(--info-light)", border: "var(--info)", suffix: "this month" },
+          follower_gate_conversions: { label: "Gate Conversions", color: "var(--warning)", bg: "var(--warning-light)", border: "var(--warning)", suffix: "this month" },
+          customers_reached: { label: "Customers Reached", color: "var(--primary)", bg: "var(--primary-light)", border: "var(--primary-medium)", suffix: "unique recipients" },
+          link_clicks: { label: "Link Clicks", color: "var(--accent)", bg: "var(--accent-light)", border: "var(--accent)", suffix: "button taps" },
+          conversion_rate: { label: "Conversion Rate", color: "var(--success)", bg: "var(--success-light)", border: "var(--success)", suffix: "clicks / DMs", isPercent: true },
+          accounts_managed: { label: "Accounts Managed", color: "var(--primary)", bg: "var(--primary-light)", border: "var(--primary-medium)", suffix: "connected" },
+          total_dms_sent: { label: "Total DMs Sent", color: "var(--success)", bg: "var(--success-light)", border: "var(--success)", suffix: "across all accounts" },
+          active_automations: { label: "Active Automations", color: "var(--info)", bg: "var(--info-light)", border: "var(--info)", suffix: "enabled rules" },
+          total_events_today: { label: "Events Today", color: "var(--warning)", bg: "var(--warning-light)", border: "var(--warning)", suffix: "last 24h" },
+        };
+
+        // Quick actions per account type
+        const QUICK_ACTIONS = {
+          creator: [
+            { label: "Set up a giveaway", icon: Gift, action: () => setActiveTab("Automation") },
+            { label: "Enable follower gate", icon: ShieldCheck, action: () => setActiveTab("Automation") },
+            { label: "Connect another account", icon: Plus, action: () => setActiveTab("Settings") },
+          ],
+          business: [
+            { label: "Create product automation", icon: MessageSquare, action: () => setActiveTab("Automation") },
+            { label: "Set up reel replies", icon: Play, action: () => setActiveTab("Automation") },
+            { label: "Connect Shopify", icon: ShoppingBag, action: () => setActiveTab(`coming-soon:shopify`) },
+          ],
+          agency: [
+            { label: "Connect a client account", icon: Settings, action: () => setActiveTab("Settings") },
+            { label: "Set up automation", icon: Zap, action: () => setActiveTab("Automation") },
+            { label: "View all activity", icon: BarChart3, action: () => setActiveTab("Activity") },
+          ],
+        };
+
+        const activityLabels = {
+          creator: "Recent engagement",
+          business: "Recent customer interactions",
+          agency: "Recent activity across accounts",
+        };
+
+        const quickActions = QUICK_ACTIONS[stats.accountType || "creator"] || QUICK_ACTIONS.creator;
+
+        return (
+          <div className="space-y-12">
             {/* Token expiry warning */}
             {stats.tokenExpired && (
               <div className="flex items-start gap-4 px-6 py-4 rounded-2xl"
-                style={{ backgroundColor: 'var(--warning-light)', border: '1px solid var(--warning)' }}
-              >
+                style={{ backgroundColor: 'var(--warning-light)', border: '1px solid var(--warning)' }}>
                 <AlertTriangle size={20} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--warning)' }} />
                 <div className="flex-1">
                   <p className="text-[14px] font-bold" style={{ color: 'var(--warning-dark)' }}>Instagram token has expired</p>
-                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--warning-dark)' }}>Your automation has stopped working. Reconnect your Instagram account to restore it.</p>
+                  <p className="text-[12px] mt-0.5" style={{ color: 'var(--warning-dark)' }}>Reconnect your Instagram account to restore automation.</p>
                 </div>
-                <button
-                  onClick={() => window.location.href = '/onboarding'}
-                  className="px-4 py-2 text-[12px] font-bold rounded-xl transition-colors flex-shrink-0"
-                  style={{ backgroundColor: 'var(--warning)', color: 'var(--btn-primary-text)' }}
-                >
+                <button onClick={() => window.location.href = '/onboarding'}
+                  className="px-4 py-2 text-[12px] font-bold rounded-xl flex-shrink-0"
+                  style={{ backgroundColor: 'var(--warning)', color: 'var(--btn-primary-text)' }}>
                   Reconnect
                 </button>
               </div>
@@ -378,8 +428,7 @@ function DashboardContent() {
 
             {/* Live ticker */}
             {liveEvents.length > 0 && (
-              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl"
-                style={{ backgroundColor: 'var(--success-light)' }}>
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl" style={{ backgroundColor: 'var(--success-light)' }}>
                 <LiveIndicator isConnected={isConnected} />
                 <span className="text-sm" style={{ color: 'var(--success-dark)' }}>
                   Latest: <span className="font-medium">@{liveEvents[0]?.senderUsername}</span> — {liveEvents[0]?.action}
@@ -387,181 +436,209 @@ function DashboardContent() {
               </div>
             )}
 
-            {/* Hero header */}
-            <section className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10"
-              style={{ borderBottom: '1px solid var(--border)' }}
-            >
-              <div className="space-y-3">
-                <h2 className="text-6xl font-black tracking-tight leading-none flex items-center gap-6"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  Hello, {stats.instagram?.username || "there"}!
-                  {stats.instagram?.isConnected && stats.instagram.profilePic && (
-                    <div className="w-14 h-14 rounded-full p-1 animate-in zoom-in-50 duration-500 premium-gradient">
-                      <img src={stats.instagram.profilePic} alt="" className="w-full h-full rounded-full object-cover" style={{ border: '2px solid var(--card)' }} />
-                    </div>
-                  )}
-                </h2>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 px-3 py-1 rounded-full"
-                    style={{ backgroundColor: 'var(--success-light)', color: 'var(--success)', border: '1px solid var(--success)' }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: 'var(--success)' }} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Active System</span>
-                  </div>
-                  <p className="text-[15px] font-medium" style={{ color: 'var(--text-muted)' }}>
-                    {stats.contacts} registered contacts across your linked{" "}
-                    {stats.instagram?.isConnected ? (
-                      <span className="font-bold lowercase tracking-tight" style={{ color: 'var(--primary)' }}>@{stats.instagram.username}</span>
-                    ) : (
-                      "Instagram Account"
-                    )}.
-                  </p>
-                  <div className="w-1 h-1 rounded-full" style={{ backgroundColor: 'var(--border)' }} />
-                  <button
-                    onClick={() => document.getElementById("interactions-section")?.scrollIntoView({ behavior: "smooth" })}
-                    className="text-[14px] font-bold hover:underline"
-                    style={{ color: 'var(--primary)' }}
-                  >
-                    View Insights
-                  </button>
+            {/* Header */}
+            <section className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-8" style={{ borderBottom: '1px solid var(--border)' }}>
+              <div className="space-y-2">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-5xl font-black tracking-tight leading-none" style={{ color: 'var(--text-primary)' }}>
+                    {hc.headline}
+                  </h2>
+                  <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider"
+                    style={{ backgroundColor: dashConfig.badgeBg, color: dashConfig.badgeText }}>
+                    {dashConfig.emoji} {dashConfig.label}
+                  </span>
                 </div>
+                <p className="text-[15px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                  Welcome back, {homeStats?.userName || stats.instagram?.username || "there"}
+                </p>
               </div>
-              <button
-                onClick={() => setActiveTab("Automation")}
+              <button onClick={() => setActiveTab("Automation")}
                 className="px-8 py-4 rounded-2xl font-bold text-[14px] transition-all shadow-xl flex items-center gap-2"
                 style={{ backgroundColor: 'var(--btn-primary-bg)', color: 'var(--btn-primary-text)' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--btn-primary-hover)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--btn-primary-bg)'}
-              >
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--btn-primary-bg)'}>
                 <Plus size={20} /> Create Automation
               </button>
             </section>
 
-            {/* Active Modules — data-driven */}
+            {/* Config-driven stat cards */}
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {loading || !homeStats ? (
+                <>{[1,2,3,4].map(i => <SkeletonStat key={i} />)}</>
+              ) : (
+                hc.stats.map((statKey) => {
+                  const meta = STAT_CARD_META[statKey];
+                  if (!meta) return null;
+                  const value = homeStats.statValues?.[statKey] ?? 0;
+                  return (
+                    <div key={statKey} className="p-6 rounded-[24px] flex flex-col justify-between min-h-[160px]"
+                      style={{ backgroundColor: meta.bg, border: `1px solid ${meta.border}` }}>
+                      <p className="text-[11px] font-black uppercase tracking-widest mb-3" style={{ color: meta.color }}>{meta.label}</p>
+                      <h3 className="text-4xl font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>
+                        {meta.isPercent ? `${value}%` : value.toLocaleString()}
+                      </h3>
+                      <p className="text-[11px] font-medium mt-1" style={{ color: meta.color, opacity: 0.7 }}>{meta.suffix}</p>
+                    </div>
+                  );
+                })
+              )}
+            </section>
+
+            {/* Quick actions */}
             <section>
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Active Modules</h3>
-                <button
-                  onClick={() => setActiveTab("Automation")}
-                  className="text-[14px] font-bold flex items-center gap-1 transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-                >
-                  Explore Templates <ArrowUpRight size={16} />
-                </button>
-              </div>
-              <div className="rounded-[32px] flex flex-col lg:flex-row overflow-hidden shadow-sm"
-                style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
-              >
-                {ACTIVE_MODULES.map((mod) => (
-                  <FeatureCard
-                    key={mod.id}
-                    icon={mod.icon}
-                    title={mod.title}
-                    description={mod.description}
-                    badge={mod.badge}
-                    onClick={mod.tab ? () => setActiveTab(mod.tab) : undefined}
-                  />
-                ))}
+              <h3 className="text-lg font-black mb-4" style={{ color: 'var(--text-primary)' }}>Quick actions</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {quickActions.map((qa) => {
+                  const QaIcon = qa.icon;
+                  return (
+                    <button key={qa.label} onClick={qa.action}
+                      className="flex items-center gap-3 p-4 rounded-2xl transition-all text-left group"
+                      style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-medium)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}>
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)' }}>
+                        <QaIcon size={16} style={{ color: 'var(--primary)' }} />
+                      </div>
+                      <span className="text-[13px] font-bold flex-1" style={{ color: 'var(--text-primary)' }}>{qa.label}</span>
+                      <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" style={{ color: 'var(--text-placeholder)' }} />
+                    </button>
+                  );
+                })}
               </div>
             </section>
+
+            {/* Charts / Agency client overview */}
+            {!loading && homeStats && (
+              <section>
+                {hc.showGrowthChart && homeStats.chartData?.length > 0 && (
+                  <div className="rounded-[24px] p-6" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
+                    <h3 className="text-lg font-black mb-4" style={{ color: 'var(--text-primary)' }}>Engagement this month</h3>
+                    <div style={{ width: '100%', height: 280 }}>
+                      <ResponsiveContainer>
+                        <ComposedChart data={homeStats.chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                          <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                          <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                          <Tooltip contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
+                          <Line type="monotone" dataKey="dms" stroke="#4F46E5" strokeWidth={2} dot={false} name="DMs Sent" />
+                          <Line type="monotone" dataKey="comments" stroke="#9333EA" strokeWidth={2} dot={false} name="Comments" />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
+                {hc.showRevenueChart && homeStats.chartData?.length > 0 && (
+                  <div className="rounded-[24px] p-6" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
+                    <h3 className="text-lg font-black mb-4" style={{ color: 'var(--text-primary)' }}>Customer interactions</h3>
+                    <div style={{ width: '100%', height: 280 }}>
+                      <ResponsiveContainer>
+                        <ComposedChart data={homeStats.chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                          <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                          <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                          <Tooltip contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
+                          <Bar dataKey="dms" fill="#4F46E5" radius={[4, 4, 0, 0]} name="DMs Sent" />
+                          <Line type="monotone" dataKey="clicks" stroke="#059669" strokeWidth={2} dot={false} name="Link Clicks" />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+
+                {hc.showClientOverview && (
+                  <div>
+                    <h3 className="text-lg font-black mb-4" style={{ color: 'var(--text-primary)' }}>Client accounts</h3>
+                    {homeStats.perAccountStats?.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {homeStats.perAccountStats.map((acct) => (
+                          <button key={acct._id} onClick={() => { /* could switch account */ }}
+                            className="p-5 rounded-2xl text-left transition-all group"
+                            style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-medium)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}>
+                            <div className="flex items-center gap-3 mb-3">
+                              {acct.profilePic ? (
+                                <img src={acct.profilePic} alt="" className="w-9 h-9 rounded-full object-cover" style={{ border: '2px solid var(--border)' }} />
+                              ) : (
+                                <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)' }}>
+                                  <span className="text-sm font-black">{(acct.username || "?")[0].toUpperCase()}</span>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-black truncate" style={{ color: 'var(--text-primary)' }}>@{acct.username || "unknown"}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: acct.isActive ? 'var(--success)' : 'var(--text-placeholder)' }} />
+                                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: acct.isActive ? 'var(--success)' : 'var(--text-placeholder)' }}>
+                                    {acct.isActive ? "Active" : "Inactive"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>DMs/mo</p>
+                                <p className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>{acct.dmsSentThisMonth}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>Last event</p>
+                                <p className="text-[12px] font-bold" style={{ color: 'var(--text-muted)' }}>
+                                  {acct.lastEventAt ? timeAgo(acct.lastEventAt) : "—"}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-12 text-center rounded-2xl" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
+                        <UsersIcon size={32} className="mx-auto mb-3" style={{ color: 'var(--text-placeholder)' }} />
+                        <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>No client accounts connected yet.</p>
+                        <button onClick={() => setActiveTab("Settings")} className="text-[12px] font-bold mt-2" style={{ color: 'var(--primary)' }}>
+                          Connect an account
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
 
             {/* Automation Status Card */}
             {stats.automation && (
               <section>
-                <h3 className="text-2xl font-black mb-6" style={{ color: 'var(--text-primary)' }}>Automation Status</h3>
-                <div className="rounded-[28px] p-8 shadow-sm"
-                  style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
-                >
-                  <div className="flex flex-col md:flex-row md:items-start gap-8">
-                    {/* Toggle */}
+                <h3 className="text-lg font-black mb-4" style={{ color: 'var(--text-primary)' }}>Automation Status</h3>
+                <div className="rounded-[24px] p-6 shadow-sm" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
+                  <div className="flex flex-col md:flex-row md:items-center gap-6">
                     <div className="flex items-center gap-4">
-                      <button
-                        onClick={handleToggleAutomation}
-                        disabled={togglingAutomation}
+                      <button onClick={handleToggleAutomation} disabled={togglingAutomation}
                         className={cn("relative w-14 h-8 rounded-full transition-all duration-300 flex-shrink-0", togglingAutomation && "opacity-60")}
-                        style={{ backgroundColor: stats.automation.isActive ? 'var(--success)' : 'var(--text-placeholder)' }}
-                      >
+                        style={{ backgroundColor: stats.automation.isActive ? 'var(--success)' : 'var(--text-placeholder)' }}>
                         <span className={cn("absolute top-1 w-6 h-6 rounded-full shadow-md transition-all duration-300", stats.automation.isActive ? "left-7" : "left-1")}
-                          style={{ backgroundColor: 'var(--card)' }}
-                        />
+                          style={{ backgroundColor: 'var(--card)' }} />
                       </button>
-                      <div>
-                        <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>Status</p>
-                        <p className="text-[16px] font-black"
-                          style={{ color: stats.automation.isActive ? 'var(--success)' : 'var(--text-muted)' }}
-                        >
-                          {togglingAutomation ? "Updating..." : stats.automation.isActive ? "Live & Active" : "Paused"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="h-px md:h-auto md:w-px" style={{ backgroundColor: 'var(--border)' }} />
-
-                    <div>
-                      <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-placeholder)' }}>Trigger</p>
-                      <p className="text-[14px] font-bold" style={{ color: 'var(--text-secondary)' }}>
-                        {stats.automation.postTrigger === "any" ? "Any post or reel" : "Specific post"}
-                      </p>
-                      <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        {stats.automation.commentTrigger === "any"
-                          ? "Any comment fires automation"
-                          : `Keywords: ${(stats.automation.keywords || []).join(', ') || 'none'}`}
+                      <p className="text-[14px] font-black" style={{ color: stats.automation.isActive ? 'var(--success)' : 'var(--text-muted)' }}>
+                        {togglingAutomation ? "Updating..." : stats.automation.isActive ? "Live & Active" : "Paused"}
                       </p>
                     </div>
-
-                    <div className="h-px md:h-auto md:w-px" style={{ backgroundColor: 'var(--border)' }} />
-
-                    <div>
-                      <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-placeholder)' }}>Public Reply</p>
-                      <p className="text-[14px] font-bold" style={{ color: 'var(--text-secondary)' }}>
-                        {stats.automation.replyEnabled ? "Enabled" : "Disabled"}
+                    <div className="h-px md:h-8 md:w-px flex-shrink-0" style={{ backgroundColor: 'var(--border)' }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>
+                        {stats.automation.commentTrigger === "any" ? "Any comment" : `Keywords: ${(stats.automation.keywords || []).join(', ')}`}
+                        {stats.automation.dmContent ? ` → "${stats.automation.dmContent.substring(0, 40)}..."` : ""}
                       </p>
-                      {stats.automation.replyEnabled && stats.automation.replyMessages?.length > 0 && (
-                        <p className="text-[12px] mt-0.5 max-w-[200px] truncate" style={{ color: 'var(--text-muted)' }}>
-                          &ldquo;{stats.automation.replyMessages[0]}&rdquo;
-                        </p>
-                      )}
                     </div>
-
-                    <div className="h-px md:h-auto md:w-px" style={{ backgroundColor: 'var(--border)' }} />
-
-                    <div className="flex-1">
-                      <p className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-placeholder)' }}>DM Message</p>
-                      <p className="text-[13px] leading-snug line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
-                        {stats.automation.dmContent || <span style={{ color: 'var(--text-placeholder)' }} className="italic">No message set</span>}
-                      </p>
-                      {stats.automation.linkUrl && (
-                        <div className="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-xl w-fit"
-                          style={{ backgroundColor: 'var(--primary-light)', border: '1px solid var(--primary-medium)' }}
-                        >
-                          <Image size={11} className="flex-shrink-0" style={{ color: 'var(--primary)' }} />
-                          <span className="text-[11px] font-bold truncate max-w-[180px]" style={{ color: 'var(--primary)' }}>
-                            {stats.automation.buttonText || "Link"}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex gap-2 flex-shrink-0 self-start">
-                      <button
-                        onClick={() => setActiveTab("Automation")}
-                        className="px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all"
-                        style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-medium)'; e.currentTarget.style.color = 'var(--primary)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                      >
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button onClick={() => setActiveTab("Automation")}
+                        className="px-4 py-2 rounded-xl text-[12px] font-bold transition-all"
+                        style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                         Edit
                       </button>
-                      <button
-                        onClick={() => setShowDeleteAutomation(true)}
-                        className="px-3 py-2.5 rounded-xl transition-all"
-                        style={{ backgroundColor: 'var(--error-light)', border: '1px solid var(--error)', color: 'var(--error)' }}
-                        title="Delete automation"
-                      >
-                        <Trash2 size={16} />
+                      <button onClick={() => setShowDeleteAutomation(true)}
+                        className="px-3 py-2 rounded-xl transition-all"
+                        style={{ backgroundColor: 'var(--error-light)', border: '1px solid var(--error)', color: 'var(--error)' }}>
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
@@ -571,37 +648,25 @@ function DashboardContent() {
 
             {/* Delete Automation Dialog */}
             {showDeleteAutomation && (
-              <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-6"
-                style={{ backgroundColor: 'var(--overlay)' }}
-              >
-                <div className="rounded-[24px] p-8 max-w-sm w-full space-y-6 shadow-2xl"
-                  style={{ backgroundColor: 'var(--card)' }}
-                >
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
-                    style={{ backgroundColor: 'var(--error-light)' }}
-                  >
+              <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-6" style={{ backgroundColor: 'var(--overlay)' }}>
+                <div className="rounded-[24px] p-8 max-w-sm w-full space-y-6 shadow-2xl" style={{ backgroundColor: 'var(--card)' }}>
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto" style={{ backgroundColor: 'var(--error-light)' }}>
                     <Trash2 size={22} style={{ color: 'var(--error)' }} />
                   </div>
                   <div className="text-center space-y-2">
                     <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Delete Automation?</h3>
                     <p className="text-sm font-medium leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                      This will remove your automation settings including triggers, keywords, reply messages, and DM content. You can create a new one anytime.
+                      This will remove your automation settings. You can create a new one anytime.
                     </p>
                   </div>
                   <div className="flex gap-3">
-                    <button
-                      onClick={() => setShowDeleteAutomation(false)}
-                      className="flex-1 py-3 rounded-xl font-bold text-sm transition-all"
-                      style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)', backgroundColor: 'var(--card)' }}
-                    >
+                    <button onClick={() => setShowDeleteAutomation(false)}
+                      className="flex-1 py-3 rounded-xl font-bold text-sm" style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                       Cancel
                     </button>
-                    <button
-                      onClick={handleDeleteAutomation}
-                      disabled={deletingAutomation}
-                      className="flex-1 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-60"
-                      style={{ backgroundColor: 'var(--btn-destructive-bg)', color: 'var(--btn-destructive-text)' }}
-                    >
+                    <button onClick={handleDeleteAutomation} disabled={deletingAutomation}
+                      className="flex-1 py-3 rounded-xl font-bold text-sm disabled:opacity-60"
+                      style={{ backgroundColor: 'var(--btn-destructive-bg)', color: 'var(--btn-destructive-text)' }}>
                       {deletingAutomation ? "Deleting..." : "Delete"}
                     </button>
                   </div>
@@ -609,75 +674,10 @@ function DashboardContent() {
               </div>
             )}
 
-            {/* Stats strip */}
-            <section className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {loading ? (
-                <>
-                  <div className="lg:col-span-2"><SkeletonStat /></div>
-                  <SkeletonStat />
-                  <SkeletonStat />
-                </>
-              ) : (
-                <>
-                  <div className="p-10 rounded-[40px] flex flex-col justify-between group overflow-hidden relative min-h-[240px]"
-                    style={{ backgroundColor: 'var(--primary-light)', border: '1px solid var(--primary-medium)' }}
-                  >
-                    <div className="relative z-10">
-                      <p className="text-[12px] font-black uppercase tracking-[0.2em] mb-4" style={{ color: 'var(--primary)' }}>Transmission Health</p>
-                      <h2 className="text-6xl font-black tracking-tighter mb-2" style={{ color: 'var(--primary)' }}>{stats.sentToday}</h2>
-                      <p className="text-sm font-medium" style={{ color: 'var(--primary)', opacity: 0.7 }}>Replies sent today.</p>
-                    </div>
-                    <div className="relative z-10 flex items-center gap-3">
-                      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--primary-medium)' }}>
-                        <div className="w-full h-full" style={{ backgroundColor: 'var(--primary)' }} />
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--primary)' }}>Optimal</span>
-                    </div>
-                    <Zap size={180} className="absolute -bottom-10 -right-10 -rotate-12 group-hover:scale-110 transition-transform duration-1000" style={{ color: 'var(--primary)', opacity: 0.1 }} />
-                  </div>
-
-                  {/* [PLANS DISABLED] DM Usage card — show "Unlimited" for Early Access */}
-                  <div className="p-10 rounded-[40px] flex flex-col justify-center"
-                    style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
-                  >
-                    <p className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--text-placeholder)' }}>
-                      DM Usage
-                    </p>
-                    <h3 className="text-3xl font-black mb-1" style={{ color: 'var(--text-primary)' }}>
-                      Unlimited
-                    </h3>
-                    <p className="text-sm font-medium mb-3" style={{ color: 'var(--text-muted)' }}>
-                      Early Access — no limits
-                    </p>
-                  </div>
-
-                  <div className="p-10 rounded-[40px] flex flex-col justify-center"
-                    style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
-                  >
-                    <p className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--text-placeholder)' }}>Active Trend</p>
-                    <h3 className="text-5xl font-black mb-1"
-                      style={{ color: stats.transmissionTrend >= 0 ? 'var(--success)' : 'var(--error)' }}
-                    >
-                      {stats.transmissionTrend > 0 ? '+' : ''}{stats.transmissionTrend}%
-                    </h3>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Growth vs yesterday.</p>
-                  </div>
-
-                  <div className="p-10 rounded-[40px] flex flex-col justify-center"
-                    style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)' }}
-                  >
-                    <p className="text-[11px] font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--text-placeholder)' }}>Total Interactions</p>
-                    <h3 className="text-5xl font-black mb-1" style={{ color: 'var(--text-primary)' }}>{stats.totalInteractions ?? stats.contacts}</h3>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>All-time events tracked.</p>
-                  </div>
-                </>
-              )}
-            </section>
-
-            {/* Interaction Type Breakdown */}
+            {/* Interaction Breakdown */}
             {stats.interactionsByType?.length > 0 && (
               <section>
-                <h3 className="text-2xl font-black mb-6" style={{ color: 'var(--text-primary)' }}>Interaction Breakdown</h3>
+                <h3 className="text-lg font-black mb-4" style={{ color: 'var(--text-primary)' }}>Interaction Breakdown</h3>
                 <div className="flex flex-wrap gap-3">
                   {stats.interactionsByType.map((item) => {
                     const conf = INTERACTION_TYPE_CONFIG[item._id];
@@ -685,8 +685,7 @@ function DashboardContent() {
                     const Icon = conf.icon;
                     return (
                       <div key={item._id} className="flex items-center gap-3 px-5 py-3 rounded-2xl"
-                        style={{ backgroundColor: conf.bg, border: `1px solid ${conf.border}20` }}
-                      >
+                        style={{ backgroundColor: conf.bg, border: `1px solid ${conf.border}20` }}>
                         <Icon size={16} style={{ color: conf.color }} />
                         <span className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{item.count}</span>
                         <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: conf.color }}>{conf.label}</span>
@@ -697,45 +696,16 @@ function DashboardContent() {
               </section>
             )}
 
-            {/* Reel Category Breakdown */}
-            {stats.reelCategoryBreakdown?.length > 0 && (
-              <section>
-                <h3 className="text-2xl font-black mb-6" style={{ color: 'var(--text-primary)' }}>Smart Reel Replies</h3>
-                <div className="flex flex-wrap gap-3">
-                  {stats.reelCategoryBreakdown.map((item) => {
-                    const isCategory = item._id === 'category';
-                    const label = isCategory ? (item.categoryName || 'Category') : item._id === 'default' ? 'Default' : 'Legacy';
-                    const color = isCategory ? 'var(--info)' : item._id === 'default' ? 'var(--accent)' : 'var(--text-muted)';
-                    const bg = isCategory ? 'var(--info-light)' : item._id === 'default' ? 'var(--accent-light)' : 'var(--surface-alt)';
-                    return (
-                      <div key={item._id} className="flex items-center gap-3 px-5 py-3 rounded-2xl"
-                        style={{ backgroundColor: bg, border: `1px solid ${color}20` }}
-                      >
-                        <Play size={16} style={{ color }} />
-                        <span className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>{item.count}</span>
-                        <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color }}>{label}</span>
-                        {item.sent > 0 && (
-                          <span className="text-[10px] font-bold" style={{ color: 'var(--success)' }}>
-                            ({item.sent} sent)
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-
-            {/* AI Product Detection stats — only visible if admin-enabled */}
+            {/* AI Product Detection — only if admin-enabled */}
             {stats.aiFeatureEnabled && aiStats && (
               <section>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>AI Product Detection</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>AI Product Detection</h3>
                   <button onClick={() => setActiveTab("Links")} className="flex items-center gap-1 text-[12px] font-bold" style={{ color: 'var(--primary)' }}>
                     View all links <ChevronRight size={12} />
                   </button>
                 </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="p-5 rounded-2xl" style={{ backgroundColor: 'var(--info-light)', border: '1px solid var(--info)' }}>
                     <Brain size={16} style={{ color: 'var(--info)' }} />
                     <p className="text-2xl font-black mt-2" style={{ color: 'var(--text-primary)' }}>{aiStats.detectionsThisMonth}</p>
@@ -757,81 +727,20 @@ function DashboardContent() {
                     <p className="text-[11px] font-bold" style={{ color: 'var(--accent)' }}>Products identified</p>
                   </div>
                 </div>
-
-                {/* Top performing links */}
-                {topLinks.length > 0 && (
-                  <div className="rounded-2xl p-6 mb-4" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
-                    <h4 className="text-[11px] font-black uppercase tracking-widest mb-4" style={{ color: 'var(--text-placeholder)' }}>Top Links by Clicks</h4>
-                    <div className="space-y-3">
-                      {topLinks.map((link) => (
-                        <div key={link._id} className="flex items-center gap-3">
-                          {link.metadata?.productImageUrl ? (
-                            <img src={link.metadata.productImageUrl} alt="" className="w-8 h-8 rounded-lg object-cover" style={{ border: '1px solid var(--border)' }} />
-                          ) : (
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--surface-alt)' }}>
-                              <ShoppingBag size={12} style={{ color: 'var(--text-placeholder)' }} />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{link.metadata?.productName || "Link"}</p>
-                          </div>
-                          <span className="text-sm font-black" style={{ color: 'var(--primary)' }}>{link.stats?.totalClicks || 0}</span>
-                          <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>clicks</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Recent detections */}
-                {recentDetections.length > 0 && (
-                  <div className="rounded-2xl p-6" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
-                    <h4 className="text-[11px] font-black uppercase tracking-widest mb-4" style={{ color: 'var(--text-placeholder)' }}>Recent AI Detections</h4>
-                    <div className="space-y-3">
-                      {recentDetections.map((d) => (
-                        <div key={d._id} className="flex items-center gap-3 text-[12px]">
-                          <div className={`w-2 h-2 rounded-full ${d.status === 'success' ? '' : ''}`}
-                            style={{ backgroundColor: d.status === 'success' ? 'var(--success)' : 'var(--error)' }} />
-                          <span className="font-bold flex-1 truncate" style={{ color: 'var(--text-primary)' }}>
-                            {d.detectedProducts?.[0]?.name || (d.status === 'success' ? 'Product detected' : 'No product found')}
-                          </span>
-                          {d.detectedProducts?.[0]?.confidence && (
-                            <span className="font-bold" style={{ color: 'var(--success)' }}>{Math.round(d.detectedProducts[0].confidence * 100)}%</span>
-                          )}
-                          <span style={{ color: 'var(--text-placeholder)' }}>{new Date(d.createdAt).toLocaleDateString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </section>
             )}
 
-            {/* Interactions Feed */}
+            {/* Recent Activity — label varies by type */}
             <section id="interactions-section">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Recent Interactions</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>
+                  {activityLabels[stats.accountType || "creator"] || "Recent Interactions"}
+                </h3>
                 <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>
                   {stats.recentInteractions?.length ?? 0} shown
                 </span>
               </div>
-
-              <div className="rounded-[28px] overflow-hidden shadow-sm"
-                style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
-              >
-                <div className="grid grid-cols-[1fr_auto] gap-4 px-6 py-3"
-                  style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface-alt)' }}
-                >
-                  <div className="flex items-center gap-16">
-                    <span className="text-[10px] font-black uppercase tracking-widest w-24" style={{ color: 'var(--text-placeholder)' }}>Type</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>User &middot; Content</span>
-                  </div>
-                  <div className="flex items-center gap-8 pr-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>Reply</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--text-placeholder)' }}>When</span>
-                  </div>
-                </div>
-
+              <div className="rounded-[24px] overflow-hidden shadow-sm" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
                 {loading ? (
                   <>{[1,2,3].map(i => <SkeletonRow key={i} />)}</>
                 ) : !stats.recentInteractions?.length ? (
@@ -848,48 +757,42 @@ function DashboardContent() {
               </div>
             </section>
 
-            {/* Coming Soon teasers */}
-            <section>
-              <div className="flex items-center gap-2 mb-6">
-                <Zap size={18} style={{ color: 'var(--primary)' }} />
-                <h3 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Coming soon</h3>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  { slug: "ai-product-detection", title: "AI Product Detection", desc: "AI identifies products in shared reels", icon: Zap, status: "Q2 2026" },
-                  { slug: "shopify", title: "Shopify Integration", desc: "Sell your products directly in DMs", icon: Share2, status: "Q2 2026" },
-                  { slug: "smart-replies", title: "AI Smart Replies", desc: "24/7 AI customer support", icon: MessageSquare, status: "Q3 2026" },
-                  { slug: "knowledge-base", title: "Knowledge Base", desc: "Train AI with your business docs", icon: Play, status: "Q3 2026" },
-                ].map((item) => {
-                  const TeaserIcon = item.icon;
-                  return (
-                    <button
-                      key={item.slug}
-                      onClick={() => setActiveTab(`coming-soon:${item.slug}`)}
-                      className="text-left p-5 rounded-2xl transition-all hover:scale-[1.02] group"
-                      style={{
-                        backgroundColor: 'var(--card)',
-                        border: '1px solid var(--border)',
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-medium)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <TeaserIcon size={14} style={{ color: 'var(--primary)' }} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                          style={{ backgroundColor: 'rgba(124, 58, 237, 0.12)', color: '#7C3AED' }}>
-                          {item.status}
-                        </span>
-                      </div>
-                      <p className="text-[13px] font-black mb-1" style={{ color: 'var(--text-primary)' }}>{item.title}</p>
-                      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{item.desc}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
+            {/* Coming Soon teasers — config-driven */}
+            {(() => {
+              const teaserSlugs = hc.teaserFeatures || [];
+              const teaserItems = teaserSlugs.map((slug) => BETA_FEATURES[slug]).filter(Boolean).map((bf, i) => ({ ...bf, slug: teaserSlugs[i] }));
+              if (teaserItems.length === 0) return null;
+              return (
+                <section>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Zap size={18} style={{ color: 'var(--primary)' }} />
+                    <h3 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Coming soon</h3>
+                  </div>
+                  <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4", teaserItems.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
+                    {teaserItems.map((item) => (
+                      <button key={item.slug} onClick={() => setActiveTab(`coming-soon:${item.slug}`)}
+                        className="text-left p-5 rounded-2xl transition-all hover:scale-[1.02] group"
+                        style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-medium)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; }}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Zap size={14} style={{ color: 'var(--primary)' }} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                            style={{ backgroundColor: 'rgba(124, 58, 237, 0.12)', color: '#7C3AED' }}>
+                            {item.status}
+                          </span>
+                        </div>
+                        <p className="text-[13px] font-black mb-1" style={{ color: 'var(--text-primary)' }}>{item.title}</p>
+                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{item.headline?.substring(0, 50) || ''}</p>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
           </div>
         );
+      }
       case "Links":
         return stats.aiFeatureEnabled ? <LinksPage /> : null;
       // [SMART FEATURES] Knowledge Base and Conversations tabs — uncomment when enabled
@@ -913,26 +816,27 @@ function DashboardContent() {
   };
 
   return (
-    <div className="min-h-screen theme-transition" style={{ backgroundColor: 'var(--bg)' }}>
-      <Sidebar
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        aiEnabled={stats.aiFeatureEnabled}
-        smartFeatures={stats.smartFeaturesEnabled}
-      />
+    <DashboardConfigProvider accountType={stats.accountType}>
+      <div className="min-h-screen theme-transition" style={{ backgroundColor: 'var(--bg)' }}>
+        <Sidebar
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsed}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          stats={stats}
+        />
 
-      <main className={cn(
-        "flex flex-col min-h-screen transition-all duration-200",
-        isCollapsed ? "lg:pl-[72px]" : "lg:pl-[260px]"
-      )}>
-        <Navbar />
-        <div className="px-6 py-6 max-w-[1200px] w-full mx-auto">
-          {renderContent()}
-        </div>
-      </main>
-    </div>
+        <main className={cn(
+          "flex flex-col min-h-screen transition-all duration-200",
+          isCollapsed ? "lg:pl-[72px]" : "lg:pl-[260px]"
+        )}>
+          <Navbar />
+          <div className="px-6 py-6 max-w-[1200px] w-full mx-auto">
+            {renderContent()}
+          </div>
+        </main>
+      </div>
+    </DashboardConfigProvider>
   );
 }
 

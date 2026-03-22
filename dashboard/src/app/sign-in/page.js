@@ -84,7 +84,8 @@ export default function SignInPage() {
           <GoogleSignInButton
             text="signin_with"
             onSuccess={(data) => {
-              window.location.href = data.isConnected ? "/dashboard" : "/onboarding";
+              if (data.needsAccountType) window.location.href = "/onboarding/account-type";
+              else window.location.href = data.isConnected ? "/dashboard" : "/onboarding";
             }}
             onError={(err) => setError(err)}
           />

@@ -73,6 +73,7 @@ export async function POST(request) {
     const response = NextResponse.json({
       success: true,
       isNewUser,
+      needsAccountType: isNewUser || !user.accountType,
       isConnected: user.isConnected,
       user: { id: user._id, email: user.email, name: user.name, profilePicture: user.profilePicture },
     });

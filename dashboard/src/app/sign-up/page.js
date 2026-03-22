@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bot, Mail, Lock, User, AtSign, Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Bot, Mail, Lock, User, AtSign, Eye, EyeOff, ArrowRight, CheckCircle2, Building2 } from "lucide-react";
 import { signUp } from "./actions";
 import GoogleSignInButton from "@/components/GoogleSignInButton";
 import { isPersonalEmail } from "@/lib/blockedEmailDomains";
@@ -123,7 +123,8 @@ export default function SignUpPage() {
           <GoogleSignInButton
             text="signup_with"
             onSuccess={(data) => {
-              if (data.isNewUser) window.location.href = "/onboarding";
+              if (data.needsAccountType) window.location.href = "/onboarding/account-type";
+              else if (data.isNewUser) window.location.href = "/onboarding";
               else window.location.href = data.isConnected ? "/dashboard" : "/onboarding";
             }}
             onError={(err) => setError(err)}
@@ -208,6 +209,31 @@ export default function SignUpPage() {
                     '--tw-ring-color': 'var(--input-focus-ring)',
                   }}
                 />
+              </div>
+            </div>
+
+            {/* Account Type */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>Account Type</label>
+              <div className="relative">
+                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
+                <select
+                  name="accountType"
+                  required
+                  className="w-full rounded-2xl pl-11 pr-4 py-3.5 text-sm font-medium focus:outline-none focus:ring-2 transition-all appearance-none"
+                  style={{
+                    backgroundColor: 'var(--input-bg)',
+                    border: '1px solid var(--input-border)',
+                    color: 'var(--input-text)',
+                    '--tw-ring-color': 'var(--input-focus-ring)',
+                  }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>Select your account type</option>
+                  <option value="creator">Creator</option>
+                  <option value="business">Business</option>
+                  <option value="agency">Agency</option>
+                </select>
               </div>
             </div>
 

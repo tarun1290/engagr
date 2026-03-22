@@ -7,6 +7,7 @@ const UserSchema = new mongoose.Schema({
   passwordHash: { type: String },
   googleId: { type: String, default: null },
   authProvider: { type: String, enum: ["email", "google", "instagram"], default: "email" },
+  accountType: { type: String, enum: ["creator", "business", "agency"], default: null },
   profilePicture: { type: String, default: null },
   instagramAccessToken: { type: String },
   instagramBusinessId: { type: String },
@@ -90,7 +91,7 @@ const UserSchema = new mongoose.Schema({
 
   // ── Subscription & billing ──────────────────────────────────────────────
   subscription: {
-    plan: { type: String, enum: ["trial", "silver", "gold", "platinum"], default: "trial" },
+    plan: { type: String, default: "early_access" },
     status: { type: String, enum: ["active", "past_due", "cancelled", "expired", "trialing"], default: "trialing" },
     dodoCustomerId: { type: String },
     dodoSubscriptionId: { type: String },

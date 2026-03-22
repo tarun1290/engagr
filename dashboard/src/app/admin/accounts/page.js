@@ -76,6 +76,12 @@ export default function AccountsPage() {
     setDeleteConfirmText("");
   };
 
+  const ACCOUNT_TYPE_COLORS = {
+    creator: { bg: "#FDF2F8", color: "#EC4899", label: "Creator" },
+    business: { bg: "#EEF2FF", color: "#4F46E5", label: "Business" },
+    agency: { bg: "#F0F9FF", color: "#0EA5E9", label: "Agency" },
+  };
+
   const columns = [
     {
       key: "username", label: "Account", sortable: true,
@@ -93,6 +99,18 @@ export default function AccountsPage() {
           </div>
         </Link>
       ),
+    },
+    {
+      key: "accountType", label: "Type", sortable: true,
+      render: (row) => {
+        const t = ACCOUNT_TYPE_COLORS[row.accountType];
+        if (!t) return <span className="text-xs" style={{ color: "#A1A1AA" }}>—</span>;
+        return (
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: t.bg, color: t.color }}>
+            {t.label}
+          </span>
+        );
+      },
     },
     {
       key: "igAccountCount", label: "IG Accounts", sortable: true, align: "center",

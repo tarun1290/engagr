@@ -11,6 +11,7 @@ export async function signUp(formData) {
   const name = (formData.get("name") || "").trim();
   const email = (formData.get("email") || "").trim().toLowerCase();
   const instagramHandle = (formData.get("instagramHandle") || "").trim().replace(/^@/, "");
+  const accountType = formData.get("accountType") || null;
   const password = formData.get("password") || "";
   const confirmPassword = formData.get("confirmPassword") || "";
 
@@ -30,6 +31,9 @@ export async function signUp(formData) {
   if (password !== confirmPassword) {
     return { error: "Passwords do not match." };
   }
+  if (accountType && !["creator", "business", "agency"].includes(accountType)) {
+    return { error: "Invalid account type." };
+  }
 
   await dbConnect();
 
@@ -48,6 +52,7 @@ export async function signUp(formData) {
     email,
     name,
     instagramHandle: instagramHandle || undefined,
+    accountType: accountType || undefined,
     passwordHash,
     subscription: {
       plan: "trial",

@@ -4,114 +4,73 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import {
   ShieldCheck, Check, X as XIcon, ArrowRight, ChevronRight,
-  Instagram, Zap, Crown, Gem, Star, Menu, X, HelpCircle, Sun, Moon,
+  Zap, Menu, X, HelpCircle, Sun, Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
 import { getLoggedInPlan } from "@/app/dashboard/billing-actions";
 
-/* ─────────────────────────── ICONS ─────────────────────────── */
+/* ─────────────────────────── CONSTANTS ─────────────────────────── */
 
-const SilverShield = ({ size, className, style }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-  </svg>
-);
-
-/* ─────────────────────────── PLAN DATA ─────────────────────────── */
-
-const PLANS = [
-  {
-    id: "silver",
-    name: "Silver",
-    icon: SilverShield,
-    price: 499,
-    period: "month",
-    tagline: "Perfect for creators just getting started",
-    tierColors: {
-      iconBg: "var(--surface-alt)",
-      iconColor: "var(--text-muted)",
-      borderColor: "var(--border)",
-    },
-    features: [
-      { text: "1 Instagram account", included: true },
-      { text: "Comment-to-DM automation", included: true },
-      { text: "500 automated DMs per month", included: true },
-      { text: "Smart reply presets", included: true },
-      { text: "Basic analytics dashboard", included: true },
-      { text: "Reel share detection", included: true },
-      { text: "Email support", included: true },
-      { text: "Follower verification gate", included: false },
-      { text: "Mentions tracker", included: false },
-      { text: "Contact management", included: false },
-      { text: "Activity feed & logs", included: false },
-      { text: "Priority support", included: false },
-    ],
-    cta: "Start with Silver",
-  },
-  {
-    id: "gold",
-    name: "Gold",
-    icon: Crown,
-    price: 999,
-    period: "month",
-    tagline: "For growing businesses that want every feature",
-    tierColors: {
-      iconBg: "var(--warning-light)",
-      iconColor: "var(--warning)",
-      borderColor: "var(--warning-light)",
-    },
-    popular: true,
-    features: [
-      { text: "1 Instagram account", included: true },
-      { text: "Comment-to-DM automation", included: true },
-      { text: "Unlimited automated DMs", included: true },
-      { text: "Smart reply presets", included: true },
-      { text: "Advanced analytics & trends", included: true },
-      { text: "Reel share detection", included: true },
-      { text: "Follower verification gate", included: true },
-      { text: "Mentions tracker", included: true },
-      { text: "Contact management", included: true },
-      { text: "Activity feed & logs", included: true },
-      { text: "Priority email support", included: true },
-      { text: "Multiple accounts", included: false },
-    ],
-    cta: "Start with Gold",
-  },
-  {
-    id: "platinum",
-    name: "Platinum",
-    icon: Gem,
-    price: 1499,
-    period: "month",
-    tagline: "For agencies and brands managing multiple accounts",
-    tierColors: {
-      iconBg: "var(--primary-light)",
-      iconColor: "var(--primary)",
-      borderColor: "var(--primary-light)",
-    },
-    features: [
-      { text: "Up to 5 Instagram accounts", included: true },
-      { text: "Comment-to-DM automation", included: true },
-      { text: "Unlimited automated DMs", included: true },
-      { text: "Smart reply presets", included: true },
-      { text: "Advanced analytics & trends", included: true },
-      { text: "Reel share detection", included: true },
-      { text: "Follower verification gate", included: true },
-      { text: "Mentions tracker", included: true },
-      { text: "Contact management", included: true },
-      { text: "Activity feed & logs", included: true },
-      { text: "API access & white-label", included: true },
-      { text: "Custom automation templates", included: true },
-    ],
-    cta: "Start with Platinum",
-  },
+const ACCOUNT_TYPES = [
+  { key: "creator", label: "Creator", emoji: "\uD83C\uDFA8", subtitle: "For content creators and influencers" },
+  { key: "business", label: "Business", emoji: "\uD83C\uDFEA", subtitle: "For e-commerce and service businesses" },
+  { key: "agency", label: "Agency", emoji: "\uD83C\uDFE2", subtitle: "For social media agencies and managers" },
 ];
+
+const FEATURE_LABELS = {
+  commentToDm: "Comment-to-DM automation",
+  followerGate: "Follower verification",
+  reelShareReply: "Reel share replies",
+  mentionReply: "Mention detection",
+  reelCategoryRules: "Smart reel category rules",
+  aiProductDetection: "AI product detection",
+  smartLinks: "Tracked link analytics",
+  shopifyIntegration: "Shopify integration",
+  aiSmartReplies: "AI smart replies",
+  knowledgeBase: "Knowledge base",
+  advancedAnalytics: "Advanced analytics",
+  apiAccess: "API access",
+  facebookLogin: "Facebook Login",
+};
+
+const COMING_SOON_SET = new Set([
+  "aiProductDetection", "smartLinks", "shopifyIntegration",
+  "aiSmartReplies", "knowledgeBase", "advancedAnalytics",
+  "apiAccess", "facebookLogin",
+]);
+
+const FALLBACK_PLANS = {
+  creator: [
+    { name: "Starter", slug: "creator_starter", price: 299, dmLimitDisplay: "5,000", maxAccounts: 1, isPopular: false, supportLevel: "email",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply"] },
+    { name: "Growth", slug: "creator_growth", price: 699, dmLimitDisplay: "25,000", maxAccounts: 2, isPopular: true, supportLevel: "priority",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks"] },
+    { name: "Pro", slug: "creator_pro", price: 1299, dmLimitDisplay: "Unlimited", maxAccounts: 2, isPopular: false, supportLevel: "priority",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks", "advancedAnalytics"] },
+  ],
+  business: [
+    { name: "Essentials", slug: "business_essentials", price: 499, dmLimitDisplay: "10,000", maxAccounts: 1, isPopular: false, supportLevel: "email",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules"] },
+    { name: "Professional", slug: "business_professional", price: 999, dmLimitDisplay: "50,000", maxAccounts: 3, isPopular: true, supportLevel: "priority",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks", "shopifyIntegration", "knowledgeBase"] },
+    { name: "Enterprise", slug: "business_enterprise", price: 1999, dmLimitDisplay: "Unlimited", maxAccounts: 5, isPopular: false, supportLevel: "dedicated",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks", "shopifyIntegration", "aiSmartReplies", "knowledgeBase", "advancedAnalytics"] },
+  ],
+  agency: [
+    { name: "Starter", slug: "agency_starter", price: 1499, dmLimitDisplay: "25,000", maxAccounts: 3, isPopular: false, supportLevel: "priority",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks", "knowledgeBase", "facebookLogin"] },
+    { name: "Professional", slug: "agency_professional", price: 2999, dmLimitDisplay: "1,00,000", maxAccounts: 5, isPopular: true, supportLevel: "dedicated",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks", "shopifyIntegration", "aiSmartReplies", "knowledgeBase", "advancedAnalytics", "apiAccess", "facebookLogin"] },
+    { name: "Scale", slug: "agency_scale", price: 4999, dmLimitDisplay: "Unlimited", maxAccounts: 10, isPopular: false, supportLevel: "dedicated",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks", "shopifyIntegration", "aiSmartReplies", "knowledgeBase", "advancedAnalytics", "apiAccess", "facebookLogin"] },
+  ],
+};
 
 const FAQS = [
   {
     q: "Can I upgrade or downgrade anytime?",
-    a: "Yes. You can switch between plans at any time. When you upgrade, you're charged the prorated difference. Downgrades take effect at the next billing cycle.",
+    a: "Yes. You can switch between plans at any time. When you upgrade, you\u2019re charged the prorated difference. Downgrades take effect at the next billing cycle.",
   },
   {
     q: "Is there a free trial?",
@@ -122,12 +81,12 @@ const FAQS = [
     a: "No. Engagr uses Instagram Business Login (API with Instagram Login), which connects directly to your Instagram account without requiring a Facebook Page.",
   },
   {
-    q: "What happens when I hit the DM limit on Silver?",
-    a: "You'll receive a notification when you're approaching 500 DMs. After the limit, new comments won't trigger DMs until the next billing cycle — or you can upgrade to Gold for unlimited DMs.",
+    q: "Can I switch between Creator, Business, and Agency?",
+    a: "Yes! You can change your account type at any time from Settings. Your data and automations carry over \u2014 only the plan pricing tiers change.",
   },
   {
     q: "How does the follower verification gate work?",
-    a: "When enabled, non-followers who comment receive a DM with a 'I'm following now' button. Once they follow your account and tap the button, Engagr verifies their follow status and delivers your automation message.",
+    a: "When enabled, non-followers who comment receive a DM with a \u2018I\u2019m following now\u2019 button. Once they follow your account and tap the button, Engagr verifies their follow status and delivers your automation message.",
   },
   {
     q: "Is my Instagram data safe?",
@@ -256,33 +215,53 @@ function FAQItem({ q, a }) {
 /* ─────────────────────────── PAGE ─────────────────────────── */
 
 export default function PricingPage() {
-  const [userPlan, setUserPlan] = useState(null); // null = loading, { loggedIn: false } = guest
+  const [userPlan, setUserPlan] = useState(null);
+  const [activeType, setActiveType] = useState("business");
+  const [allPlans, setAllPlans] = useState(FALLBACK_PLANS);
 
   useEffect(() => {
     getLoggedInPlan().then(setUserPlan).catch(() => setUserPlan({ loggedIn: false }));
   }, []);
 
-  const getCtaText = (planId) => {
-    if (!userPlan || !userPlan.loggedIn) return PLANS.find(p => p.id === planId)?.cta || "Get Started";
-    if (userPlan.plan === planId) return "Current Plan";
-    const planOrder = ["trial", "silver", "gold", "platinum"];
-    return planOrder.indexOf(planId) > planOrder.indexOf(userPlan.plan) ? `Upgrade to ${planId.charAt(0).toUpperCase() + planId.slice(1)}` : `Switch to ${planId.charAt(0).toUpperCase() + planId.slice(1)}`;
+  useEffect(() => {
+    Promise.all(
+      ["creator", "business", "agency"].map((type) =>
+        fetch(`/api/plans/public?type=${type}`)
+          .then((r) => r.ok ? r.json() : null)
+          .catch(() => null)
+      )
+    ).then(([creator, business, agency]) => {
+      const fetched = {};
+      if (creator?.plans?.length) fetched.creator = creator.plans;
+      if (business?.plans?.length) fetched.business = business.plans;
+      if (agency?.plans?.length) fetched.agency = agency.plans;
+      if (Object.keys(fetched).length > 0) setAllPlans((prev) => ({ ...prev, ...fetched }));
+    });
+  }, []);
+
+  const plans = allPlans[activeType] || [];
+  const typeInfo = ACCOUNT_TYPES.find((t) => t.key === activeType);
+
+  const getCtaText = (plan) => {
+    if (!userPlan || !userPlan.loggedIn) return "Get Started";
+    if (userPlan.plan === plan.slug) return "Current Plan";
+    return "Get Started";
   };
 
-  const getCtaHref = (planId) => {
-    if (!userPlan || !userPlan.loggedIn) return "/sign-up";
-    if (userPlan.plan === planId) return "/dashboard";
-    return "/dashboard"; // navigates to billing
+  const getCtaHref = (plan) => {
+    if (!userPlan || !userPlan.loggedIn) return `/sign-up?type=${activeType}&plan=${plan.slug}`;
+    if (userPlan.plan === plan.slug) return "/dashboard";
+    return "/dashboard";
   };
 
-  const isCurrentPlan = (planId) => userPlan?.loggedIn && userPlan.plan === planId;
+  const isCurrentPlan = (plan) => userPlan?.loggedIn && userPlan.plan === plan.slug;
 
   return (
     <div className="min-h-screen theme-transition" style={{ backgroundColor: "var(--bg)" }}>
       <Navbar />
 
       {/* ── HEADER ─────────────────────────────────────────────── */}
-      <section className="pt-32 pb-16 px-6 text-center relative overflow-hidden">
+      <section className="pt-32 pb-10 px-6 text-center relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full blur-3xl -z-10 pointer-events-none" style={{ background: "radial-gradient(ellipse, var(--primary-light), transparent 70%)", opacity: 0.5 }} />
 
         {/* [PLANS DISABLED] Early Access banner */}
@@ -295,33 +274,64 @@ export default function PricingPage() {
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight mb-4" style={{ color: "var(--text-primary)" }}>
-          Free During Early Access
+          Simple, transparent pricing
         </h1>
-        <p className="text-base sm:text-lg font-medium max-w-lg mx-auto" style={{ color: "var(--text-muted)" }}>
-          All features are completely free while we&apos;re in Early Access. Paid plans will be introduced later — we&apos;ll give you plenty of notice.
+        <p className="text-base sm:text-lg font-medium max-w-lg mx-auto mb-2" style={{ color: "var(--text-muted)" }}>
+          Choose your path. All features free during Early Access.
         </p>
-        {/* [/PLANS DISABLED] */}
+      </section>
+
+      {/* ── ACCOUNT TYPE TABS ─────────────────────────────────── */}
+      <section className="px-6 pb-6">
+        <div className="flex justify-center mb-3">
+          <div className="inline-flex p-1 rounded-full" style={{ background: "var(--surface-alt)", border: "1px solid var(--border)" }}>
+            {ACCOUNT_TYPES.map((type) => (
+              <button
+                key={type.key}
+                onClick={() => setActiveType(type.key)}
+                className="px-5 sm:px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200"
+                style={activeType === type.key
+                  ? { backgroundColor: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", boxShadow: "0 4px 12px var(--primary-light)" }
+                  : { color: "var(--text-muted)" }
+                }
+              >
+                <span className="mr-1.5">{type.emoji}</span>{type.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="text-center text-sm" style={{ color: "var(--text-placeholder)" }}>
+          {typeInfo?.subtitle}
+        </p>
       </section>
 
       {/* ── PLAN CARDS ─────────────────────────────────────────── */}
       <section className="pb-24 px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-          {PLANS.map((plan) => {
-            const PlanIcon = plan.icon;
+        <div key={activeType} className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6"
+          style={{ animation: "priceFadeIn 0.35s cubic-bezier(0.16,1,0.3,1)" }}>
+          {plans.map((plan) => {
+            const priceDisplay = typeof plan.priceDisplay === "string"
+              ? plan.priceDisplay
+              : `\u20B9${(plan.price || 0).toLocaleString("en-IN")}`;
+            const features = (plan.featureList || []).map((f) => {
+              const key = typeof f === "string" ? f : f;
+              return { key, label: FEATURE_LABELS[key] || key, soon: COMING_SOON_SET.has(key) };
+            });
+
             return (
               <div
-                key={plan.id}
+                key={plan.slug}
                 className={cn(
                   "relative rounded-[32px] p-8 flex flex-col transition-all hover:-translate-y-1 duration-300",
-                  plan.popular ? "shadow-lg" : ""
+                  plan.isPopular ? "shadow-lg" : ""
                 )}
                 style={{
                   backgroundColor: "var(--card)",
-                  border: plan.popular ? "1px solid var(--primary-medium)" : "1px solid var(--border)",
-                  boxShadow: plan.popular ? "0 4px 24px var(--primary-light)" : undefined,
+                  border: plan.isPopular ? "1px solid var(--primary-medium)" : "1px solid var(--border)",
+                  boxShadow: plan.isPopular ? "0 4px 24px var(--primary-light)" : undefined,
                 }}
               >
-                {plan.popular && (
+                {plan.isPopular && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                     <div
                       className="px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg"
@@ -334,47 +344,36 @@ export default function PricingPage() {
 
                 {/* Plan header */}
                 <div className="mb-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div
-                      className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                      style={{
-                        backgroundColor: plan.tierColors.iconBg,
-                        border: `1px solid ${plan.tierColors.borderColor}`,
-                      }}
-                    >
-                      <PlanIcon size={20} style={{ color: plan.tierColors.iconColor }} />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-black" style={{ color: "var(--text-primary)" }}>{plan.name}</h3>
-                    </div>
+                  <h3 className="text-lg font-black mb-1" style={{ color: "var(--text-primary)" }}>{plan.name}</h3>
+                  <div className="flex items-center gap-3 text-xs" style={{ color: "var(--text-placeholder)" }}>
+                    <span>{plan.dmLimitDisplay || "10,000"} DMs/mo</span>
+                    <span>&middot;</span>
+                    <span>{plan.maxAccounts || 1} account{(plan.maxAccounts || 1) > 1 ? "s" : ""}</span>
+                    <span>&middot;</span>
+                    <span className="capitalize">{plan.supportLevel || "email"}</span>
                   </div>
-                  <p className="text-[13px] font-medium" style={{ color: "var(--text-placeholder)" }}>{plan.tagline}</p>
                 </div>
 
                 {/* Price */}
                 <div className="mb-8">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-[13px] font-bold" style={{ color: "var(--text-placeholder)" }}>&#8377;</span>
-                    <span className="text-5xl font-black tracking-tight" style={{ color: "var(--text-primary)" }}>{plan.price.toLocaleString("en-IN")}</span>
-                    <span className="text-sm font-medium" style={{ color: "var(--text-placeholder)" }}>/{plan.period}</span>
+                    <span className="text-5xl font-black tracking-tight" style={{ color: "var(--text-primary)" }}>{priceDisplay}</span>
+                    <span className="text-sm font-medium" style={{ color: "var(--text-placeholder)" }}>/month</span>
                   </div>
                   <p className="text-[11px] mt-1" style={{ color: "var(--text-placeholder)" }}>+ GST where applicable</p>
                 </div>
 
                 {/* Features */}
                 <ul className="space-y-3 mb-8 flex-1">
-                  {plan.features.map((f) => (
-                    <li key={f.text} className="flex items-start gap-3">
-                      {f.included ? (
-                        <Check size={15} className="mt-0.5 flex-shrink-0" style={{ color: "var(--success)" }} />
-                      ) : (
-                        <XIcon size={15} className="mt-0.5 flex-shrink-0" style={{ color: "var(--text-placeholder)" }} />
-                      )}
-                      <span
-                        className="text-[13px] font-medium"
-                        style={{ color: f.included ? "var(--text-secondary)" : "var(--text-placeholder)" }}
-                      >
-                        {f.text}
+                  {features.map((f) => (
+                    <li key={f.key} className="flex items-start gap-3">
+                      <Check size={15} className="mt-0.5 flex-shrink-0" style={{ color: "var(--success)" }} />
+                      <span className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                        {f.label}
+                        {f.soon && (
+                          <span className="ml-1.5 text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded-full"
+                            style={{ background: "rgba(45, 212, 191, 0.1)", color: "var(--success)" }}>soon</span>
+                        )}
                       </span>
                     </li>
                   ))}
@@ -382,20 +381,20 @@ export default function PricingPage() {
 
                 {/* CTA */}
                 <Link
-                  href={getCtaHref(plan.id)}
+                  href={getCtaHref(plan)}
                   className={cn(
                     "w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all",
-                    isCurrentPlan(plan.id) && "opacity-60 pointer-events-none"
+                    isCurrentPlan(plan) && "opacity-60 pointer-events-none"
                   )}
                   style={
-                    isCurrentPlan(plan.id)
+                    isCurrentPlan(plan)
                       ? { backgroundColor: "var(--surface-alt)", color: "var(--text-muted)", border: "1px solid var(--border)" }
-                      : plan.popular
+                      : plan.isPopular
                       ? { backgroundColor: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", boxShadow: "0 4px 16px var(--primary-light)" }
                       : { backgroundColor: "var(--text-primary)", color: "var(--bg)" }
                   }
                 >
-                  {getCtaText(plan.id)} {!isCurrentPlan(plan.id) && <ArrowRight size={15} />}
+                  {getCtaText(plan)} {!isCurrentPlan(plan) && <ArrowRight size={15} />}
                 </Link>
               </div>
             );
@@ -421,68 +420,100 @@ export default function PricingPage() {
             ))}
           </div>
         </div>
+
+        {/* Early access banner */}
+        <div className="max-w-2xl mx-auto mt-10 text-center">
+          <p className="text-sm" style={{ color: "var(--text-placeholder)" }}>
+            {"\u2728"} Currently in early access \u2014 all features free for all account types. No credit card needed.
+          </p>
+        </div>
       </section>
 
-      {/* ── COMPARISON TABLE ───────────────────────────────────── */}
+      {/* ── PLAN COMPARISON TABLE ─────────────────────────────── */}
       <section
         className="py-20 px-6"
         style={{ backgroundColor: "var(--surface-alt)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}
       >
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-black text-center mb-10 tracking-tight" style={{ color: "var(--text-primary)" }}>Plan Comparison</h2>
+          <h2 className="text-3xl font-black text-center mb-10 tracking-tight" style={{ color: "var(--text-primary)" }}>
+            {typeInfo?.emoji} {typeInfo?.label} Plan Comparison
+          </h2>
 
           <div
+            key={`table-${activeType}`}
             className="rounded-[24px] overflow-hidden shadow-sm"
-            style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)" }}
+            style={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", animation: "priceFadeIn 0.35s cubic-bezier(0.16,1,0.3,1)" }}
           >
             <table className="w-full">
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)", backgroundColor: "var(--surface-alt)" }}>
                   <th className="text-left py-4 px-6 text-[11px] font-black uppercase tracking-widest w-1/3" style={{ color: "var(--text-placeholder)" }}>Feature</th>
-                  <th className="text-center py-4 px-4 text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Silver</th>
-                  <th className="text-center py-4 px-4 text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--warning)" }}>Gold</th>
-                  <th className="text-center py-4 px-4 text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--primary)" }}>Platinum</th>
+                  {plans.map((plan) => (
+                    <th key={plan.slug} className="text-center py-4 px-4 text-[11px] font-black uppercase tracking-widest"
+                      style={{ color: plan.isPopular ? "var(--primary)" : "var(--text-muted)" }}>
+                      {plan.name}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { feature: "Instagram accounts", silver: "1", gold: "1", platinum: "5" },
-                  { feature: "Monthly DM limit", silver: "500", gold: "Unlimited", platinum: "Unlimited" },
-                  { feature: "Comment-to-DM", silver: true, gold: true, platinum: true },
-                  { feature: "Smart reply presets", silver: true, gold: true, platinum: true },
-                  { feature: "Reel share detection", silver: true, gold: true, platinum: true },
-                  { feature: "Follower verification gate", silver: false, gold: true, platinum: true },
-                  { feature: "Mentions tracker", silver: false, gold: true, platinum: true },
-                  { feature: "Contact management", silver: false, gold: true, platinum: true },
-                  { feature: "Activity feed & logs", silver: false, gold: true, platinum: true },
-                  { feature: "Analytics", silver: "Basic", gold: "Advanced", platinum: "Advanced" },
-                  { feature: "Custom templates", silver: false, gold: false, platinum: true },
-                  { feature: "Support", silver: "Email", gold: "Priority", platinum: "Dedicated" },
-                ].map((row, i) => (
+                {/* DM limit row */}
+                <tr style={{ borderBottom: "1px solid var(--border)", backgroundColor: "var(--card)" }}>
+                  <td className="py-3.5 px-6 text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>Monthly DM limit</td>
+                  {plans.map((p) => (
+                    <td key={p.slug} className="py-3.5 px-4 text-center">
+                      <span className="text-[13px] font-bold" style={{ color: "var(--text-secondary)" }}>{p.dmLimitDisplay}</span>
+                    </td>
+                  ))}
+                </tr>
+                {/* Accounts row */}
+                <tr style={{ borderBottom: "1px solid var(--border)", backgroundColor: "var(--surface-alt)" }}>
+                  <td className="py-3.5 px-6 text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>Instagram accounts</td>
+                  {plans.map((p) => (
+                    <td key={p.slug} className="py-3.5 px-4 text-center">
+                      <span className="text-[13px] font-bold" style={{ color: "var(--text-secondary)" }}>{p.maxAccounts}</span>
+                    </td>
+                  ))}
+                </tr>
+                {/* Feature rows */}
+                {Object.entries(FEATURE_LABELS).map(([key, label], i) => (
                   <tr
-                    key={row.feature}
+                    key={key}
                     style={{
                       borderBottom: "1px solid var(--border)",
                       backgroundColor: i % 2 === 0 ? "var(--card)" : "var(--surface-alt)",
                     }}
                   >
-                    <td className="py-3.5 px-6 text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>{row.feature}</td>
-                    {["silver", "gold", "platinum"].map((plan) => {
-                      const val = row[plan];
+                    <td className="py-3.5 px-6 text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                      {label}
+                      {COMING_SOON_SET.has(key) && (
+                        <span className="ml-2 text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                          style={{ background: "rgba(45, 212, 191, 0.1)", color: "var(--success)" }}>Soon</span>
+                      )}
+                    </td>
+                    {plans.map((p) => {
+                      const has = (p.featureList || []).includes(key);
                       return (
-                        <td key={plan} className="py-3.5 px-4 text-center">
-                          {val === true ? (
+                        <td key={p.slug} className="py-3.5 px-4 text-center">
+                          {has ? (
                             <Check size={16} className="mx-auto" style={{ color: "var(--success)" }} />
-                          ) : val === false ? (
-                            <XIcon size={16} className="mx-auto" style={{ color: "var(--text-placeholder)" }} />
                           ) : (
-                            <span className="text-[13px] font-bold" style={{ color: "var(--text-secondary)" }}>{val}</span>
+                            <XIcon size={16} className="mx-auto" style={{ color: "var(--text-placeholder)" }} />
                           )}
                         </td>
                       );
                     })}
                   </tr>
                 ))}
+                {/* Support row */}
+                <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                  <td className="py-3.5 px-6 text-[13px] font-semibold" style={{ color: "var(--text-secondary)" }}>Support</td>
+                  {plans.map((p) => (
+                    <td key={p.slug} className="py-3.5 px-4 text-center">
+                      <span className="text-[13px] font-bold capitalize" style={{ color: "var(--text-secondary)" }}>{p.supportLevel}</span>
+                    </td>
+                  ))}
+                </tr>
               </tbody>
             </table>
           </div>
@@ -520,8 +551,7 @@ export default function PricingPage() {
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 0%, var(--primary-glow), transparent 60%)" }} />
           <div className="relative">
             <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-4">
-              {/* [PLANS DISABLED] */}
-              Get Started — It&apos;s Free
+              Get Started \u2014 It&apos;s Free
             </h2>
             <p className="text-base font-medium max-w-md mx-auto mb-8" style={{ color: "var(--primary-medium)" }}>
               No credit card required. All features unlocked during Early Access. Set up your first automation in under 3 minutes.
@@ -552,7 +582,7 @@ export default function PricingPage() {
                 <span className="text-lg font-black uppercase tracking-tight">Engagr</span>
               </div>
               <p className="text-sm leading-relaxed" style={{ color: "var(--primary-medium)" }}>
-                Next-generation Instagram automation for businesses that want to turn every comment into a conversion.
+                Next-generation Instagram automation for creators, businesses, and agencies.
               </p>
             </div>
             <div>
@@ -586,12 +616,20 @@ export default function PricingPage() {
               className="flex items-center gap-2 px-3 py-1.5 rounded-full"
               style={{ backgroundColor: "var(--primary-dark)", border: "1px solid var(--primary-medium)" }}
             >
-              <Instagram size={13} style={{ color: "var(--primary-medium)" }} />
+              <ShieldCheck size={13} style={{ color: "var(--primary-medium)" }} />
               <span className="text-xs font-medium" style={{ color: "var(--primary-medium)" }}>Built on Meta Instagram API</span>
             </div>
           </div>
         </div>
       </footer>
+
+      {/* Animation keyframes */}
+      <style>{`
+        @keyframes priceFadeIn {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

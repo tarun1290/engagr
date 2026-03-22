@@ -19,11 +19,30 @@ export function invalidatePlanConfigCache() {
   cacheTimestamp = 0;
 }
 
+/**
+ * Get a specific plan by slug, searching across all account types.
+ * Also checks legacy slug mapping for backward compatibility.
+ */
 export async function getPlan(planSlug) {
   const config = await getPlanConfig();
-  return config.plans?.[planSlug] || null;
+
+  // Check legacy mapping first (silver -> business_essentials, etc.)
+  const legacyMap = config.legacyPlanMap || {};
+  const resolvedSlug = legacyMap[planSlug] || planSlug;
+
+  // Search across all account types
+  for (const typePlans of Object.values(config.plans || {})) {
+    for (const plan of Object.values(typePlans || {})) {
+      if (plan.slug === resolvedSlug) return plan;
+    }
+  }
+  return null;
 }
 
+/**
+ * Get the DM limit for a plan slug.
+ * Works with both new slugs (creator_growth) and old slugs (silver, gold, platinum).
+ */
 export async function getDmLimit(planSlug) {
   if (planSlug === "early_access" || planSlug === "trial") {
     const config = await getPlanConfig();
@@ -31,7 +50,7 @@ export async function getDmLimit(planSlug) {
     return limit === -1 ? Infinity : (limit || Infinity);
   }
   const plan = await getPlan(planSlug);
-  if (!plan) return 10000;
+  if (!plan) return 10000; // safe default
   return plan.dmLimit === -1 ? Infinity : plan.dmLimit;
 }
 
@@ -44,15 +63,20 @@ export async function getMaxAccounts(planSlug) {
   return plan?.maxAccounts || 1;
 }
 
-export async function getPlansForDisplay() {
+/**
+ * Get plans formatted for display, filtered by account type.
+ * Falls back to creator if the type doesn't exist.
+ */
+export async function getPlansForDisplay(accountType = "creator") {
   const config = await getPlanConfig();
-  return Object.values(config.plans)
+  const typePlans = config.plans?.[accountType] || config.plans?.creator || {};
+  return Object.values(typePlans)
     .filter((p) => p.isVisible)
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((plan) => ({
       ...plan,
       dmLimitDisplay: plan.dmLimit === -1 ? "Unlimited" : plan.dmLimit.toLocaleString("en-IN"),
-      priceDisplay: `${config.display.currencySymbol}${plan.price.toLocaleString("en-IN")}`,
+      priceDisplay: `${config.display?.currencySymbol || "₹"}${plan.price.toLocaleString("en-IN")}`,
       featureList: Object.entries(plan.features || {}).filter(([, v]) => v).map(([k]) => k),
     }));
 }

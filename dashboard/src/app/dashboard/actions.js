@@ -105,6 +105,7 @@ export async function getDashboardStats(accountId) {
       isConnected: account.isConnected,
     },
     accountId: account._id.toString(),
+    accountType: user?.accountType || null,
     // AI feature flag — completely hidden unless admin-enabled
     aiFeatureEnabled: !!(user?.flags?.aiProductDetectionUnlocked && account?.aiFeature?.enabled),
     // Smart features flags — completely hidden unless admin-enabled
@@ -865,5 +866,171 @@ export async function getReelCategoryStats(accountId) {
     totalLegacyReplies,
     byCategory: JSON.parse(JSON.stringify(byCategory)),
     categories: JSON.parse(JSON.stringify(account?.automation?.reelCategories || [])),
+  };
+}
+
+// ── Home page stats — account-type-aware ────────────────────────────────────
+
+export async function getHomeStats(accountId) {
+  const userId = await getOwnerId();
+  await dbConnect();
+
+  const user = await User.findOne({ userId }).lean();
+  const accountType = user?.accountType || "creator";
+
+  // Get all connected IG accounts for this user
+  const allAccounts = await InstagramAccount.find({ userId }).lean();
+  const connectedAccounts = allAccounts.filter((a) => a.isConnected);
+
+  // Resolve current account
+  const account = accountId
+    ? allAccounts.find((a) => a._id.toString() === accountId)
+    : connectedAccounts.find((a) => a.isPrimary) || connectedAccounts[0];
+
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  // Build event filter for the current account
+  const acctFilter = account
+    ? { $or: [{ accountId: account._id }, { targetBusinessId: account.instagramUserId, accountId: { $exists: false } }] }
+    : { accountId: { $exists: false } };
+
+  // Build event filter for ALL accounts (agency view)
+  const allAcctIds = connectedAccounts.map((a) => a._id);
+  const allBusinessIds = connectedAccounts.map((a) => a.instagramUserId).filter(Boolean);
+  const allFilter = allAcctIds.length > 0
+    ? { $or: [{ accountId: { $in: allAcctIds } }, { targetBusinessId: { $in: allBusinessIds }, accountId: { $exists: false } }] }
+    : { accountId: { $exists: false } };
+
+  // ── Stat computations — all in parallel ───────────────────────────────────
+
+  const [
+    dmsSentThisMonth,
+    uniqueRecipientsThisMonth,
+    commentEventsThisMonth,
+    postbackEventsThisMonth,
+    gatePassedThisMonth,
+    eventsToday,
+    totalDmsSentAllAccounts,
+    activeAutomationCount,
+    chartData,
+  ] = await Promise.all([
+    // DMs sent this month (current account)
+    Event.countDocuments({ ...acctFilter, "reply.status": "sent", createdAt: { $gte: startOfMonth } }),
+    // Unique DM recipients this month
+    Event.distinct("from.id", { ...acctFilter, "reply.status": "sent", createdAt: { $gte: startOfMonth } }),
+    // Comment events this month
+    Event.countDocuments({ ...acctFilter, type: "comment", createdAt: { $gte: startOfMonth } }),
+    // Postback / button events this month
+    Event.countDocuments({ ...acctFilter, type: "postback", createdAt: { $gte: startOfMonth } }),
+    // Follower gate conversions (postback events with CONFIRM metadata)
+    Event.countDocuments({ ...acctFilter, type: "postback", "content.text": { $regex: /follow/i }, createdAt: { $gte: startOfMonth } }),
+    // Events today across all accounts
+    Event.countDocuments({ ...allFilter, createdAt: { $gte: startOfDay } }),
+    // Total DMs this month across all accounts
+    Event.countDocuments({ ...allFilter, "reply.status": "sent", createdAt: { $gte: startOfMonth } }),
+    // Active automations across all accounts
+    InstagramAccount.countDocuments({ userId, "automation.isActive": true }),
+    // Chart data: DMs per day last 30 days (current account or all for agency)
+    Event.aggregate([
+      { $match: { ...(accountType === "agency" ? allFilter : acctFilter), "reply.status": "sent", createdAt: { $gte: new Date(Date.now() - 30 * 86400000) } } },
+      { $group: { _id: { $dateToString: { format: "%m/%d", date: "$createdAt" } }, dms: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]),
+  ]);
+
+  // Also get comment chart data for creator view
+  let commentChartData = [];
+  if (accountType === "creator") {
+    commentChartData = await Event.aggregate([
+      { $match: { ...acctFilter, type: "comment", createdAt: { $gte: new Date(Date.now() - 30 * 86400000) } } },
+      { $group: { _id: { $dateToString: { format: "%m/%d", date: "$createdAt" } }, comments: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]);
+  }
+
+  // Click chart data for business view
+  let clickChartData = [];
+  if (accountType === "business") {
+    clickChartData = await Event.aggregate([
+      { $match: { ...acctFilter, type: "postback", createdAt: { $gte: new Date(Date.now() - 30 * 86400000) } } },
+      { $group: { _id: { $dateToString: { format: "%m/%d", date: "$createdAt" } }, clicks: { $sum: 1 } } },
+      { $sort: { _id: 1 } },
+    ]);
+  }
+
+  // Agency: per-account stats
+  let perAccountStats = [];
+  if (accountType === "agency") {
+    perAccountStats = await Promise.all(
+      connectedAccounts.map(async (acct) => {
+        const af = { $or: [{ accountId: acct._id }, { targetBusinessId: acct.instagramUserId, accountId: { $exists: false } }] };
+        const [dms, lastEvent] = await Promise.all([
+          Event.countDocuments({ ...af, "reply.status": "sent", createdAt: { $gte: startOfMonth } }),
+          Event.findOne(af).select("createdAt").sort({ createdAt: -1 }).lean(),
+        ]);
+        return {
+          _id: acct._id.toString(),
+          username: acct.instagramUsername,
+          profilePic: acct.instagramProfilePic || null,
+          dmsSentThisMonth: dms,
+          isActive: acct.automation?.isActive || false,
+          automationCount: acct.automation?.isActive ? 1 : 0,
+          lastEventAt: lastEvent?.createdAt ? lastEvent.createdAt.toISOString() : null,
+        };
+      })
+    );
+  }
+
+  // Merge chart data into unified arrays
+  const mergedChart = [];
+  const dateSet = new Set();
+  chartData.forEach((d) => dateSet.add(d._id));
+  commentChartData.forEach((d) => dateSet.add(d._id));
+  clickChartData.forEach((d) => dateSet.add(d._id));
+  const sortedDates = [...dateSet].sort();
+
+  const dmsMap = Object.fromEntries(chartData.map((d) => [d._id, d.dms]));
+  const commentsMap = Object.fromEntries(commentChartData.map((d) => [d._id, d.comments]));
+  const clicksMap = Object.fromEntries(clickChartData.map((d) => [d._id, d.clicks]));
+
+  for (const date of sortedDates) {
+    mergedChart.push({
+      date,
+      dms: dmsMap[date] || 0,
+      comments: commentsMap[date] || 0,
+      clicks: clicksMap[date] || 0,
+    });
+  }
+
+  // Compute derived stats
+  const conversionRate = dmsSentThisMonth > 0
+    ? Math.round((postbackEventsThisMonth / dmsSentThisMonth) * 100)
+    : 0;
+
+  // Build stat values keyed by config stat names
+  const statValues = {
+    followers_engaged: uniqueRecipientsThisMonth.length,
+    dms_sent: dmsSentThisMonth,
+    comments_detected: commentEventsThisMonth,
+    follower_gate_conversions: gatePassedThisMonth,
+    customers_reached: uniqueRecipientsThisMonth.length,
+    link_clicks: postbackEventsThisMonth,
+    conversion_rate: conversionRate,
+    accounts_managed: connectedAccounts.length,
+    total_dms_sent: totalDmsSentAllAccounts,
+    active_automations: activeAutomationCount,
+    total_events_today: eventsToday,
+  };
+
+  return {
+    statValues,
+    chartData: mergedChart,
+    perAccountStats,
+    userName: user?.name || user?.email?.split("@")[0] || "there",
   };
 }

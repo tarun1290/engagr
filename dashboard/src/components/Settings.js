@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Instagram, Trash2, ShieldOff, AlertTriangle, CheckCircle2, ExternalLink, User, Mail, AtSign, Brain, ShoppingBag, CreditCard } from "lucide-react";
-import { deauthorizeInstagram, deleteAccountData } from "@/app/settings/actions";
+import { Instagram, Trash2, ShieldOff, AlertTriangle, CheckCircle2, ExternalLink, User, Mail, AtSign, Brain, ShoppingBag, CreditCard, Building2, Palette, Users2 } from "lucide-react";
+import { deauthorizeInstagram, deleteAccountData, updateAccountType } from "@/app/settings/actions";
 import ManageAccounts from "./ManageAccounts";
 
 const BASE_URL = "https://engagr-dm.vercel.app";
@@ -97,6 +97,9 @@ function SettingsSkeleton() {
 }
 
 export default function Settings({ stats }) {
+  const [accountType, setAccountType] = useState(stats?.accountType || null);
+  const [accountTypeSaving, setAccountTypeSaving] = useState(false);
+  const [accountTypeSaved, setAccountTypeSaved] = useState(false);
   const [deauthLoading, setDeauthLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeauthConfirm, setShowDeauthConfirm] = useState(false);
@@ -132,6 +135,61 @@ export default function Settings({ stats }) {
         <h2 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Settings</h2>
         <p className="text-sm font-medium mt-1" style={{ color: 'var(--text-placeholder)' }}>Manage your account, privacy and data.</p>
       </div>
+
+      {/* Account Type */}
+      <SectionCard
+        icon={Building2}
+        iconColor="var(--primary)"
+        title="Account Type"
+        description="How you use Engagr"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { value: "creator", label: "Creator", icon: Palette, color: "#EC4899" },
+              { value: "business", label: "Business", icon: Building2, color: "#4F46E5" },
+              { value: "agency", label: "Agency", icon: Users2, color: "#0EA5E9" },
+            ].map((t) => {
+              const Icon = t.icon;
+              const isActive = accountType === t.value;
+              return (
+                <button
+                  key={t.value}
+                  onClick={async () => {
+                    setAccountType(t.value);
+                    setAccountTypeSaving(true);
+                    setAccountTypeSaved(false);
+                    await updateAccountType(t.value);
+                    setAccountTypeSaving(false);
+                    setAccountTypeSaved(true);
+                    setTimeout(() => setAccountTypeSaved(false), 2000);
+                  }}
+                  disabled={accountTypeSaving}
+                  className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-all disabled:opacity-60"
+                  style={{
+                    backgroundColor: isActive ? `${t.color}0D` : "var(--surface-alt)",
+                    border: `2px solid ${isActive ? t.color : "var(--border)"}`,
+                  }}
+                >
+                  <Icon size={20} style={{ color: isActive ? t.color : "var(--text-muted)" }} />
+                  <span className="text-xs font-black" style={{ color: isActive ? t.color : "var(--text-secondary)" }}>
+                    {t.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {accountTypeSaving && (
+            <p className="text-[11px] font-bold animate-pulse" style={{ color: "var(--text-placeholder)" }}>Saving...</p>
+          )}
+          {accountTypeSaved && (
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 size={13} style={{ color: "var(--success)" }} />
+              <p className="text-[11px] font-bold" style={{ color: "var(--success)" }}>Account type updated</p>
+            </div>
+          )}
+        </div>
+      </SectionCard>
 
       {/* Manage Instagram Accounts */}
       <ManageAccounts />

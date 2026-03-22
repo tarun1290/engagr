@@ -165,32 +165,64 @@ const COMPARISON = [
   { feature: "AI smart replies", engagr: "soon", manychat: false, others: false },
   { feature: "Knowledge base", engagr: "soon", manychat: false, others: false },
   { feature: "Multi-account", engagr: "Up to 5", manychat: "1", others: "Varies" },
-  { feature: "Starting price", engagr: "₹499/mo", manychat: "~₹1,250/mo", others: "Varies" },
+  { feature: "Starting price", engagr: "\u20B9299/mo", manychat: "~\u20B91,250/mo", others: "Varies" },
 ];
 
-const PRICING = [
-  {
-    name: "Silver", price: "₹499", features: [
-      "10,000 DMs/month", "1 Instagram account", "Comment-to-DM automation", "Follower gate",
-      "Reel share replies", "Mention detection", "Email support",
-    ],
-  },
-  {
-    name: "Gold", price: "₹999", featured: true, features: [
-      "50,000 DMs/month", "3 Instagram accounts", "Smart reel category rules",
-      { text: "AI product detection", soon: true }, { text: "Link tracking", soon: true },
-      { text: "Knowledge base (5 docs)", soon: true }, "Priority support",
-    ],
-  },
-  {
-    name: "Platinum", price: "₹1,499", features: [
-      "Unlimited DMs", "5 Instagram accounts",
-      { text: "Shopify integration", soon: true }, { text: "AI smart replies", soon: true },
-      { text: "Knowledge base (10 docs)", soon: true }, { text: "Advanced analytics", soon: true },
-      { text: "API access", soon: true }, "Dedicated support",
-    ],
-  },
+const ACCOUNT_TYPES = [
+  { key: "creator", label: "Creator", emoji: "\uD83C\uDFA8", subtitle: "For content creators and influencers" },
+  { key: "business", label: "Business", emoji: "\uD83C\uDFEA", subtitle: "For e-commerce and service businesses" },
+  { key: "agency", label: "Agency", emoji: "\uD83C\uDFE2", subtitle: "For social media agencies and managers" },
 ];
+
+// Hardcoded fallback plans in case API is unavailable
+const FALLBACK_PLANS = {
+  creator: [
+    { name: "Starter", slug: "creator_starter", price: 299, dmLimitDisplay: "5,000", maxAccounts: 1, isPopular: false, supportLevel: "email",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply"] },
+    { name: "Growth", slug: "creator_growth", price: 699, dmLimitDisplay: "25,000", maxAccounts: 2, isPopular: true, supportLevel: "priority",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks"] },
+    { name: "Pro", slug: "creator_pro", price: 1299, dmLimitDisplay: "Unlimited", maxAccounts: 2, isPopular: false, supportLevel: "priority",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks", "advancedAnalytics"] },
+  ],
+  business: [
+    { name: "Essentials", slug: "business_essentials", price: 499, dmLimitDisplay: "10,000", maxAccounts: 1, isPopular: false, supportLevel: "email",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules"] },
+    { name: "Professional", slug: "business_professional", price: 999, dmLimitDisplay: "50,000", maxAccounts: 3, isPopular: true, supportLevel: "priority",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks", "shopifyIntegration", "knowledgeBase"] },
+    { name: "Enterprise", slug: "business_enterprise", price: 1999, dmLimitDisplay: "Unlimited", maxAccounts: 5, isPopular: false, supportLevel: "dedicated",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks", "shopifyIntegration", "aiSmartReplies", "knowledgeBase", "advancedAnalytics"] },
+  ],
+  agency: [
+    { name: "Starter", slug: "agency_starter", price: 1499, dmLimitDisplay: "25,000", maxAccounts: 3, isPopular: false, supportLevel: "priority",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks", "knowledgeBase", "facebookLogin"] },
+    { name: "Professional", slug: "agency_professional", price: 2999, dmLimitDisplay: "1,00,000", maxAccounts: 5, isPopular: true, supportLevel: "dedicated",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks", "shopifyIntegration", "aiSmartReplies", "knowledgeBase", "advancedAnalytics", "apiAccess", "facebookLogin"] },
+    { name: "Scale", slug: "agency_scale", price: 4999, dmLimitDisplay: "Unlimited", maxAccounts: 10, isPopular: false, supportLevel: "dedicated",
+      featureList: ["commentToDm", "followerGate", "reelShareReply", "mentionReply", "reelCategoryRules", "aiProductDetection", "smartLinks", "shopifyIntegration", "aiSmartReplies", "knowledgeBase", "advancedAnalytics", "apiAccess", "facebookLogin"] },
+  ],
+};
+
+const FEATURE_LABELS = {
+  commentToDm: "Comment-to-DM automation",
+  followerGate: "Follower verification",
+  reelShareReply: "Reel share replies",
+  mentionReply: "Mention detection",
+  reelCategoryRules: "Smart reel category rules",
+  aiProductDetection: "AI product detection",
+  smartLinks: "Tracked link analytics",
+  shopifyIntegration: "Shopify integration",
+  aiSmartReplies: "AI smart replies",
+  knowledgeBase: "Knowledge base",
+  advancedAnalytics: "Advanced analytics",
+  apiAccess: "API access",
+  facebookLogin: "Facebook Login",
+};
+
+const COMING_SOON_SET = new Set([
+  "aiProductDetection", "smartLinks", "shopifyIntegration",
+  "aiSmartReplies", "knowledgeBase", "advancedAnalytics",
+  "apiAccess", "facebookLogin",
+]);
 
 const ROADMAP = [
   { label: "Now", color: "#34D399", active: true, items: ["Comment-to-DM automation", "Follower gate & reel detection", "Multi-account dashboard", "Early access — all features free"] },
@@ -204,11 +236,30 @@ const ROADMAP = [
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
+  const [pricingType, setPricingType] = useState("business");
+  const [allPlans, setAllPlans] = useState(FALLBACK_PLANS);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Fetch plans for all account types on mount
+  useEffect(() => {
+    Promise.all(
+      ["creator", "business", "agency"].map((type) =>
+        fetch(`/api/plans/public?type=${type}`)
+          .then((r) => r.ok ? r.json() : null)
+          .catch(() => null)
+      )
+    ).then(([creator, business, agency]) => {
+      const fetched = {};
+      if (creator?.plans?.length) fetched.creator = creator.plans;
+      if (business?.plans?.length) fetched.business = business.plans;
+      if (agency?.plans?.length) fetched.agency = agency.plans;
+      if (Object.keys(fetched).length > 0) setAllPlans((prev) => ({ ...prev, ...fetched }));
+    });
   }, []);
 
   const featuresRef = useReveal();
@@ -304,7 +355,7 @@ export default function LandingPage() {
 
           {/* Subheadline */}
           <p className="text-lg max-w-2xl mx-auto mb-10" style={{ color: "#A1A1AA" }}>
-            Automate DMs, detect products with AI, sell with your Shopify catalog, and support customers 24/7 — all from one dashboard.
+            Whether you&apos;re a creator growing your audience, a business driving sales, or an agency managing clients — automate your Instagram DMs with AI.
           </p>
 
           {/* CTAs */}
@@ -526,62 +577,119 @@ export default function LandingPage() {
       {/* ═══ PRICING ══════════════════════════════════════════════════════════ */}
       <section id="pricing" className="py-32" ref={pricingRef} style={revealStyle}>
         <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-16" data-reveal style={revealStyle}>
+          <div className="text-center mb-10" data-reveal style={revealStyle}>
             <SectionEyebrow>Pricing</SectionEyebrow>
             <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
               <GradientText>Simple, transparent pricing</GradientText>
             </h2>
-            <p className="text-lg" style={{ color: "#A1A1AA" }}>Start free during early access. Paid plans coming soon.</p>
+            <p className="text-lg" style={{ color: "#A1A1AA" }}>Choose your path</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            {PRICING.map((plan, i) => (
-              <GlassCard key={i} featured={plan.featured} className="flex flex-col">
-                <div data-reveal style={revealStyle}>
-                  {plan.featured && (
-                    <span className="inline-block text-[10px] uppercase tracking-wider font-semibold px-3 py-1 rounded-full mb-4"
-                      style={{ background: "rgba(129, 140, 248, 0.15)", color: "#818CF8" }}>
-                      Most popular
-                    </span>
-                  )}
-                  <h3 className="text-xl font-bold mb-2" style={{ color: "#FAFAFA" }}>{plan.name}</h3>
-                  <p className="mb-6">
-                    <span className="text-4xl font-extrabold" style={{ color: "#FAFAFA" }}>{plan.price}</span>
-                    <span className="text-sm ml-1" style={{ color: "#71717A" }}>/month</span>
-                  </p>
-                  <div className="space-y-3 mb-8 flex-1">
-                    {plan.features.map((f, j) => {
-                      const text = typeof f === "string" ? f : f.text;
-                      const soon = typeof f === "object" && f.soon;
-                      return (
-                        <div key={j} className="flex items-start gap-2.5">
+          {/* Account type tab switcher */}
+          <div className="flex justify-center mb-4" data-reveal style={revealStyle}>
+            <div className="inline-flex p-1 rounded-full" style={{ background: "#18181B", border: "1px solid #27272A" }}>
+              {ACCOUNT_TYPES.map((type) => (
+                <button
+                  key={type.key}
+                  onClick={() => setPricingType(type.key)}
+                  className="px-5 sm:px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200"
+                  style={pricingType === type.key
+                    ? { background: "#818CF8", color: "#fff", boxShadow: "0 4px 12px rgba(129, 140, 248, 0.3)" }
+                    : { color: "#71717A" }
+                  }
+                  onMouseEnter={(e) => { if (pricingType !== type.key) e.currentTarget.style.color = "#D4D4D8"; }}
+                  onMouseLeave={(e) => { if (pricingType !== type.key) e.currentTarget.style.color = "#71717A"; }}
+                >
+                  <span className="mr-1.5">{type.emoji}</span>{type.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Active type subtitle */}
+          <p className="text-center text-sm mb-12" style={{ color: "#71717A" }}>
+            {ACCOUNT_TYPES.find((t) => t.key === pricingType)?.subtitle}
+          </p>
+
+          {/* Plan cards — keyed by pricingType to trigger re-render animation */}
+          <div key={pricingType} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10"
+            style={{ animation: "fadeSlideIn 0.35s cubic-bezier(0.16,1,0.3,1)" }}>
+            {(allPlans[pricingType] || []).map((plan, i) => {
+              const priceDisplay = typeof plan.priceDisplay === "string"
+                ? plan.priceDisplay
+                : `\u20B9${(plan.price || 0).toLocaleString("en-IN")}`;
+              const features = (plan.featureList || []).map((f) => {
+                const key = typeof f === "string" ? f : f;
+                return { key, label: FEATURE_LABELS[key] || key, soon: COMING_SOON_SET.has(key) };
+              });
+
+              return (
+                <GlassCard key={plan.slug || i} featured={plan.isPopular} className="flex flex-col">
+                  <div>
+                    {plan.isPopular && (
+                      <span className="inline-block text-[10px] uppercase tracking-wider font-semibold px-3 py-1 rounded-full mb-4"
+                        style={{ background: "rgba(129, 140, 248, 0.15)", color: "#818CF8" }}>
+                        Most popular
+                      </span>
+                    )}
+                    <h3 className="text-xl font-bold mb-2" style={{ color: "#FAFAFA" }}>{plan.name}</h3>
+                    <p className="mb-1">
+                      <span className="text-4xl font-extrabold" style={{ color: "#FAFAFA" }}>{priceDisplay}</span>
+                      <span className="text-sm ml-1" style={{ color: "#71717A" }}>/month</span>
+                    </p>
+                    <div className="flex items-center gap-4 mb-6 text-xs" style={{ color: "#71717A" }}>
+                      <span>{plan.dmLimitDisplay || "10,000"} DMs</span>
+                      <span style={{ color: "#3F3F46" }}>&middot;</span>
+                      <span>{plan.maxAccounts || 1} account{(plan.maxAccounts || 1) > 1 ? "s" : ""}</span>
+                      <span style={{ color: "#3F3F46" }}>&middot;</span>
+                      <span className="capitalize">{plan.supportLevel || "email"} support</span>
+                    </div>
+                    <div className="space-y-3 mb-8 flex-1">
+                      {features.map((f) => (
+                        <div key={f.key} className="flex items-start gap-2.5">
                           <CheckIcon />
                           <span className="text-sm" style={{ color: "#A1A1AA" }}>
-                            {text}
-                            {soon && <span className="ml-1.5 text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded-full"
+                            {f.label}
+                            {f.soon && <span className="ml-1.5 text-[9px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded-full"
                               style={{ background: "rgba(45, 212, 191, 0.1)", color: "#2DD4BF" }}>soon</span>}
                           </span>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
+                    <Link href={`/sign-up?type=${pricingType}&plan=${plan.slug || ""}`}
+                      className="block text-center text-sm font-semibold py-3 rounded-full transition-colors"
+                      style={plan.isPopular
+                        ? { background: "#818CF8", color: "#fff" }
+                        : { border: "1px solid #3F3F46", color: "#D4D4D8" }
+                      }
+                      onMouseEnter={(e) => {
+                        if (plan.isPopular) e.currentTarget.style.background = "#6366F1";
+                        else { e.currentTarget.style.borderColor = "#52525B"; e.currentTarget.style.color = "#FAFAFA"; }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (plan.isPopular) e.currentTarget.style.background = "#818CF8";
+                        else { e.currentTarget.style.borderColor = "#3F3F46"; e.currentTarget.style.color = "#D4D4D8"; }
+                      }}>
+                      Get started
+                    </Link>
                   </div>
-                  <Link href="/onboarding"
-                    className="block text-center text-sm font-semibold py-3 rounded-full transition-colors"
-                    style={plan.featured
-                      ? { background: "#818CF8", color: "#fff" }
-                      : { border: "1px solid #3F3F46", color: "#D4D4D8" }
-                    }>
-                    Get started
-                  </Link>
-                </div>
-              </GlassCard>
-            ))}
+                </GlassCard>
+              );
+            })}
           </div>
 
           <p className="text-center text-sm" style={{ color: "#71717A" }}>
-            ✨ Currently in early access — all features free. No credit card needed.
+            {"\u2728"} Currently in early access — all features free for all account types. No credit card needed.
           </p>
         </div>
+
+        {/* Inline animation keyframe */}
+        <style>{`
+          @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
       </section>
 
       {/* ═══ ROADMAP ══════════════════════════════════════════════════════════ */}
