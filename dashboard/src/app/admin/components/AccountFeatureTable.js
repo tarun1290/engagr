@@ -78,7 +78,7 @@ export default function AccountFeatureTable({ featureName, featureFlag, codeStat
       )}
       {codeStatus === "planned" && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm"
-          style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", color: "#64748B" }}>
+          style={{ background: "#F8FAFC", border: "1px solid #E4E4E7", color: "#71717A" }}>
           <Info size={16} />
           This feature is not yet built. See roadmap.
         </div>
@@ -87,20 +87,20 @@ export default function AccountFeatureTable({ featureName, featureFlag, codeStat
       {/* Bulk actions */}
       {selected.size > 0 && !isCodeDisabled && (
         <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg" style={{ background: "#EEF2FF", border: "1px solid #C7D2FE" }}>
-          <span className="text-sm font-medium" style={{ color: "#4338CA" }}>{selected.size} selected</span>
+          <span className="text-sm font-medium" style={{ color: "#4F46E5" }}>{selected.size} selected</span>
           <button onClick={() => handleBulk(true)} className="text-xs font-medium px-3 py-1.5 rounded-md text-white" style={{ background: "#059669" }}>Enable for selected</button>
           <button onClick={() => handleBulk(false)} className="text-xs font-medium px-3 py-1.5 rounded-md" style={{ background: "#FEF2F2", color: "#DC2626" }}>Disable for selected</button>
         </div>
       )}
 
       {/* Table */}
-      <div className="rounded-lg overflow-hidden" style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-        <div className="px-5 py-3 border-b flex items-center gap-4" style={{ borderColor: "#F1F5F9" }}>
+      <div className="rounded-lg overflow-hidden" style={{ background: "#FFFFFF", border: "1px solid #E4E4E7", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}>
+        <div className="px-5 py-3 border-b flex items-center gap-4" style={{ borderColor: "#F4F4F5" }}>
           <div className="relative flex-1 max-w-xs">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#94A3B8" }} />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#A1A1AA" }} />
             <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search accounts..." className="w-full pl-9 pr-3 py-2 text-sm rounded-md outline-none"
-              style={{ border: "1px solid #E2E8F0", color: "#0F172A" }} />
+              style={{ border: "1px solid #E4E4E7", color: "#18181B" }} />
           </div>
         </div>
 
@@ -110,24 +110,24 @@ export default function AccountFeatureTable({ featureName, featureFlag, codeStat
               <tr style={{ background: "#FAFAFA" }}>
                 <th className="px-5 py-3 w-10">
                   <input type="checkbox" checked={allSelected} onChange={toggleAll}
-                    className="rounded" style={{ accentColor: "#4338CA" }} />
+                    className="rounded" style={{ accentColor: "#4F46E5" }} />
                 </th>
-                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Account</th>
-                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Plan</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Account</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Plan</th>
                 {accountStatColumn && (
-                  <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>{accountStatColumn.label}</th>
+                  <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>{accountStatColumn.label}</th>
                 )}
-                <th className="text-center px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>{featureName}</th>
+                <th className="text-center px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>{featureName}</th>
               </tr>
             </thead>
             <tbody>
               {paginated.length === 0 ? (
-                <tr><td colSpan={5} className="px-5 py-12 text-center text-sm" style={{ color: "#94A3B8" }}>No accounts found</td></tr>
+                <tr><td colSpan={5} className="px-5 py-12 text-center text-sm" style={{ color: "#A1A1AA" }}>No accounts found</td></tr>
               ) : (
                 paginated.map((account) => {
                   const isEnabled = !!account.flags?.[featureFlag];
                   return (
-                    <tr key={account.userId} style={{ borderTop: "1px solid #F1F5F9" }}>
+                    <tr key={account.userId} style={{ borderTop: "1px solid #F4F4F5" }}>
                       <td className="px-5 py-3">
                         <input type="checkbox" checked={selected.has(account.userId)}
                           onChange={(e) => {
@@ -135,17 +135,17 @@ export default function AccountFeatureTable({ featureName, featureFlag, codeStat
                             e.target.checked ? next.add(account.userId) : next.delete(account.userId);
                             setSelected(next);
                           }}
-                          className="rounded" style={{ accentColor: "#4338CA" }} />
+                          className="rounded" style={{ accentColor: "#4F46E5" }} />
                       </td>
                       <td className="px-5 py-3">
-                        <p className="font-medium text-sm" style={{ color: "#0F172A" }}>
+                        <p className="font-medium text-sm" style={{ color: "#18181B" }}>
                           {account.instagramUsername ? `@${account.instagramUsername}` : account.userId}
                         </p>
-                        {account.email && <p className="text-xs" style={{ color: "#94A3B8" }}>{account.email}</p>}
+                        {account.email && <p className="text-xs" style={{ color: "#A1A1AA" }}>{account.email}</p>}
                       </td>
                       <td className="px-5 py-3"><PlanBadge plan={account.subscription?.plan || "early_access"} /></td>
                       {accountStatColumn && (
-                        <td className="px-5 py-3 text-right font-medium" style={{ color: "#0F172A" }}>
+                        <td className="px-5 py-3 text-right font-medium" style={{ color: "#18181B" }}>
                           {account[accountStatColumn.key] ?? 0}
                         </td>
                       )}
@@ -169,13 +169,13 @@ export default function AccountFeatureTable({ featureName, featureFlag, codeStat
         </div>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: "#F1F5F9" }}>
-            <span className="text-xs" style={{ color: "#94A3B8" }}>{filtered.length} accounts — Page {page}/{totalPages}</span>
+          <div className="flex items-center justify-between px-5 py-3 border-t" style={{ borderColor: "#F4F4F5" }}>
+            <span className="text-xs" style={{ color: "#A1A1AA" }}>{filtered.length} accounts — Page {page}/{totalPages}</span>
             <div className="flex gap-1">
               <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}
-                className="p-1.5 rounded disabled:opacity-30" style={{ color: "#64748B" }}><ChevronLeft size={14} /></button>
+                className="p-1.5 rounded disabled:opacity-30" style={{ color: "#71717A" }}><ChevronLeft size={14} /></button>
               <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}
-                className="p-1.5 rounded disabled:opacity-30" style={{ color: "#64748B" }}><ChevronRight size={14} /></button>
+                className="p-1.5 rounded disabled:opacity-30" style={{ color: "#71717A" }}><ChevronRight size={14} /></button>
             </div>
           </div>
         )}
@@ -194,9 +194,9 @@ export default function AccountFeatureTable({ featureName, featureFlag, codeStat
       >
         {confirmAction === "enable" && (
           <div>
-            <label className="text-xs font-medium mb-1 block" style={{ color: "#64748B" }}>Notes (optional)</label>
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#71717A" }}>Notes (optional)</label>
             <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Why are you enabling this?"
-              className="w-full px-3 py-2 text-sm rounded-md outline-none" style={{ border: "1px solid #E2E8F0", color: "#0F172A" }} />
+              className="w-full px-3 py-2 text-sm rounded-md outline-none" style={{ border: "1px solid #E4E4E7", color: "#18181B" }} />
           </div>
         )}
       </ConfirmModal>

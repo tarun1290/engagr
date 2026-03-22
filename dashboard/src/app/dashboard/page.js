@@ -909,11 +909,11 @@ function DashboardContent() {
       />
 
       <main className={cn(
-        "flex flex-col min-h-screen transition-all duration-300",
-        isCollapsed ? "pl-20" : "pl-64"
+        "flex flex-col min-h-screen transition-all duration-200",
+        isCollapsed ? "lg:pl-[72px]" : "lg:pl-[260px]"
       )}>
         <Navbar />
-        <div className="p-12 max-w-7xl w-full mx-auto">
+        <div className="px-6 py-6 max-w-[1200px] w-full mx-auto">
           {renderContent()}
         </div>
       </main>

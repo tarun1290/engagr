@@ -34,7 +34,7 @@ export default function FeatureFlagsPage() {
     adminGetSystemFlags().then(setData).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#94A3B8" }} /></div>;
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#A1A1AA" }} /></div>;
 
   const liveCount = FEATURES.filter(f => f.status === "live").length;
   const disabledCount = FEATURES.filter(f => f.status === "disabled").length;
@@ -43,8 +43,8 @@ export default function FeatureFlagsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold" style={{ color: "#0F172A" }}>Feature flags</h1>
-        <p className="text-sm" style={{ color: "#64748B" }}>Global overview of all features, their code status, and account enablement</p>
+        <h1 className="text-xl font-bold" style={{ color: "#18181B" }}>Feature flags</h1>
+        <p className="text-sm" style={{ color: "#71717A" }}>Global overview of all features, their code status, and account enablement</p>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -53,18 +53,18 @@ export default function FeatureFlagsPage() {
         <StatCard label="Planned features" value={plannedCount} />
       </div>
 
-      <div className="rounded-lg overflow-hidden" style={{ background: "#fff", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div className="rounded-lg overflow-hidden" style={{ background: "#fff", border: "1px solid #E4E4E7", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: "#FAFAFA" }}>
-                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Feature</th>
-                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Code tag</th>
-                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Status</th>
-                <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Enabled</th>
-                <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Total events</th>
-                <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Today</th>
-                <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Errors (24h)</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Feature</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Code tag</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Status</th>
+                <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Enabled</th>
+                <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Total events</th>
+                <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Today</th>
+                <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Errors (24h)</th>
               </tr>
             </thead>
             <tbody>
@@ -77,21 +77,21 @@ export default function FeatureFlagsPage() {
                 const errorColor = errorRate > 5 ? "#DC2626" : errorRate > 1 ? "#D97706" : "#059669";
 
                 return (
-                  <tr key={f.name} className="transition-colors" style={{ borderTop: "1px solid #F1F5F9" }}
+                  <tr key={f.name} className="transition-colors" style={{ borderTop: "1px solid #F4F4F5" }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = "#FAFAFA"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                     <td className="px-5 py-3">
                       {f.slug ? (
-                        <Link href={`/admin/features/${f.slug}`} className="font-medium hover:underline" style={{ color: "#0F172A" }}>{f.name}</Link>
+                        <Link href={`/admin/features/${f.slug}`} className="font-medium hover:underline" style={{ color: "#18181B" }}>{f.name}</Link>
                       ) : (
-                        <span className="font-medium" style={{ color: "#0F172A" }}>{f.name}</span>
+                        <span className="font-medium" style={{ color: "#18181B" }}>{f.name}</span>
                       )}
                     </td>
                     <td className="px-5 py-3">
-                      {f.tag ? <code className="text-xs font-mono" style={{ color: "#64748B" }}>{f.tag}</code> : <span style={{ color: "#CBD5E1" }}>—</span>}
+                      {f.tag ? <code className="text-xs font-mono" style={{ color: "#71717A" }}>{f.tag}</code> : <span style={{ color: "#D4D4D8" }}>—</span>}
                     </td>
                     <td className="px-5 py-3"><StatusBadge status={f.status} /></td>
-                    <td className="px-5 py-3 text-right font-medium" style={{ color: "#0F172A" }}>{enabled}</td>
+                    <td className="px-5 py-3 text-right font-medium" style={{ color: "#18181B" }}>{enabled}</td>
                     <td className="px-5 py-3 text-right" style={{ color: "#475569" }}>{totalEvents}</td>
                     <td className="px-5 py-3 text-right" style={{ color: "#475569" }}>{todayEvents}</td>
                     <td className="px-5 py-3 text-right" style={{ color: errorColor }}>{errorRate}%</td>

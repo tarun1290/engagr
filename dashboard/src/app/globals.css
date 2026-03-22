@@ -1,60 +1,59 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   ENGAGR — Deep Indigo Design System
-   Light/Dark mode via [data-theme="dark"] on <html>
+   ENGAGR — Design System
+   Light mode only for dashboard. Landing page handles its own dark theme inline.
    ═══════════════════════════════════════════════════════════════════════════════ */
 
-/* ── Light Mode (default) ──────────────────────────────────────────────────── */
 :root {
   /* Primary (Indigo) */
-  --primary: #4338CA;
-  --primary-light: #E0E7FF;
+  --primary: #4F46E5;
+  --primary-light: #EEF2FF;
   --primary-medium: #C7D2FE;
-  --primary-dark: #3730A3;
-  --primary-darker: #312E81;
-  --primary-glow: rgba(67, 56, 202, 0.15);
+  --primary-dark: #4338CA;
+  --primary-darker: #3730A3;
+  --primary-glow: rgba(79, 70, 229, 0.12);
 
   /* Accent (Teal) */
   --accent: #14B8A6;
-  --accent-light: #CCFBF1;
+  --accent-light: #F0FDFA;
   --accent-medium: #5EEAD4;
   --accent-dark: #0F766E;
   --accent-darker: #134E4A;
 
   /* Semantic */
-  --success: #22C55E;
-  --success-light: #DCFCE7;
-  --success-dark: #166534;
-  --warning: #EAB308;
-  --warning-light: #FEF9C3;
-  --warning-dark: #854D0E;
-  --error: #EF4444;
-  --error-light: #FEE2E2;
+  --success: #059669;
+  --success-light: #ECFDF5;
+  --success-dark: #065F46;
+  --warning: #D97706;
+  --warning-light: #FFFBEB;
+  --warning-dark: #92400E;
+  --error: #DC2626;
+  --error-light: #FEF2F2;
   --error-dark: #991B1B;
-  --info: #3B82F6;
-  --info-light: #DBEAFE;
-  --info-dark: #1E40AF;
+  --info: #0284C7;
+  --info-light: #F0F9FF;
+  --info-dark: #075985;
 
-  /* User Dashboard Surfaces */
+  /* Dashboard Surfaces */
   --bg: #FAFAFA;
   --card: #FFFFFF;
   --surface-alt: #F4F4F5;
-  --border: #E4E4E7;
+  --border: #F0F0F0;
   --text-primary: #18181B;
-  --text-secondary: #3F3F46;
+  --text-secondary: #52525B;
   --text-muted: #71717A;
   --text-placeholder: #A1A1AA;
 
-  /* Sidebar (User) */
+  /* Sidebar */
   --sidebar-bg: #FFFFFF;
   --sidebar-text: #71717A;
-  --sidebar-text-active: #18181B;
-  --sidebar-hover: #F4F4F5;
-  --sidebar-active-bg: #E0E7FF;
+  --sidebar-text-active: #4F46E5;
+  --sidebar-hover: #F9FAFB;
+  --sidebar-active-bg: #EEF2FF;
   --sidebar-icon: #A1A1AA;
-  --sidebar-icon-active: #4338CA;
-  --sidebar-border: #E4E4E7;
+  --sidebar-icon-active: #4F46E5;
+  --sidebar-border: #F0F0F0;
 
   /* Admin Dashboard Surfaces */
   --admin-bg: #F8FAFC;
@@ -70,18 +69,18 @@
   --admin-text-muted: #64748B;
 
   /* Buttons */
-  --btn-primary-bg: #4338CA;
+  --btn-primary-bg: #4F46E5;
   --btn-primary-text: #FFFFFF;
-  --btn-primary-hover: #3730A3;
+  --btn-primary-hover: #4338CA;
   --btn-secondary-bg: transparent;
-  --btn-secondary-border: #4338CA;
-  --btn-secondary-text: #4338CA;
+  --btn-secondary-border: #E4E4E7;
+  --btn-secondary-text: #52525B;
   --btn-accent-bg: #14B8A6;
   --btn-accent-text: #FFFFFF;
   --btn-accent-hover: #0F766E;
-  --btn-destructive-bg: #EF4444;
+  --btn-destructive-bg: #DC2626;
   --btn-destructive-text: #FFFFFF;
-  --btn-destructive-hover: #DC2626;
+  --btn-destructive-hover: #B91C1C;
 
   /* Border Radius */
   --radius-sm: 6px;
@@ -91,119 +90,22 @@
   --radius-full: 9999px;
 
   /* Input */
-  --input-bg: #F4F4F5;
+  --input-bg: #FFFFFF;
   --input-border: #E4E4E7;
-  --input-focus-ring: rgba(67, 56, 202, 0.2);
+  --input-focus-ring: rgba(79, 70, 229, 0.15);
   --input-text: #18181B;
 
   /* Overlay */
-  --overlay: rgba(0, 0, 0, 0.4);
+  --overlay: rgba(0, 0, 0, 0.3);
 
   /* Glass */
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(255, 255, 255, 0.3);
 
   /* Misc */
-  --badge-bg: #E0E7FF;
-  --badge-text: #4338CA;
-  --skeleton: #E4E4E7;
-}
-
-/* ── Dark Mode ─────────────────────────────────────────────────────────────── */
-[data-theme="dark"] {
-  /* Primary (Indigo) — keep main, adjust glow */
-  --primary: #818CF8;
-  --primary-light: #312E81;
-  --primary-medium: #3730A3;
-  --primary-dark: #A5B4FC;
-  --primary-darker: #C7D2FE;
-  --primary-glow: rgba(129, 140, 248, 0.2);
-
-  /* Accent (Teal) */
-  --accent: #2DD4BF;
-  --accent-light: #134E4A;
-  --accent-medium: #0F766E;
-  --accent-dark: #5EEAD4;
-  --accent-darker: #CCFBF1;
-
-  /* Semantic */
-  --success: #4ADE80;
-  --success-light: #14532D;
-  --success-dark: #DCFCE7;
-  --warning: #FACC15;
-  --warning-light: #713F12;
-  --warning-dark: #FEF9C3;
-  --error: #F87171;
-  --error-light: #7F1D1D;
-  --error-dark: #FEE2E2;
-  --info: #60A5FA;
-  --info-light: #1E3A5F;
-  --info-dark: #DBEAFE;
-
-  /* User Dashboard Surfaces */
-  --bg: #09090B;
-  --card: #18181B;
-  --surface-alt: #27272A;
-  --border: #3F3F46;
-  --text-primary: #FAFAFA;
-  --text-secondary: #D4D4D8;
-  --text-muted: #A1A1AA;
-  --text-placeholder: #71717A;
-
-  /* Sidebar (User) */
-  --sidebar-bg: #18181B;
-  --sidebar-text: #A1A1AA;
-  --sidebar-text-active: #FAFAFA;
-  --sidebar-hover: #27272A;
-  --sidebar-active-bg: #312E81;
-  --sidebar-icon: #71717A;
-  --sidebar-icon-active: #818CF8;
-  --sidebar-border: #3F3F46;
-
-  /* Admin Dashboard Surfaces */
-  --admin-bg: #111827;
-  --admin-card: #1F2937;
-  --admin-surface-alt: #374151;
-  --admin-sidebar: #0F0D2B;
-  --admin-sidebar-text: #818CF8;
-  --admin-sidebar-text-active: #FFFFFF;
-  --admin-sidebar-hover: #1E1B4B;
-  --admin-border: #374151;
-  --admin-text-primary: #F9FAFB;
-  --admin-text-secondary: #D1D5DB;
-  --admin-text-muted: #9CA3AF;
-
-  /* Buttons */
-  --btn-primary-bg: #818CF8;
-  --btn-primary-text: #09090B;
-  --btn-primary-hover: #A5B4FC;
-  --btn-secondary-bg: transparent;
-  --btn-secondary-border: #818CF8;
-  --btn-secondary-text: #818CF8;
-  --btn-accent-bg: #2DD4BF;
-  --btn-accent-text: #09090B;
-  --btn-accent-hover: #5EEAD4;
-  --btn-destructive-bg: #F87171;
-  --btn-destructive-text: #09090B;
-  --btn-destructive-hover: #FCA5A5;
-
-  /* Input */
-  --input-bg: #27272A;
-  --input-border: #3F3F46;
-  --input-focus-ring: rgba(129, 140, 248, 0.3);
-  --input-text: #FAFAFA;
-
-  /* Overlay */
-  --overlay: rgba(0, 0, 0, 0.6);
-
-  /* Glass */
-  --glass-bg: rgba(24, 24, 27, 0.7);
-  --glass-border: rgba(63, 63, 70, 0.5);
-
-  /* Misc */
-  --badge-bg: #312E81;
-  --badge-text: #A5B4FC;
-  --skeleton: #3F3F46;
+  --badge-bg: #EEF2FF;
+  --badge-text: #4F46E5;
+  --skeleton: #F0F0F0;
 }
 
 /* ── Tailwind v4 @theme integration ────────────────────────────────────────── */
@@ -233,48 +135,14 @@
 body {
   background-color: var(--bg);
   color: var(--text-primary);
-  font-family: "Outfit", "Inter", -apple-system, sans-serif;
+  font-family: var(--font-inter), "Inter", -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.01em;
-  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* ── Scrollbar hiding ──────────────────────────────────────────────────────── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* ── Glass effect ──────────────────────────────────────────────────────────── */
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid var(--glass-border);
-}
-
-/* ── Premium gradient ──────────────────────────────────────────────────────── */
-.premium-gradient {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-}
-
-.premium-shadow {
-  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.08);
-}
-
-[data-theme="dark"] .premium-shadow {
-  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.3);
-}
-
-/* ── Sidebar active state ──────────────────────────────────────────────────── */
-.sidebar-active {
-  background-color: var(--sidebar-active-bg);
-  color: var(--sidebar-text-active);
-  font-weight: 700;
-}
-
-.sidebar-active svg {
-  color: var(--sidebar-icon-active);
-  filter: drop-shadow(0 0 5px var(--primary-glow));
-}
 
 /* ── Animations ────────────────────────────────────────────────────────────── */
 @keyframes progress {
@@ -282,11 +150,6 @@ body {
   100% { transform: scaleX(1); }
 }
 .animate-progress { animation: progress 2s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
-
-.hover-lift {
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
-}
-.hover-lift:hover { transform: translateY(-2px); }
 
 @keyframes pulse-anim {
   0% { transform: scale(0.95); opacity: 0.5; }
@@ -296,50 +159,18 @@ body {
 .pulse-animation { animation: pulse-anim 2s infinite ease-in-out; }
 
 /* ── Skeleton loader ───────────────────────────────────────────────────────── */
-@keyframes skeleton-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
 .skeleton {
-  background: linear-gradient(90deg, var(--skeleton) 25%, transparent 50%, var(--skeleton) 75%);
+  background: linear-gradient(90deg, var(--skeleton) 25%, #E8E8E8 50%, var(--skeleton) 75%);
   background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s infinite;
-  border-radius: var(--radius-md);
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 6px;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
-/* ── Scroll reveal animations ─────────────────────────────────────────────── */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(28px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.92); }
-  to   { opacity: 1; transform: scale(1); }
-}
-.reveal {
-  opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-.reveal-delay-1 { transition-delay: 0.1s; }
-.reveal-delay-2 { transition-delay: 0.2s; }
-.reveal-delay-3 { transition-delay: 0.3s; }
-.reveal-delay-4 { transition-delay: 0.4s; }
-.reveal-delay-5 { transition-delay: 0.5s; }
-
-html { scroll-behavior: smooth; }
-
-/* ── Theme transition on major containers ──────────────────────────────────── */
-.theme-transition,
-.theme-transition * {
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+/* ── Transition helper ─────────────────────────────────────────────────────── */
+.theme-transition {
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }

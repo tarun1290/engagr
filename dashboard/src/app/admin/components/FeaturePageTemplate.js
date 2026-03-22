@@ -68,15 +68,15 @@ export default function FeaturePageTemplate({
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-xl font-bold" style={{ color: "#0F172A" }}>{title}</h1>
+            <h1 className="text-xl font-bold" style={{ color: "#18181B" }}>{title}</h1>
             <StatusBadge status={codeStatus} />
           </div>
-          <p className="text-sm" style={{ color: "#64748B" }}>{description}</p>
+          <p className="text-sm" style={{ color: "#52525B" }}>{description}</p>
           {codeTag && (
-            <p className="text-xs mt-1 font-mono" style={{ color: "#94A3B8" }}>Code tag: {codeTag}</p>
+            <p className="text-xs mt-1 font-mono" style={{ color: "#A1A1AA" }}>Code tag: {codeTag}</p>
           )}
           {roadmapDate && codeStatus !== "live" && (
-            <p className="text-xs mt-1" style={{ color: "#94A3B8" }}>Expected: {roadmapDate}</p>
+            <p className="text-xs mt-1" style={{ color: "#A1A1AA" }}>Expected: {roadmapDate}</p>
           )}
         </div>
       </div>
@@ -101,7 +101,7 @@ export default function FeaturePageTemplate({
       <ChartCard title={`${title} activity`} isEmpty={events.length === 0}
         emptyMessage="No activity data" emptySubtext={codeStatus !== "live" ? "Feature is not active yet." : "Events will appear here."}>
         {events.length > 0 && (
-          <div className="flex items-center justify-center h-full text-sm" style={{ color: "#94A3B8" }}>
+          <div className="flex items-center justify-center h-full text-sm" style={{ color: "#A1A1AA" }}>
             Chart renders here with Recharts when data is available
           </div>
         )}
@@ -115,7 +115,7 @@ export default function FeaturePageTemplate({
 
       {/* Account table */}
       <div>
-        <h2 className="text-base font-semibold mb-3" style={{ color: "#0F172A" }}>Account access</h2>
+        <h2 className="text-base font-semibold mb-3" style={{ color: "#18181B" }}>Account access</h2>
         <AccountFeatureTable
           featureName={title}
           featureFlag={featureFlag}

@@ -2,9 +2,6 @@
 
 import { TrendingUp, TrendingDown } from "lucide-react";
 
-/**
- * @param {{ label: string, value: string|number, trend?: number, trendDirection?: 'up'|'down', icon?: any, format?: 'number'|'percentage'|'currency' }} props
- */
 export default function StatCard({ label, value, trend, trendDirection, icon: Icon, format = "number" }) {
   const formattedValue = format === "currency"
     ? `$${Number(value).toFixed(2)}`
@@ -16,17 +13,10 @@ export default function StatCard({ label, value, trend, trendDirection, icon: Ic
   const TrendIcon = trendDirection === "down" ? TrendingDown : TrendingUp;
 
   return (
-    <div className="rounded-lg p-5 transition-shadow hover:shadow-md"
-      style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-      <div className="flex items-start justify-between mb-3">
-        <p className="text-sm" style={{ color: "#64748B" }}>{label}</p>
-        {Icon && (
-          <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ background: "#F8FAFC" }}>
-            <Icon size={16} style={{ color: "#94A3B8" }} />
-          </div>
-        )}
-      </div>
-      <p className="text-2xl font-bold" style={{ color: "#0F172A" }}>{formattedValue}</p>
+    <div className="rounded-xl p-5 transition-shadow"
+      style={{ background: "#FFFFFF", border: "1px solid #F0F0F0", boxShadow: "0 1px 2px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02)" }}>
+      <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: "#A1A1AA" }}>{label}</p>
+      <p className="text-3xl font-bold tracking-tight" style={{ color: "#18181B" }}>{formattedValue}</p>
       {trend !== undefined && trend !== null && (
         <div className="flex items-center gap-1 mt-2">
           <TrendIcon size={12} style={{ color: trendColor }} />

@@ -20,7 +20,7 @@ export default function CronJobsPage() {
     adminGetCronStatus().then(setData).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#94A3B8" }} /></div>;
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#A1A1AA" }} /></div>;
 
   const jobs = data?.jobs || [];
   const activeCount = jobs.filter(j => j.status === "active").length;
@@ -29,8 +29,8 @@ export default function CronJobsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold" style={{ color: "#0F172A" }}>Cron jobs</h1>
-        <p className="text-sm" style={{ color: "#64748B" }}>Scheduled tasks and their statuses</p>
+        <h1 className="text-xl font-bold" style={{ color: "#18181B" }}>Cron jobs</h1>
+        <p className="text-sm" style={{ color: "#71717A" }}>Scheduled tasks and their statuses</p>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -39,26 +39,26 @@ export default function CronJobsPage() {
         <StatCard label="Last cron run" value="N/A" />
       </div>
 
-      <div className="rounded-lg overflow-hidden" style={{ background: "#fff", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div className="rounded-lg overflow-hidden" style={{ background: "#fff", border: "1px solid #E4E4E7", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: "#FAFAFA" }}>
-                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Job</th>
-                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Schedule</th>
-                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Cron</th>
-                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Status</th>
-                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Code tag</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Job</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Schedule</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Cron</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Status</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>Code tag</th>
               </tr>
             </thead>
             <tbody>
               {jobs.map((job, i) => {
                 const s = STATUS_STYLES[job.status] || STATUS_STYLES.disabled;
                 return (
-                  <tr key={i} style={{ borderTop: "1px solid #F1F5F9" }}>
-                    <td className="px-5 py-3 font-medium" style={{ color: "#0F172A" }}>{job.name}</td>
+                  <tr key={i} style={{ borderTop: "1px solid #F4F4F5" }}>
+                    <td className="px-5 py-3 font-medium" style={{ color: "#18181B" }}>{job.name}</td>
                     <td className="px-5 py-3" style={{ color: "#475569" }}>{job.schedule}</td>
-                    <td className="px-5 py-3"><code className="text-xs font-mono" style={{ color: "#94A3B8" }}>{job.cron}</code></td>
+                    <td className="px-5 py-3"><code className="text-xs font-mono" style={{ color: "#A1A1AA" }}>{job.cron}</code></td>
                     <td className="px-5 py-3">
                       <span className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.color }}>
                         {job.status === "running" && <span className="w-1.5 h-1.5 rounded-full mr-1.5 animate-pulse" style={{ background: s.color }} />}
@@ -66,7 +66,7 @@ export default function CronJobsPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3">
-                      {job.tag ? <code className="text-xs font-mono" style={{ color: "#64748B" }}>{job.tag}</code> : <span style={{ color: "#CBD5E1" }}>—</span>}
+                      {job.tag ? <code className="text-xs font-mono" style={{ color: "#71717A" }}>{job.tag}</code> : <span style={{ color: "#D4D4D8" }}>—</span>}
                     </td>
                   </tr>
                 );

@@ -20,20 +20,20 @@ export default function AdminTopBar() {
   const pageTitle = getPageTitle(pathname);
 
   return (
-    <header className="sticky top-0 z-30 h-14 flex items-center justify-between px-6 border-b"
-      style={{ background: "#FFFFFF", borderColor: "#E2E8F0" }}>
+    <header className="sticky top-0 z-30 h-14 flex items-center justify-between px-6"
+      style={{ background: "#FAFAFA" }}>
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 text-sm">
-        <span style={{ color: "#94A3B8" }}>Admin</span>
-        <ChevronRight size={14} style={{ color: "#CBD5E1" }} />
-        <span className="font-medium" style={{ color: "#0F172A" }}>{pageTitle}</span>
+        <span style={{ color: "#A1A1AA" }}>Admin</span>
+        <ChevronRight size={14} style={{ color: "#D4D4D8" }} />
+        <span className="font-medium" style={{ color: "#18181B" }}>{pageTitle}</span>
       </div>
 
       {/* Admin info */}
       <div className="flex items-center gap-3">
-        <span className="text-xs font-medium hidden sm:inline" style={{ color: "#64748B" }}>admin</span>
+        <span className="text-xs font-medium hidden sm:inline" style={{ color: "#71717A" }}>admin</span>
         <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold"
-          style={{ background: "#EEF2FF", color: "#4338CA" }}>
+          style={{ background: "#EEF2FF", color: "#4F46E5" }}>
           A
         </div>
       </div>

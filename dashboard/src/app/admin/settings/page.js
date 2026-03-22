@@ -25,43 +25,43 @@ export default function AdminSettingsPage() {
     setShowReset(false);
   };
 
-  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#94A3B8" }} /></div>;
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#A1A1AA" }} /></div>;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold" style={{ color: "#0F172A" }}>Settings</h1>
+      <h1 className="text-xl font-bold" style={{ color: "#18181B" }}>Settings</h1>
 
       {/* Admin account */}
-      <div className="rounded-lg p-6" style={{ background: "#fff", border: "1px solid #E2E8F0" }}>
-        <h2 className="text-sm font-semibold mb-4" style={{ color: "#0F172A" }}>Admin account</h2>
+      <div className="rounded-lg p-6" style={{ background: "#fff", border: "1px solid #E4E4E7" }}>
+        <h2 className="text-sm font-semibold mb-4" style={{ color: "#18181B" }}>Admin account</h2>
         <div className="space-y-3">
           <div className="flex justify-between text-sm">
-            <span style={{ color: "#64748B" }}>Role</span>
-            <span className="font-medium" style={{ color: "#0F172A" }}>Platform Administrator</span>
+            <span style={{ color: "#71717A" }}>Role</span>
+            <span className="font-medium" style={{ color: "#18181B" }}>Platform Administrator</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span style={{ color: "#64748B" }}>Auth method</span>
-            <span style={{ color: "#0F172A" }}>Admin key</span>
+            <span style={{ color: "#71717A" }}>Auth method</span>
+            <span style={{ color: "#18181B" }}>Admin key</span>
           </div>
         </div>
       </div>
 
       {/* Platform settings */}
-      <div className="rounded-lg p-6" style={{ background: "#fff", border: "1px solid #E2E8F0" }}>
-        <h2 className="text-sm font-semibold mb-4" style={{ color: "#0F172A" }}>Platform settings</h2>
+      <div className="rounded-lg p-6" style={{ background: "#fff", border: "1px solid #E4E4E7" }}>
+        <h2 className="text-sm font-semibold mb-4" style={{ color: "#18181B" }}>Platform settings</h2>
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-medium mb-1 block" style={{ color: "#64748B" }}>App name</label>
-            <input type="text" defaultValue="Engagr" readOnly className="w-full px-3 py-2 text-sm rounded-md" style={{ border: "1px solid #E2E8F0", color: "#0F172A", background: "#FAFAFA" }} />
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#71717A" }}>App name</label>
+            <input type="text" defaultValue="Engagr" readOnly className="w-full px-3 py-2 text-sm rounded-md" style={{ border: "1px solid #E4E4E7", color: "#18181B", background: "#FAFAFA" }} />
           </div>
           <div>
-            <label className="text-xs font-medium mb-1 block" style={{ color: "#64748B" }}>Support email</label>
-            <input type="email" defaultValue="tarun@engagr.io" readOnly className="w-full px-3 py-2 text-sm rounded-md" style={{ border: "1px solid #E2E8F0", color: "#0F172A", background: "#FAFAFA" }} />
+            <label className="text-xs font-medium mb-1 block" style={{ color: "#71717A" }}>Support email</label>
+            <input type="email" defaultValue="tarun@engagr.io" readOnly className="w-full px-3 py-2 text-sm rounded-md" style={{ border: "1px solid #E4E4E7", color: "#18181B", background: "#FAFAFA" }} />
           </div>
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm font-medium" style={{ color: "#0F172A" }}>Early access mode</p>
-              <p className="text-xs" style={{ color: "#94A3B8" }}>All features free — no billing active</p>
+              <p className="text-sm font-medium" style={{ color: "#18181B" }}>Early access mode</p>
+              <p className="text-xs" style={{ color: "#A1A1AA" }}>All features free — no billing active</p>
             </div>
             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: "#ECFDF5", color: "#059669" }}>Active</span>
           </div>
@@ -69,18 +69,18 @@ export default function AdminSettingsPage() {
       </div>
 
       {/* Environment variables */}
-      <div className="rounded-lg overflow-hidden" style={{ background: "#fff", border: "1px solid #E2E8F0" }}>
-        <div className="px-6 py-4 border-b" style={{ borderColor: "#F1F5F9" }}>
-          <h2 className="text-sm font-semibold" style={{ color: "#0F172A" }}>Environment variables</h2>
-          <p className="text-xs" style={{ color: "#94A3B8" }}>Check which variables are configured (values are not shown)</p>
+      <div className="rounded-lg overflow-hidden" style={{ background: "#fff", border: "1px solid #E4E4E7" }}>
+        <div className="px-6 py-4 border-b" style={{ borderColor: "#F4F4F5" }}>
+          <h2 className="text-sm font-semibold" style={{ color: "#18181B" }}>Environment variables</h2>
+          <p className="text-xs" style={{ color: "#A1A1AA" }}>Check which variables are configured (values are not shown)</p>
         </div>
         {envVars && Object.entries(envVars).map(([group, vars]) => (
           <div key={group}>
             <div className="px-6 py-2" style={{ background: "#FAFAFA" }}>
-              <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>{group}</span>
+              <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: "#A1A1AA" }}>{group}</span>
             </div>
             {vars.map((v) => (
-              <div key={v.name} className="flex items-center justify-between px-6 py-2.5" style={{ borderTop: "1px solid #F8FAFC" }}>
+              <div key={v.name} className="flex items-center justify-between px-6 py-2.5" style={{ borderTop: "1px solid #FAFAFA" }}>
                 <code className="text-xs font-mono" style={{ color: "#475569" }}>{v.name}</code>
                 {v.set ? (
                   <span className="flex items-center gap-1 text-xs font-medium" style={{ color: "#059669" }}>

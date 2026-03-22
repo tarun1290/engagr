@@ -12,16 +12,16 @@ import { adminGetOverviewStats, adminGetAccounts } from "../admin-actions";
 const PIE_COLORS = {
   trial: "#0D9488",
   early_access: "#0D9488",
-  silver: "#64748B",
+  silver: "#71717A",
   gold: "#D97706",
-  platinum: "#4338CA",
+  platinum: "#4F46E5",
 };
 
 function ChartTooltipContent({ active, payload }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg px-3 py-2 text-xs shadow-md" style={{ background: "#fff", border: "1px solid #E2E8F0" }}>
-      <p className="font-medium" style={{ color: "#0F172A" }}>{payload[0].name}: {payload[0].value}</p>
+    <div className="rounded-lg px-3 py-2 text-xs shadow-md" style={{ background: "#fff", border: "1px solid #E4E4E7" }}>
+      <p className="font-medium" style={{ color: "#18181B" }}>{payload[0].name}: {payload[0].value}</p>
     </div>
   );
 }
@@ -42,7 +42,7 @@ export default function BillingPage() {
   }, []);
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#94A3B8" }} /></div>;
+    return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#A1A1AA" }} /></div>;
   }
 
   const planBreakdown = stats?.planBreakdown || [];
@@ -60,10 +60,10 @@ export default function BillingPage() {
       key: "username", label: "Account", sortable: true,
       render: (row) => (
         <div>
-          <p className="text-sm font-medium" style={{ color: "#0F172A" }}>
+          <p className="text-sm font-medium" style={{ color: "#18181B" }}>
             {row.instagramUsername ? `@${row.instagramUsername}` : row.userId}
           </p>
-          {row.email && <p className="text-xs" style={{ color: "#94A3B8" }}>{row.email}</p>}
+          {row.email && <p className="text-xs" style={{ color: "#A1A1AA" }}>{row.email}</p>}
         </div>
       ),
     },
@@ -75,17 +75,17 @@ export default function BillingPage() {
       key: "dms", label: "DMs used", align: "right",
       render: (row) => (
         <span className="text-sm" style={{ color: "#475569" }}>
-          {(row.usage?.dmsSentThisMonth || 0).toLocaleString()} / <span style={{ color: "#94A3B8" }}>unlimited</span>
+          {(row.usage?.dmsSentThisMonth || 0).toLocaleString()} / <span style={{ color: "#A1A1AA" }}>unlimited</span>
         </span>
       ),
     },
     {
       key: "planStart", label: "Since",
-      render: (row) => <span className="text-xs" style={{ color: "#94A3B8" }}>{row.subscription?.currentPeriodStart ? new Date(row.subscription.currentPeriodStart).toLocaleDateString() : new Date(row.createdAt).toLocaleDateString()}</span>,
+      render: (row) => <span className="text-xs" style={{ color: "#A1A1AA" }}>{row.subscription?.currentPeriodStart ? new Date(row.subscription.currentPeriodStart).toLocaleDateString() : new Date(row.createdAt).toLocaleDateString()}</span>,
     },
     {
       key: "nextBilling", label: "Next billing",
-      render: () => <span className="text-xs" style={{ color: "#94A3B8" }}>—</span>,
+      render: () => <span className="text-xs" style={{ color: "#A1A1AA" }}>—</span>,
     },
     {
       key: "status", label: "Status",
@@ -107,7 +107,7 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold" style={{ color: "#0F172A" }}>Plans & billing</h1>
+      <h1 className="text-xl font-bold" style={{ color: "#18181B" }}>Plans & billing</h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="MRR" value="₹0" icon={DollarSign} />
@@ -117,7 +117,7 @@ export default function BillingPage() {
       </div>
 
       {/* Plan summary */}
-      <p className="text-sm" style={{ color: "#64748B" }}>Plan breakdown: {planSummary}</p>
+      <p className="text-sm" style={{ color: "#71717A" }}>Plan breakdown: {planSummary}</p>
       <p className="text-xs px-3 py-2 rounded-lg inline-block" style={{ background: "#F0FDFA", color: "#0D9488", border: "1px solid #99F6E4" }}>
         All accounts are on Early Access — no billing active
       </p>

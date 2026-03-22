@@ -28,7 +28,7 @@ function FlagDots({ flags }) {
     <div className="flex items-center gap-1.5">
       {dots.map((d) => (
         <span key={d.key} title={`${d.label}: ${d.on ? "On" : "Off"}`}
-          className="w-2 h-2 rounded-full" style={{ background: d.on ? "#059669" : "#E2E8F0" }} />
+          className="w-2 h-2 rounded-full" style={{ background: d.on ? "#059669" : "#E4E4E7" }} />
       ))}
     </div>
   );
@@ -50,7 +50,7 @@ export default function AccountsPage() {
   }, []);
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#94A3B8" }} /></div>;
+    return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#A1A1AA" }} /></div>;
   }
 
   const earlyAccessCount = (stats?.planBreakdown || []).find((p) => p._id === "trial")?.count || stats?.totalAccounts || 0;
@@ -61,14 +61,14 @@ export default function AccountsPage() {
       render: (row) => (
         <Link href={`/admin/accounts/${row.userId}`} className="flex items-center gap-3 hover:opacity-80">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
-            style={{ background: "#EEF2FF", color: "#4338CA" }}>
+            style={{ background: "#EEF2FF", color: "#4F46E5" }}>
             {(row.instagramUsername || row.userId || "U")[0].toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-medium" style={{ color: "#0F172A" }}>
+            <p className="text-sm font-medium" style={{ color: "#18181B" }}>
               {row.instagramUsername ? `@${row.instagramUsername}` : row.userId}
             </p>
-            {row.email && <p className="text-xs" style={{ color: "#94A3B8" }}>{row.email}</p>}
+            {row.email && <p className="text-xs" style={{ color: "#A1A1AA" }}>{row.email}</p>}
           </div>
         </Link>
       ),
@@ -76,7 +76,7 @@ export default function AccountsPage() {
     {
       key: "igAccountCount", label: "IG Accounts", sortable: true, align: "center",
       render: (row) => (
-        <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: "#F1F5F9", color: "#475569" }}>
+        <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: "#F4F4F5", color: "#475569" }}>
           {row.igAccountCount || 0}
         </span>
       ),
@@ -87,11 +87,11 @@ export default function AccountsPage() {
     },
     {
       key: "dmsSentThisMonth", label: "DMs/mo", sortable: true, align: "right",
-      render: (row) => <span className="text-sm font-medium" style={{ color: "#0F172A" }}>{row.usage?.dmsSentThisMonth || 0}</span>,
+      render: (row) => <span className="text-sm font-medium" style={{ color: "#18181B" }}>{row.usage?.dmsSentThisMonth || 0}</span>,
     },
     {
       key: "createdAt", label: "Joined", sortable: true,
-      render: (row) => <span className="text-xs" style={{ color: "#94A3B8" }}>{timeAgo(row.createdAt)}</span>,
+      render: (row) => <span className="text-xs" style={{ color: "#A1A1AA" }}>{timeAgo(row.createdAt)}</span>,
     },
     {
       key: "flags", label: "Flags",
@@ -102,7 +102,7 @@ export default function AccountsPage() {
       render: (row) => (
         <Link href={`/admin/accounts/${row.userId}`}
           className="text-xs font-medium px-3 py-1.5 rounded-md transition-colors"
-          style={{ color: "#4338CA" }}
+          style={{ color: "#4F46E5" }}
           onMouseEnter={(e) => { e.currentTarget.style.background = "#EEF2FF"; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
           View
@@ -113,7 +113,7 @@ export default function AccountsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold" style={{ color: "#0F172A" }}>All accounts</h1>
+      <h1 className="text-xl font-bold" style={{ color: "#18181B" }}>All accounts</h1>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total accounts" value={stats?.totalAccounts ?? 0} icon={Users} />
