@@ -21,52 +21,40 @@ export async function adminGetOverviewStats() {
   await requireAdmin();
   await dbConnect();
 
-  const totalAccounts = await User.countDocuments();
-  const connectedAccounts = await User.countDocuments({ isConnected: true });
-  const activeAutomations = await User.countDocuments({ "automation.isActive": true });
-  const totalEvents = await Event.countDocuments();
-
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
-  const sentToday = await Event.countDocuments({ "reply.status": "sent", createdAt: { $gte: startOfDay } });
-  const eventsToday = await Event.countDocuments({ createdAt: { $gte: startOfDay } });
-
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
-  const eventsByType = await Event.aggregate([
-    { $group: { _id: "$type", count: { $sum: 1 } } },
-    { $sort: { count: -1 } },
-  ]);
-
-  // Active accounts (had events in last 7 days)
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const activeAccountIds = await Event.distinct("from.id", { createdAt: { $gte: sevenDaysAgo } });
-  const activeAccounts = activeAccountIds.length;
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  // Total DMs sent
-  const dmAgg = await User.aggregate([
-    { $group: { _id: null, total: { $sum: "$usage.dmsSentTotal" }, month: { $sum: "$usage.dmsSentThisMonth" } } },
+  // Run ALL queries in parallel
+  const [
+    totalAccounts, connectedAccounts, activeAutomations, totalEvents,
+    sentToday, eventsToday, eventsByType, activeAccountIds, dmAgg,
+    totalLast24h, failedLast24h, newThisMonth, planBreakdown, errorAccounts,
+  ] = await Promise.all([
+    User.countDocuments(),
+    User.countDocuments({ isConnected: true }),
+    User.countDocuments({ "automation.isActive": true }),
+    Event.countDocuments(),
+    Event.countDocuments({ "reply.status": "sent", createdAt: { $gte: startOfDay } }),
+    Event.countDocuments({ createdAt: { $gte: startOfDay } }),
+    Event.aggregate([{ $group: { _id: "$type", count: { $sum: 1 } } }, { $sort: { count: -1 } }]),
+    Event.distinct("from.id", { createdAt: { $gte: sevenDaysAgo } }),
+    User.aggregate([{ $group: { _id: null, total: { $sum: "$usage.dmsSentTotal" }, month: { $sum: "$usage.dmsSentThisMonth" } } }]),
+    Event.countDocuments({ createdAt: { $gte: oneDayAgo } }),
+    Event.countDocuments({ "reply.status": "failed", createdAt: { $gte: oneDayAgo } }),
+    User.countDocuments({ createdAt: { $gte: startOfMonth } }),
+    User.aggregate([{ $group: { _id: "$subscription.plan", count: { $sum: 1 } } }]),
+    Event.distinct("accountId", { "reply.status": "failed", createdAt: { $gte: oneDayAgo } }),
   ]);
+
+  const activeAccounts = activeAccountIds.length;
   const totalDmsSent = dmAgg[0]?.total || 0;
   const dmsThisMonth = dmAgg[0]?.month || 0;
-
-  // Webhook health (last 24h)
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const totalLast24h = await Event.countDocuments({ createdAt: { $gte: oneDayAgo } });
-  const failedLast24h = await Event.countDocuments({ "reply.status": "failed", createdAt: { $gte: oneDayAgo } });
   const webhookHealth = totalLast24h > 0 ? Math.round(((totalLast24h - failedLast24h) / totalLast24h) * 100) : 100;
-
-  // New accounts this month
-  const newThisMonth = await User.countDocuments({ createdAt: { $gte: startOfMonth } });
-
-  // Plan breakdown
-  const planBreakdown = await User.aggregate([
-    { $group: { _id: "$subscription.plan", count: { $sum: 1 } } },
-  ]);
-
-  // Accounts with errors last 24h
-  const errorAccounts = await Event.distinct("accountId", { "reply.status": "failed", createdAt: { $gte: oneDayAgo } });
 
   return {
     totalAccounts, connectedAccounts, activeAutomations, totalEvents,

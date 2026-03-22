@@ -52,66 +52,41 @@ export async function getDashboardStats(accountId) {
     return { contacts: 0, sentToday: 0, transmissionTrend: 0, latestEvents: [] };
   }
 
-  const user = await User.findOne({ userId }).lean();
   const businessId = account.instagramUserId;
   const acctId = account._id;
 
-  const totalContacts = await Event.distinct("from.id", {
-    $or: [{ accountId: acctId }, { targetBusinessId: businessId, accountId: { $exists: false } }],
-  }).then((ids) => ids.length);
-
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const startOfYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
 
   const eventFilter = {
     $or: [{ accountId: acctId }, { targetBusinessId: businessId, accountId: { $exists: false } }],
   };
 
-  const sentToday = await Event.countDocuments({
-    ...eventFilter,
-    "reply.status": "sent",
-    createdAt: { $gte: startOfDay },
-  });
-
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const startOfYesterday = new Date(yesterday.setHours(0, 0, 0, 0));
-
-  const sentYesterday = await Event.countDocuments({
-    ...eventFilter,
-    "reply.status": "sent",
-    createdAt: { $gte: startOfYesterday, $lt: startOfDay },
-  });
-
-  const transmissionTrend =
-    sentYesterday === 0 ? 0 : Math.round(((sentToday - sentYesterday) / sentYesterday) * 100);
-
-  const totalInteractions = await Event.countDocuments(eventFilter);
-
-  const interactionsByType = await Event.aggregate([
-    { $match: { $or: [{ accountId: acctId }, { targetBusinessId: businessId, accountId: { $exists: false } }] } },
-    { $group: { _id: "$type", count: { $sum: 1 } } },
-    { $sort: { count: -1 } },
+  // Run ALL queries in parallel — biggest perf win
+  const [user, contactIds, sentToday, sentYesterday, totalInteractions, interactionsByType, recentInteractions, reelCategoryBreakdown] = await Promise.all([
+    User.findOne({ userId }).lean(),
+    Event.distinct("from.id", eventFilter),
+    Event.countDocuments({ ...eventFilter, "reply.status": "sent", createdAt: { $gte: startOfDay } }),
+    Event.countDocuments({ ...eventFilter, "reply.status": "sent", createdAt: { $gte: startOfYesterday, $lt: startOfDay } }),
+    Event.countDocuments(eventFilter),
+    Event.aggregate([
+      { $match: { $or: [{ accountId: acctId }, { targetBusinessId: businessId, accountId: { $exists: false } }] } },
+      { $group: { _id: "$type", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+    ]),
+    Event.find(eventFilter).select("type from content reply metadata createdAt").sort({ createdAt: -1 }).limit(10).lean(),
+    Event.aggregate([
+      { $match: { ...eventFilter, type: 'reel_share', "metadata.matchType": { $exists: true } } },
+      { $group: { _id: "$metadata.matchType", categoryName: { $first: "$metadata.categoryRuleName" }, count: { $sum: 1 }, sent: { $sum: { $cond: [{ $eq: ["$reply.status", "sent"] }, 1, 0] } } } },
+      { $sort: { count: -1 } },
+    ]),
   ]);
 
-  const recentInteractions = await Event.find(eventFilter)
-    .sort({ createdAt: -1 })
-    .limit(10)
-    .lean();
-
-  // Reel share category breakdown
-  const reelCategoryBreakdown = await Event.aggregate([
-    { $match: { ...eventFilter, type: 'reel_share', "metadata.matchType": { $exists: true } } },
-    {
-      $group: {
-        _id: "$metadata.matchType",
-        categoryName: { $first: "$metadata.categoryRuleName" },
-        count: { $sum: 1 },
-        sent: { $sum: { $cond: [{ $eq: ["$reply.status", "sent"] }, 1, 0] } },
-      },
-    },
-    { $sort: { count: -1 } },
-  ]);
+  const totalContacts = contactIds.length;
+  const transmissionTrend = sentYesterday === 0 ? 0 : Math.round(((sentToday - sentYesterday) / sentYesterday) * 100);
 
   return {
     contacts: totalContacts,
