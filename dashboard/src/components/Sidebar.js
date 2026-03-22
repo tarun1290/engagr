@@ -23,14 +23,11 @@ import AccountSwitcher from "./AccountSwitcher";
 // [PLANS DISABLED] Removed: gatedPage entries for Billing, Analytics, API Keys
 // [PLANS DISABLED] Removed: lock icons, plan badge, DM usage bar in footer
 
-const MENU_ITEMS = [
+const BASE_MENU_ITEMS = [
   { id: "Home", label: "Home", icon: Home },
   { id: "Automation", label: "Automation", icon: Zap },
   { id: "Contacts", label: "Contacts", icon: Users2 },
-  { id: "beta:conversations", label: "Conversations", icon: MessageSquare, beta: true, betaSlug: "conversations" },
   { id: "Activity", label: "Activity", icon: Activity },
-  { id: "beta:knowledge", label: "Knowledge", icon: BookOpen, beta: true, betaSlug: "knowledge-base" },
-  { id: "beta:links", label: "Links", icon: Link2, beta: true, betaSlug: "smart-links" },
   // [PLANS DISABLED] These items are hidden during Early Access:
   // { id: "Billing", label: "Billing", icon: CreditCard },
   // { id: "Analytics", label: "Analytics", icon: BarChart3, gatedPage: "analytics" },
@@ -77,13 +74,31 @@ const SidebarItem = ({ icon: Icon, label, active = false, collapsed = false, onC
 );
 
 export default function Sidebar({ isCollapsed, setIsCollapsed, activeTab = "Home", onTabChange, aiEnabled = false, smartFeatures = {} }) {
+  // Build menu: insert real pages when admin-enabled, beta teasers otherwise
+  const afterContacts = [];
+  if (smartFeatures.smartReplies) {
+    afterContacts.push({ id: "Conversations", label: "Conversations", icon: MessageSquare });
+  } else {
+    afterContacts.push({ id: "beta:conversations", label: "Conversations", icon: MessageSquare, beta: true, betaSlug: "conversations" });
+  }
+
+  const afterActivity = [];
+  if (smartFeatures.knowledgeBase) {
+    afterActivity.push({ id: "Knowledge", label: "Knowledge", icon: BookOpen });
+  } else {
+    afterActivity.push({ id: "beta:knowledge", label: "Knowledge", icon: BookOpen, beta: true, betaSlug: "knowledge-base" });
+  }
+  if (aiEnabled) {
+    afterActivity.push({ id: "Links", label: "Links", icon: Link2 });
+  } else {
+    afterActivity.push({ id: "beta:links", label: "Links", icon: Link2, beta: true, betaSlug: "smart-links" });
+  }
+
   const menuItems = [
-    ...MENU_ITEMS,
-    ...(aiEnabled ? [{ id: "Links", label: "Links", icon: Link2 }] : []),
-    // [SMART FEATURES] Knowledge Base and Conversations sidebar items — uncomment when enabled
-    // ...(smartFeatures.knowledgeBase ? [{ id: "Knowledge", label: "Knowledge", icon: BookOpen }] : []),
-    // ...(smartFeatures.smartReplies ? [{ id: "Conversations", label: "Conversations", icon: MessageSquare }] : []),
-    // [/SMART FEATURES]
+    ...BASE_MENU_ITEMS.slice(0, 3), // Home, Automation, Contacts
+    ...afterContacts,
+    ...BASE_MENU_ITEMS.slice(3),    // Activity
+    ...afterActivity,
   ];
 
   return (

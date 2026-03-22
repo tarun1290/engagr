@@ -627,54 +627,58 @@ export default function Automation({ aiEnabled = false }) {
 
         {/* [SMART FEATURES] AI Smart Replies section removed — see KnowledgeBasePage.js and ConversationsPage.js for the full UI. Restore from git history when enabling smart features. [/SMART FEATURES] */}
 
-        {/* Beta feature teasers */}
-        <div
-          className="rounded-[28px] p-6 shadow-sm theme-transition cursor-pointer transition-all hover:shadow-md"
-          style={{ backgroundColor: 'var(--card)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)' }}
-          onClick={() => window.location.hash = '#coming-soon-ai'}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: 'var(--primary-light)', border: '1px solid var(--primary-medium)' }}>
-              <Layers size={20} style={{ color: 'var(--primary)' }} />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>AI Product Detection</h2>
-                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: 'rgba(124, 58, 237, 0.12)', color: '#7C3AED' }}>Beta</span>
+        {/* Beta feature teasers — hidden when admin has enabled the real feature */}
+        {!aiEnabled && (
+          <div
+            className="rounded-[28px] p-6 shadow-sm theme-transition cursor-pointer transition-all hover:shadow-md"
+            style={{ backgroundColor: 'var(--card)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)' }}
+            onClick={() => window.location.hash = '#coming-soon-ai'}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: 'var(--primary-light)', border: '1px solid var(--primary-medium)' }}>
+                <Layers size={20} style={{ color: 'var(--primary)' }} />
               </div>
-              <p className="text-[12px] font-medium mt-0.5" style={{ color: 'var(--text-placeholder)' }}>
-                AI analyzes shared reels to identify products and send purchase links automatically
-              </p>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>AI Product Detection</h2>
+                  <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'rgba(124, 58, 237, 0.12)', color: '#7C3AED' }}>Beta</span>
+                </div>
+                <p className="text-[12px] font-medium mt-0.5" style={{ color: 'var(--text-placeholder)' }}>
+                  AI analyzes shared reels to identify products and send purchase links automatically
+                </p>
+              </div>
+              <span className="text-[11px] font-bold" style={{ color: 'var(--primary)' }}>Learn more &rarr;</span>
             </div>
-            <span className="text-[11px] font-bold" style={{ color: 'var(--primary)' }}>Learn more &rarr;</span>
           </div>
-        </div>
+        )}
 
-        <div
-          className="rounded-[28px] p-6 shadow-sm theme-transition cursor-pointer transition-all hover:shadow-md"
-          style={{ backgroundColor: 'var(--card)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)' }}
-          onClick={() => window.location.hash = '#coming-soon-smart'}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: '#ccfbf1', border: '1px solid #0d9488' }}>
-              <MessageSquare size={20} style={{ color: '#0d9488' }} />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>AI Smart Replies</h2>
-                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: 'rgba(124, 58, 237, 0.12)', color: '#7C3AED' }}>Beta</span>
+        {!aiEnabled && (
+          <div
+            className="rounded-[28px] p-6 shadow-sm theme-transition cursor-pointer transition-all hover:shadow-md"
+            style={{ backgroundColor: 'var(--card)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--border)' }}
+            onClick={() => window.location.hash = '#coming-soon-smart'}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: '#ccfbf1', border: '1px solid #0d9488' }}>
+                <MessageSquare size={20} style={{ color: '#0d9488' }} />
               </div>
-              <p className="text-[12px] font-medium mt-0.5" style={{ color: 'var(--text-placeholder)' }}>
-                AI handles DM conversations using your Shopify products and knowledge base
-              </p>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>AI Smart Replies</h2>
+                  <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'rgba(124, 58, 237, 0.12)', color: '#7C3AED' }}>Beta</span>
+                </div>
+                <p className="text-[12px] font-medium mt-0.5" style={{ color: 'var(--text-placeholder)' }}>
+                  AI handles DM conversations using your Shopify products and knowledge base
+                </p>
+              </div>
+              <span className="text-[11px] font-bold" style={{ color: 'var(--primary)' }}>Learn more &rarr;</span>
             </div>
-            <span className="text-[11px] font-bold" style={{ color: 'var(--primary)' }}>Learn more &rarr;</span>
           </div>
-        </div>
+        )}
 
         {/* Publish */}
         <button

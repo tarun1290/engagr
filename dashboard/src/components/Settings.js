@@ -287,26 +287,28 @@ export default function Settings({ stats }) {
         </SectionCard>
       )}
 
-      {/* Beta feature teasers */}
-      <div className="rounded-[24px] overflow-hidden theme-transition" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
-        <div className="px-8 py-6 flex items-center gap-4" style={{ borderBottom: '1px solid var(--surface-alt)' }}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)', color: 'var(--text-placeholder)' }}>
-            <ShoppingBag size={18} />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Shopify Integration</h3>
-              <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: 'rgba(124, 58, 237, 0.12)', color: '#7C3AED' }}>Beta</span>
+      {/* Beta Shopify teaser — hidden when admin has enabled the real feature */}
+      {!stats?.smartFeaturesEnabled?.shopify && (
+        <div className="rounded-[24px] overflow-hidden theme-transition" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
+          <div className="px-8 py-6 flex items-center gap-4" style={{ borderBottom: '1px solid var(--surface-alt)' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: 'var(--surface-alt)', border: '1px solid var(--border)', color: 'var(--text-placeholder)' }}>
+              <ShoppingBag size={18} />
             </div>
-            <p className="text-[13px] font-medium" style={{ color: 'var(--text-muted)' }}>Connect your Shopify store to sync products and enable AI-powered product recommendations in DMs</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-black" style={{ color: 'var(--text-primary)' }}>Shopify Integration</h3>
+                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'rgba(124, 58, 237, 0.12)', color: '#7C3AED' }}>Beta</span>
+              </div>
+              <p className="text-[13px] font-medium" style={{ color: 'var(--text-muted)' }}>Connect your Shopify store to sync products and enable AI-powered product recommendations in DMs</p>
+            </div>
+          </div>
+          <div className="px-8 py-4">
+            <span className="text-[12px] font-bold" style={{ color: 'var(--primary)' }}>Learn more &rarr;</span>
           </div>
         </div>
-        <div className="px-8 py-4">
-          <span className="text-[12px] font-bold" style={{ color: 'var(--primary)' }}>Learn more &rarr;</span>
-        </div>
-      </div>
+      )}
 
       <div className="rounded-[24px] overflow-hidden theme-transition" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
         <div className="px-8 py-6 flex items-center gap-4" style={{ borderBottom: '1px solid var(--surface-alt)' }}>
