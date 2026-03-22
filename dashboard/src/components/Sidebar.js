@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import {
   Home, Settings, ChevronLeft, ChevronRight, Zap, Users2, Activity,
-  Link2, BookOpen, MessageSquare, LayoutDashboard, Menu, X,
+  Link2, BookOpen, MessageSquare, LayoutDashboard, Menu, X, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AccountSwitcher from "./AccountSwitcher";
@@ -126,6 +126,19 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, activeTab = "Home
 
         <SidebarItem icon={Settings} label="Settings" active={activeTab === "Settings"}
           collapsed={isCollapsed} onClick={() => handleClick({ id: "Settings" })} />
+
+        <a href="/api/auth/logout"
+          className={cn(
+            "flex items-center px-3 py-2.5 my-0.5 rounded-lg transition-all duration-150",
+            isCollapsed ? "justify-center" : "gap-3"
+          )}
+          style={{ color: "#A1A1AA" }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = "#DC2626"; e.currentTarget.style.backgroundColor = "#FEF2F2"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = "#A1A1AA"; e.currentTarget.style.backgroundColor = "transparent"; }}
+        >
+          <LogOut size={18} strokeWidth={1.5} />
+          {!isCollapsed && <span className="text-sm">Log out</span>}
+        </a>
       </div>
     </>
   );

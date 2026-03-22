@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, Activity, AlertTriangle, Loader2 } from "lucide-react";
+import { Users, Activity, AlertTriangle, Loader2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import StatCard from "../components/StatCard";
 import PlanBadge from "../components/PlanBadge";
 import DataTable from "../components/DataTable";
+import ConfirmModal from "../components/ConfirmModal";
 import { adminGetOverviewStats, adminGetAccounts } from "../admin-actions";
+import { deleteUser } from "../actions";
 
 function timeAgo(date) {
   if (!date) return "—";
@@ -38,6 +41,9 @@ export default function AccountsPage() {
   const [stats, setStats] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -54,6 +60,21 @@ export default function AccountsPage() {
   }
 
   const earlyAccessCount = (stats?.planBreakdown || []).find((p) => p._id === "trial")?.count || stats?.totalAccounts || 0;
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const res = await deleteUser(deleteTarget.userId, deleteConfirmText);
+    if (res.success) {
+      toast.success(`Account deleted. ${res.deleted.events} events, ${res.deleted.igAccounts} accounts removed.`);
+      setAccounts((prev) => prev.filter((a) => a.userId !== deleteTarget.userId));
+    } else {
+      toast.error(res.error || "Failed to delete");
+    }
+    setDeleting(false);
+    setDeleteTarget(null);
+    setDeleteConfirmText("");
+  };
 
   const columns = [
     {
@@ -100,13 +121,23 @@ export default function AccountsPage() {
     {
       key: "actions", label: "",
       render: (row) => (
-        <Link href={`/admin/accounts/${row.userId}`}
-          className="text-xs font-medium px-3 py-1.5 rounded-md transition-colors"
-          style={{ color: "#4F46E5" }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = "#EEF2FF"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-          View
-        </Link>
+        <div className="flex items-center gap-1">
+          <Link href={`/admin/accounts/${row.userId}`}
+            className="text-xs font-medium px-3 py-1.5 rounded-md transition-colors"
+            style={{ color: "#4F46E5" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "#EEF2FF"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+            View
+          </Link>
+          <button onClick={() => setDeleteTarget(row)}
+            className="p-1.5 rounded-md transition-colors"
+            style={{ color: "#A1A1AA" }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "#DC2626"; e.currentTarget.style.background = "#FEF2F2"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "#A1A1AA"; e.currentTarget.style.background = "transparent"; }}
+            title="Delete account">
+            <Trash2 size={13} />
+          </button>
+        </div>
       ),
     },
   ];
@@ -130,6 +161,30 @@ export default function AccountsPage() {
         pageSize={20}
         emptyMessage="No accounts found"
       />
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => { setDeleteTarget(null); setDeleteConfirmText(""); }}
+        onConfirm={handleDelete}
+        title={`Delete @${deleteTarget?.instagramUsername || deleteTarget?.userId}?`}
+        description="This will permanently delete the account and ALL associated data: events, contacts, automations, connected Instagram accounts. This cannot be undone."
+        confirmLabel="Delete account"
+        confirmColor="danger"
+        loading={deleting}
+      >
+        <div className="space-y-3">
+          <p className="text-xs" style={{ color: "#A1A1AA" }}>
+            Type <strong style={{ color: "#18181B" }}>{deleteTarget?.instagramUsername || deleteTarget?.email || deleteTarget?.userId}</strong> to confirm:
+          </p>
+          <input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder="Type to confirm..."
+            className="w-full px-3 py-2 text-sm rounded-lg outline-none"
+            style={{ border: "1px solid #E4E4E7", color: "#18181B" }} />
+          {deleteConfirmText && deleteConfirmText !== (deleteTarget?.instagramUsername || deleteTarget?.email || deleteTarget?.userId) && (
+            <p className="text-xs" style={{ color: "#DC2626" }}>Does not match</p>
+          )}
+        </div>
+      </ConfirmModal>
     </div>
   );
 }

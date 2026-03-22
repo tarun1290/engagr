@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Instagram, Loader2, MessageSquare, Users, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Instagram, Loader2, MessageSquare, Users, Zap, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import StatCard from "../../components/StatCard";
 import PlanBadge from "../../components/PlanBadge";
 import ToggleSwitch from "../../components/ToggleSwitch";
 import ConfirmModal from "../../components/ConfirmModal";
+import { deleteUser } from "../../actions";
 import EventLog from "../../components/EventLog";
 import { adminGetAccountDetail, adminToggleFeature, adminGetFeatureEvents } from "../../admin-actions";
 
@@ -20,12 +23,16 @@ const FEATURE_FLAGS = [
 
 export default function AccountDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const userId = params.userId;
   const [data, setData] = useState(null);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirmFlag, setConfirmFlag] = useState(null);
   const [toggling, setToggling] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -196,7 +203,20 @@ export default function AccountDetailPage() {
         <EventLog events={events} emptyMessage="No events for this account" />
       </div>
 
-      {/* Confirm modal */}
+      {/* Danger zone */}
+      <div className="rounded-xl p-6" style={{ border: "2px solid #FCA5A5", background: "#FEF2F2" }}>
+        <h2 className="text-sm font-semibold mb-1" style={{ color: "#DC2626" }}>Danger zone</h2>
+        <p className="text-xs mb-4" style={{ color: "#991B1B" }}>
+          Permanently delete this account and all associated data. This cannot be undone.
+        </p>
+        <button onClick={() => setShowDelete(true)}
+          className="flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-lg text-white"
+          style={{ background: "#DC2626" }}>
+          <Trash2 size={13} /> Delete account
+        </button>
+      </div>
+
+      {/* Feature toggle confirm modal */}
       <ConfirmModal
         isOpen={!!confirmFlag}
         onClose={() => setConfirmFlag(null)}
@@ -207,6 +227,38 @@ export default function AccountDetailPage() {
         confirmColor={user.flags?.[confirmFlag?.key] ? "danger" : "success"}
         loading={toggling}
       />
+
+      {/* Delete account confirm modal */}
+      <ConfirmModal
+        isOpen={showDelete}
+        onClose={() => { setShowDelete(false); setDeleteConfirmText(""); }}
+        onConfirm={async () => {
+          setDeleting(true);
+          const res = await deleteUser(user.userId, deleteConfirmText);
+          if (res.success) {
+            toast.success(`Account deleted. ${res.deleted.events} events, ${res.deleted.igAccounts} accounts removed.`);
+            router.push("/admin/accounts");
+          } else {
+            toast.error(res.error || "Failed to delete");
+          }
+          setDeleting(false);
+        }}
+        title={`Delete @${user.instagramUsername || user.userId}?`}
+        description="This permanently deletes the account and ALL data: events, contacts, automations, connected accounts."
+        confirmLabel="Delete account"
+        confirmColor="danger"
+        loading={deleting}
+      >
+        <div className="space-y-3">
+          <p className="text-xs" style={{ color: "#A1A1AA" }}>
+            Type <strong style={{ color: "#18181B" }}>{user.instagramUsername || user.email || user.userId}</strong> to confirm:
+          </p>
+          <input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder="Type to confirm..."
+            className="w-full px-3 py-2 text-sm rounded-lg outline-none"
+            style={{ border: "1px solid #E4E4E7", color: "#18181B" }} />
+        </div>
+      </ConfirmModal>
     </div>
   );
 }

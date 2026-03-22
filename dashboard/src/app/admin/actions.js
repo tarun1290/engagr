@@ -27,8 +27,7 @@ export async function adminLogin(formData) {
   redirect("/admin?error=1");
 }
 
-export async function deleteUser(userId) {
-  // Verify admin session before performing destructive action
+export async function deleteUser(userId, confirmText) {
   const cookieStore = await cookies();
   const adminSession = cookieStore.get("admin_session")?.value;
   if (adminSession !== process.env.ADMIN_KEY) {
@@ -41,26 +40,73 @@ export async function deleteUser(userId) {
     await dbConnect();
 
     const user = await User.findOne({ userId });
-    if (user?.instagramBusinessId) {
-      await Event.deleteMany({ targetBusinessId: user.instagramBusinessId });
+    if (!user) return { error: "User not found" };
+
+    // Username confirmation check (if provided)
+    if (confirmText) {
+      const matchesUsername = confirmText === user.instagramUsername;
+      const matchesEmail = confirmText === user.email;
+      const matchesUserId = confirmText === user.userId;
+      if (!matchesUsername && !matchesEmail && !matchesUserId) {
+        return { error: "Confirmation text does not match username, email, or userId" };
+      }
     }
 
-    // Cascade delete AI/tracking data
-    const userLinks = await TrackedLink.find({ userId }).select("_id").lean();
-    const linkIds = userLinks.map(l => l._id);
-    if (linkIds.length > 0) {
-      await ClickEvent.deleteMany({ trackedLinkId: { $in: linkIds } });
-    }
-    await TrackedLink.deleteMany({ userId });
-    await ProductDetection.deleteMany({ userId });
-    await InstagramAccount.deleteMany({ userId });
+    // Find IG accounts for event cleanup
+    const igAccounts = await InstagramAccount.find({ userId: user.userId }).lean();
+    const acctIds = igAccounts.map((a) => a._id);
+    const businessIds = igAccounts.map((a) => a.instagramUserId).filter(Boolean);
 
-    await User.deleteOne({ userId });
+    // Cascade delete all associated data
+    const eventsDeleted = await Event.deleteMany({
+      $or: [
+        ...(acctIds.length ? [{ accountId: { $in: acctIds } }] : []),
+        ...(businessIds.length ? [{ targetBusinessId: { $in: businessIds } }] : []),
+        { "from.id": user.userId },
+      ],
+    });
 
-    // Invalidate cached page so the table refreshes with fresh data
-    revalidatePath("/admin/dashboard");
+    const linksFound = await TrackedLink.find({ userId: user.userId }).select("_id").lean();
+    const linkIds = linksFound.map((l) => l._id);
+    const clicksDeleted = linkIds.length ? await ClickEvent.deleteMany({ trackedLinkId: { $in: linkIds } }) : { deletedCount: 0 };
+    const linksDeleted = await TrackedLink.deleteMany({ userId: user.userId });
+    const detectionsDeleted = await ProductDetection.deleteMany({ userId: user.userId });
+    const accountsDeleted = await InstagramAccount.deleteMany({ userId: user.userId });
 
-    return { success: true };
+    // Clean up smart features data if models exist
+    try { const KD = (await import("@/models/KnowledgeDocument")).default; await KD.deleteMany({ userId: user.userId }); } catch {}
+    try { const KC = (await import("@/models/KnowledgeChunk")).default; await KC.deleteMany({ userId: user.userId }); } catch {}
+    try { const CT = (await import("@/models/ConversationThread")).default; await CT.deleteMany({ userId: user.userId }); } catch {}
+    try { const SS = (await import("@/models/ShopifyStore")).default; await SS.deleteMany({ userId: user.userId }); } catch {}
+    try { const SP = (await import("@/models/ShopifyProduct")).default; await SP.deleteMany({ userId: user.userId }); } catch {}
+
+    await User.deleteOne({ userId: user.userId });
+
+    console.log("[Admin] Account deleted:", {
+      deletedBy: "admin",
+      userId: user.userId,
+      email: user.email,
+      username: user.instagramUsername,
+      events: eventsDeleted.deletedCount,
+      igAccounts: accountsDeleted.deletedCount,
+      links: linksDeleted.deletedCount,
+      clicks: clicksDeleted.deletedCount,
+      detections: detectionsDeleted.deletedCount,
+      timestamp: new Date().toISOString(),
+    });
+
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      deleted: {
+        events: eventsDeleted.deletedCount,
+        igAccounts: accountsDeleted.deletedCount,
+        links: linksDeleted.deletedCount,
+        clicks: clicksDeleted.deletedCount,
+        detections: detectionsDeleted.deletedCount,
+      },
+    };
   } catch (err) {
     console.error("[deleteUser]", err.message);
     return { error: err.message };
