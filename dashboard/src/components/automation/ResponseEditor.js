@@ -2,6 +2,19 @@
 
 import { cn } from "@/lib/utils";
 
+function normalizeUrl(url) {
+  if (!url) return '';
+  url = url.trim().replace(/\s/g, '');
+  if (!url) return '';
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = 'https://' + url;
+  }
+  if (url.startsWith('http://')) {
+    url = url.replace('http://', 'https://');
+  }
+  return url;
+}
+
 const DM_PRESETS = [
   {
     label: "Friendly",
@@ -183,8 +196,24 @@ export default function ResponseEditor({
             className="w-full rounded-xl h-11 px-4 text-sm outline-none transition-all font-medium"
             style={{ backgroundColor: 'var(--input-bg)', borderWidth: '1px', borderStyle: 'solid', borderColor: 'var(--input-border)', color: 'var(--primary)' }}
             onFocus={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--input-focus-ring)'; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--input-border)'; e.currentTarget.style.boxShadow = 'none'; }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = 'var(--input-border)';
+              e.currentTarget.style.boxShadow = 'none';
+              if (e.target.value) setLinkUrl(normalizeUrl(e.target.value));
+            }}
           />
+          {linkUrl && linkUrl.startsWith('https://') && (
+            <p className="text-[11px] mt-1" style={{ color: 'var(--success)' }}>✓ Valid URL</p>
+          )}
+          {linkUrl && !linkUrl.startsWith('https://') && (
+            <p className="text-[11px] mt-1" style={{ color: 'var(--warning)' }}>URL will be auto-corrected to https://</p>
+          )}
+          {linkUrl && (
+            <a href={normalizeUrl(linkUrl)} target="_blank" rel="noopener noreferrer"
+              className="text-[11px] mt-0.5 inline-flex items-center gap-1 hover:underline" style={{ color: 'var(--primary)' }}>
+              Preview: {normalizeUrl(linkUrl)} ↗
+            </a>
+          )}
         </div>
 
         {/* Delivery button label */}

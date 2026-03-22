@@ -11,6 +11,15 @@ import { generateToken, verifyToken } from "@/lib/jwt";
 // import { getPlanConfig } from "@/lib/plans";
 // [/PLANS DISABLED]
 
+function normalizeUrl(url) {
+  if (!url) return '';
+  url = url.trim().replace(/\s/g, '');
+  if (!url) return '';
+  if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
+  if (url.startsWith('http://')) url = url.replace('http://', 'https://');
+  return url;
+}
+
 async function getOwnerId() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
@@ -479,7 +488,7 @@ export async function saveAutomation(data, accountId) {
     replyMessages: data.replyMessages || [],
     dmContent: data.dmContent,
     buttonText: data.buttonText,
-    linkUrl: data.linkUrl,
+    linkUrl: normalizeUrl(data.linkUrl),
     deliveryMessage: data.deliveryMessage || "",
     deliveryButtonText: data.deliveryButtonText || "",
     isActive: true,
@@ -491,7 +500,7 @@ export async function saveAutomation(data, accountId) {
     mentionReplyMessage: data.mentionReplyMessage || "Thanks for the mention! 🙌",
     reelShareEnabled: data.reelShareEnabled ?? false,
     reelShareMessage: data.reelShareMessage || "Hey! 👋 Thanks for sharing!",
-    reelShareLinkUrl: data.reelShareLinkUrl || "",
+    reelShareLinkUrl: normalizeUrl(data.reelShareLinkUrl) || "",
     reelShareButtonText: data.reelShareButtonText || "Check it out 🚀",
   };
 

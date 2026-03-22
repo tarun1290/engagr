@@ -231,31 +231,50 @@ async function sendFollowGateMessage(igScopedId, text, buttonTitle, commenterIUI
 
 // Deliver the final content — thank you message + link button template
 // Used after "Yes" confirmation (no follow gate) or follow-gate verification
+function normalizeUrl(url) {
+    if (!url) return null;
+    url = url.trim().replace(/\s/g, '');
+    if (!url) return null;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+    }
+    if (url.startsWith('http://')) {
+        url = url.replace('http://', 'https://');
+    }
+    return url;
+}
+
 async function deliverContent(recipientId, token, automation, igUsername) {
     const deliveryText = automation.deliveryMessage
         || `Thank you for your support! 🙌🙏\n\nHere you go. Click the button below to get your content :)`;
-    const linkUrl = automation.linkUrl;
-    const buttonLabel = automation.deliveryButtonText || automation.buttonText || 'View Content';
+    const rawLinkUrl = automation.linkUrl;
+    const linkUrl = normalizeUrl(rawLinkUrl);
+    const buttonLabel = automation.deliveryButtonText || 'Get Content →';
+
+    console.log(`[Delivery] URL: ${rawLinkUrl} → ${linkUrl} | Button: "${buttonLabel}"`);
 
     if (linkUrl) {
         // Send template with button link
         try {
             await sendGenericTemplate(recipientId, [{
-                title: buttonLabel,
-                subtitle: deliveryText,
+                title: 'Your content is ready! 🎉',
+                subtitle: deliveryText.slice(0, 80),
+                default_action: { type: 'web_url', url: linkUrl },
                 buttons: [{
                     type: 'web_url',
                     url: linkUrl,
-                    title: buttonLabel
+                    title: buttonLabel.slice(0, 20)
                 }]
             }], token);
+            console.log(`[Delivery] ✅ Template sent to ${recipientId} with URL: ${linkUrl}`);
         } catch (e) {
             console.error('[Delivery Template Error]', e.message);
-            // Fallback: send as plain text
+            // Fallback: send as plain text with link
             await sendDM(recipientId, `${deliveryText}\n\n🔗 ${linkUrl}`, token);
         }
     } else {
         // No link — send plain text delivery message
+        console.log(`[Delivery] No URL configured — sending plain text`);
         await sendDM(recipientId, deliveryText, token);
     }
 }
@@ -492,10 +511,12 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
         }
     }
 
-    // ── Step 2: Send initial DM — greeting with "Yes" confirmation button ────
+    // ── Step 2: Send initial DM with confirmation button (single message) ────
     const greetingText = automation.dmContent || 'Hey there! Thanks for your interest 😊';
     const confirmButtonText = automation.buttonText || 'Yes';
 
+    // Use sendPrivateReply to initiate the conversation (required by Instagram for comment-based DMs)
+    // This sends the greeting text + gets the recipient's IG-scoped ID
     const firstContact = await sendPrivateReply(commentId, greetingText, token);
     const igScopedId = firstContact?.recipient_id;
 
@@ -513,8 +534,8 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
         return;
     }
 
-    // Send the "Yes" confirmation button via postback
-    // Payload encodes: senderId (for follow check) and commentId (for reference)
+    // Send the confirmation button as a FOLLOW-UP message (different content from greeting)
+    // The greeting text was already sent via sendPrivateReply above
     if (igScopedId) {
         try {
             const url = new URL(`${IG_BASE}/me/messages`);
@@ -529,7 +550,7 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
                             type: 'template',
                             payload: {
                                 template_type: 'button',
-                                text: greetingText,
+                                text: 'Tap below to get your content 👇',
                                 buttons: [{
                                     type: 'postback',
                                     title: confirmButtonText,
@@ -1030,6 +1051,7 @@ export async function POST(request) {
 
                             const firstName = profile?.name?.split(' ')[0] || 'there';
                             const customMessage = replyMessage.replace('{name}', firstName);
+                            replyLinkUrl = normalizeUrl(replyLinkUrl) || replyLinkUrl;
                             const replyText = `${customMessage}\n\n🔗 ${replyLinkUrl}`;
                             let templateSent = false;
 
