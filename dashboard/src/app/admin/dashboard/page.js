@@ -1,426 +1,157 @@
-import { ShieldCheck, Users, Zap, MessageSquare, Activity, LogOut, Instagram, TrendingUp, UserCheck, Calendar, DollarSign, CreditCard, Crown, BarChart3, Settings, Brain, Link2, Eye } from "lucide-react";
-import { getAdminStats, adminLogout } from "../actions";
-import DeleteUserButton from "./DeleteUserButton";
-import AdminUserActions from "./AdminUserActions";
-import AdminThemeToggle from "./AdminThemeToggle";
-import AdminAiAnalytics from "./AdminAiAnalytics";
+"use client";
 
-// Force dynamic rendering — admin dashboard must always show fresh DB data
-export const dynamic = "force-dynamic";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Users, Activity, Zap, MessageSquare, ShieldCheck, Loader2 } from "lucide-react";
+import { ResponsiveContainer, ComposedChart, Line, Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import StatCard from "../components/StatCard";
+import ChartCard from "../components/ChartCard";
+import EventLog from "../components/EventLog";
+import StatusBadge from "../components/StatusBadge";
+import { adminGetOverviewStats, adminGetChartData, adminGetFeatureEvents, adminGetSystemFlags } from "../admin-actions";
 
-function StatCard({ label, value, sub, icon: Icon, color = "slate" }) {
-  const colorMap = {
-    pink:    { bg: "var(--error-light)",   text: "var(--error)",   border: "var(--error-light)" },
-    emerald: { bg: "var(--success-light)", text: "var(--success)", border: "var(--success-light)" },
-    blue:    { bg: "var(--info-light)",    text: "var(--info)",    border: "var(--info-light)" },
-    amber:   { bg: "var(--warning-light)", text: "var(--warning)", border: "var(--warning-light)" },
-    slate:   { bg: "var(--admin-surface-alt)", text: "var(--admin-text-muted)", border: "var(--admin-border)" },
-  };
-  const c = colorMap[color] || colorMap.slate;
+const FEATURE_LIST = [
+  { name: "Comment-to-DM", slug: "comment-to-dm", status: "live" },
+  { name: "Follower gate", slug: "follower-gate", status: "live" },
+  { name: "Reel share replies", slug: "reel-share", status: "live" },
+  { name: "Mention detection", slug: "mentions", status: "live" },
+  { name: "Smart reel rules", slug: "reel-rules", status: "live" },
+  { name: "AI product detection", slug: "ai-detection", status: "disabled" },
+  { name: "Smart link tracking", slug: "smart-links", status: "disabled" },
+  { name: "Shopify integration", slug: "shopify", status: "disabled" },
+  { name: "AI smart replies", slug: "smart-replies", status: "disabled" },
+  { name: "Knowledge base", slug: "knowledge-base", status: "disabled" },
+  { name: "Conversations", slug: "conversations", status: "disabled" },
+  { name: "Analytics", slug: "analytics", status: "planned" },
+  { name: "API access", slug: "api-access", status: "planned" },
+  { name: "Payments", slug: "payments", status: "disabled" },
+];
 
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
   return (
-    <div
-      className="rounded-[20px] p-6 space-y-4 shadow-sm hover:shadow-md transition-shadow"
-      style={{ backgroundColor: "var(--admin-card)", border: `1px solid var(--admin-border)` }}
-    >
-      <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center"
-        style={{ backgroundColor: c.bg, color: c.text, border: `1px solid ${c.border}` }}
-      >
-        <Icon size={18} />
-      </div>
-      <div>
-        <p className="text-3xl font-black" style={{ color: "var(--admin-text-primary)" }}>{value}</p>
-        <p className="text-[13px] font-semibold mt-0.5" style={{ color: "var(--admin-text-muted)" }}>{label}</p>
-        {sub && <p className="text-[11px] mt-1" style={{ color: "var(--admin-text-muted)" }}>{sub}</p>}
-      </div>
+    <div className="rounded-lg px-3 py-2 text-xs shadow-md" style={{ background: "#fff", border: "1px solid #E2E8F0" }}>
+      <p className="font-medium mb-1" style={{ color: "#0F172A" }}>{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} style={{ color: p.color }}>{p.name}: {p.value}</p>
+      ))}
     </div>
   );
 }
 
-function StatusBadge({ active }) {
-  return active ? (
-    <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
-      style={{ backgroundColor: "var(--success-light)", color: "var(--success)", border: "1px solid var(--success)" }}
-    >
-      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: "var(--success)" }} /> Active
-    </span>
-  ) : (
-    <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
-      style={{ backgroundColor: "var(--admin-surface-alt)", color: "var(--admin-text-muted)", border: "1px solid var(--admin-border)" }}
-    >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "var(--admin-text-muted)" }} /> Inactive
-    </span>
-  );
-}
+export default function AdminDashboard() {
+  const [stats, setStats] = useState(null);
+  const [growthData, setGrowthData] = useState([]);
+  const [dmsData, setDmsData] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [flags, setFlags] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-function EventTypeBadge({ type }) {
-  const map = {
-    comment:    { bg: "var(--info-light)",    text: "var(--info)",    border: "var(--info)" },
-    mention:    { bg: "var(--primary-light)",  text: "var(--primary)", border: "var(--primary)" },
-    dm:         { bg: "var(--error-light)",    text: "var(--error)",   border: "var(--error)" },
-    reel_share: { bg: "var(--warning-light)",  text: "var(--warning)", border: "var(--warning)" },
-    reaction:   { bg: "var(--error-light)",    text: "var(--error)",   border: "var(--error)" },
-    postback:   { bg: "var(--accent-light)",   text: "var(--accent)",  border: "var(--accent)" },
-  };
-  const fallback = { bg: "var(--admin-surface-alt)", text: "var(--admin-text-muted)", border: "var(--admin-border)" };
-  const c = map[type] || fallback;
+  useEffect(() => {
+    Promise.all([
+      adminGetOverviewStats(),
+      adminGetChartData("account_growth", 30),
+      adminGetChartData("dms_sent", 30),
+      adminGetFeatureEvents("all", 1, 20),
+      adminGetSystemFlags(),
+    ]).then(([s, g, d, e, f]) => {
+      setStats(s);
+      setGrowthData(g.data || []);
+      setDmsData(d.data || []);
+      setEvents(e.events || []);
+      setFlags(f);
+    }).catch(console.error).finally(() => setLoading(false));
+  }, []);
 
-  return (
-    <span
-      className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
-      style={{ backgroundColor: c.bg, color: c.text, border: `1px solid ${c.border}` }}
-    >
-      {type?.replace("_", " ")}
-    </span>
-  );
-}
+  if (loading) {
+    return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#94A3B8" }} /></div>;
+  }
 
-function EventStatusBadge({ status }) {
-  const map = {
-    sent:     { bg: "var(--success-light)", text: "var(--success)", border: "var(--success)" },
-    failed:   { bg: "var(--error-light)",   text: "var(--error)",   border: "var(--error)" },
-    fallback: { bg: "var(--warning-light)", text: "var(--warning)", border: "var(--warning)" },
-    skipped:  { bg: "var(--admin-surface-alt)", text: "var(--admin-text-muted)", border: "var(--admin-border)" },
-  };
-  const c = map[status] || map.skipped;
+  const healthColor = (stats?.webhookHealth ?? 100) >= 99 ? "#059669" : stats?.webhookHealth >= 95 ? "#D97706" : "#DC2626";
 
   return (
-    <span
-      className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
-      style={{ backgroundColor: c.bg, color: c.text, border: `1px solid ${c.border}` }}
-    >
-      {status || "skipped"}
-    </span>
-  );
-}
+    <div className="space-y-6">
+      <h1 className="text-xl font-bold" style={{ color: "#0F172A" }}>Dashboard</h1>
 
-function timeAgo(date) {
-  const diff = (Date.now() - new Date(date)) / 1000;
-  if (diff < 60) return `${Math.floor(diff)}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <StatCard label="Total accounts" value={stats?.totalAccounts ?? 0} icon={Users} trend={stats?.newThisMonth} />
+        <StatCard label="Active (7d)" value={stats?.activeAccounts ?? 0} icon={Activity} />
+        <StatCard label="Total DMs sent" value={stats?.totalDmsSent ?? 0} icon={MessageSquare} trend={stats?.dmsThisMonth} />
+        <StatCard label="Active automations" value={stats?.activeAutomations ?? 0} icon={Zap} />
+        <StatCard label="Webhook health" value={stats?.webhookHealth ?? 100} icon={ShieldCheck} format="percentage" />
+      </div>
 
-export default async function AdminDashboard() {
-  const stats = await getAdminStats();
-  const connectionRate = stats.totalUsers > 0
-    ? Math.round((stats.connectedUsers / stats.totalUsers) * 100)
-    : 0;
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartCard title="Account growth (30 days)" isEmpty={growthData.length === 0}>
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={growthData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94A3B8" }} tickFormatter={(v) => v.slice(5)} />
+              <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} />
+              <Tooltip content={<ChartTooltip />} />
+              <Bar dataKey="signups" fill="#C7D2FE" name="New signups" radius={[2, 2, 0, 0]} />
+              <Line type="monotone" dataKey="total" stroke="#4338CA" strokeWidth={2} dot={false} name="Total" />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </ChartCard>
 
-  return (
-    <div className="min-h-screen theme-transition" style={{ backgroundColor: "var(--admin-bg)", color: "var(--admin-text-primary)" }}>
+        <ChartCard title="DMs sent per day (30 days)" isEmpty={dmsData.length === 0}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={dmsData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#94A3B8" }} tickFormatter={(v) => v.slice(5)} />
+              <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} />
+              <Tooltip content={<ChartTooltip />} />
+              <Bar dataKey="dms" fill="#059669" name="DMs sent" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      </div>
 
-      {/* Header */}
-      <header
-        className="px-8 py-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur shadow-sm"
-        style={{
-          backgroundColor: "color-mix(in srgb, var(--admin-card) 90%, transparent)",
-          borderBottom: "1px solid var(--admin-border)",
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm"
-            style={{ backgroundColor: "var(--admin-card)", border: "1px solid var(--admin-border)" }}
-          >
-            <ShieldCheck style={{ color: "var(--primary)" }} size={16} />
-          </div>
-          <div>
-            <p className="text-sm font-black" style={{ color: "var(--admin-text-primary)" }}>Admin Panel</p>
-            <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "var(--admin-text-muted)" }}>Engagr</p>
-          </div>
+      {/* Recent activity */}
+      <EventLog events={events} emptyMessage="No recent events" />
+
+      {/* Feature health summary */}
+      <div className="rounded-lg overflow-hidden" style={{ background: "#fff", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        <div className="px-5 py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
+          <h3 className="text-sm font-semibold" style={{ color: "#0F172A" }}>Feature health</h3>
         </div>
-        <div className="flex items-center gap-2">
-          <AdminThemeToggle />
-          <form action={adminLogout}>
-            <button
-              type="submit"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm"
-              style={{
-                backgroundColor: "var(--admin-card)",
-                border: "1px solid var(--admin-border)",
-                color: "var(--admin-text-muted)",
-              }}
-            >
-              <LogOut size={14} /> Sign Out
-            </button>
-          </form>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-8 py-10 space-y-10">
-
-        {/* Stats Grid */}
-        <section>
-          <h2 className="text-xs font-black uppercase tracking-widest mb-5" style={{ color: "var(--admin-text-muted)" }}>Overview</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={Users}       label="Total Users"   value={stats.totalUsers}         color="slate"   />
-            <StatCard icon={Instagram}   label="Connected"     value={stats.connectedUsers}      sub="Instagram linked"    color="pink"    />
-            <StatCard icon={Zap}         label="Automations"   value={stats.activeAutomations}   sub="Currently live"      color="emerald" />
-            <StatCard icon={Activity}    label="Sent Today"    value={stats.sentToday}           sub="Replies delivered"   color="pink"    />
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-            <StatCard icon={MessageSquare} label="Total Events"      value={stats.totalEvents}             color="blue"    />
-            <StatCard icon={UserCheck}     label="Connection Rate"   value={`${connectionRate}%`}          sub="Users with Instagram"  color="amber"   />
-            <StatCard icon={TrendingUp}    label="Events Today"      value={stats.eventsToday}             sub="All interactions"      color="emerald" />
-          </div>
-        </section>
-
-        {/* AI Product Detection Stats */}
-        {stats.aiEnabledUsers > 0 && (
-          <section>
-            <h2 className="text-xs font-black uppercase tracking-widest mb-5" style={{ color: "var(--admin-text-muted)" }}>AI Product Detection</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              <StatCard icon={Brain} label="AI-Enabled Users" value={`${stats.aiEnabledUsers} / ${stats.totalUsers}`} sub="Users with AI unlocked" color="blue" />
-              <StatCard icon={Eye} label="Total Detections" value={stats.totalAiDetections} sub="AI analysis runs" color="emerald" />
-              <StatCard icon={Link2} label="Tracked Links" value={stats.totalTrackedLinks} sub="Product links created" color="amber" />
-            </div>
-          </section>
-        )}
-
-        {/* [PLANS DISABLED] Revenue & Plan Stats hidden during Early Access */}
-        {/* <section>
-          <h2>Revenue & Plans</h2>
-          <StatCard icon={DollarSign} label="MRR" ... />
-          <StatCard icon={CreditCard} label="Active Subscribers" ... />
-          <StatCard icon={Crown} label="Plan Breakdown" ... />
-          <StatCard icon={BarChart3} label="Trial Users" ... />
-          Plan breakdown pills...
-        </section> */}
-        {/* [/PLANS DISABLED] */}
-
-        {/* AI Product Detection Analytics — full analytics dashboard */}
-        {stats.aiEnabledUsers > 0 && (
-          <section>
-            <AdminAiAnalytics />
-          </section>
-        )}
-
-        {/* Interaction Breakdown */}
-        {stats.eventsByType.length > 0 && (
-          <section>
-            <h2 className="text-xs font-black uppercase tracking-widest mb-5" style={{ color: "var(--admin-text-muted)" }}>Interaction Breakdown</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {stats.eventsByType.map((e) => (
-                <div
-                  key={e._id}
-                  className="rounded-2xl px-4 py-4 flex flex-col gap-2 shadow-sm"
-                  style={{ backgroundColor: "var(--admin-card)", border: "1px solid var(--admin-border)" }}
-                >
-                  <EventTypeBadge type={e._id} />
-                  <span className="text-2xl font-black" style={{ color: "var(--admin-text-primary)" }}>{e.count}</span>
-                </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ background: "#FAFAFA" }}>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Feature</th>
+                <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Status</th>
+                <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Enabled users</th>
+                <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider font-semibold" style={{ color: "#94A3B8" }}>Events today</th>
+              </tr>
+            </thead>
+            <tbody>
+              {FEATURE_LIST.map((f) => (
+                <tr key={f.slug} className="transition-colors cursor-pointer" style={{ borderTop: "1px solid #F1F5F9" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "#FAFAFA"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+                  <td className="px-5 py-3">
+                    <Link href={`/admin/features/${f.slug}`} className="font-medium hover:underline" style={{ color: "#0F172A" }}>{f.name}</Link>
+                  </td>
+                  <td className="px-5 py-3"><StatusBadge status={f.status} /></td>
+                  <td className="px-5 py-3 text-right" style={{ color: "#475569" }}>
+                    {f.status === "live" ? stats?.totalAccounts || 0 : flags?.flagCounts ? (
+                      f.slug === "ai-detection" || f.slug === "smart-links" ? flags.flagCounts.aiProductDetectionUnlocked || 0 :
+                      f.slug === "shopify" ? flags.flagCounts.shopifyEnabled || 0 :
+                      f.slug === "smart-replies" || f.slug === "conversations" ? flags.flagCounts.smartRepliesEnabled || 0 :
+                      f.slug === "knowledge-base" ? flags.flagCounts.knowledgeBaseEnabled || 0 : 0
+                    ) : 0}
+                  </td>
+                  <td className="px-5 py-3 text-right" style={{ color: "#475569" }}>{f.status === "live" ? stats?.eventsToday || 0 : "—"}</td>
+                </tr>
               ))}
-            </div>
-          </section>
-        )}
-
-        {/* Users Table */}
-        <section>
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xs font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>
-              Registered Users ({stats.users.length})
-            </h2>
-          </div>
-          <div
-            className="rounded-[20px] overflow-hidden shadow-sm"
-            style={{ backgroundColor: "var(--admin-card)", border: "1px solid var(--admin-border)" }}
-          >
-            {stats.users.length === 0 ? (
-              <div className="py-16 text-center text-sm font-medium" style={{ color: "var(--admin-text-muted)" }}>No users registered yet.</div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--admin-border)", backgroundColor: "var(--admin-surface-alt)" }}>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>User</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Instagram</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Plan</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>DMs Used</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Automation</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Joined</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>AI</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Actions</th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-right" style={{ color: "var(--admin-text-muted)" }}>Delete</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.users.map((user, i) => (
-                    <tr
-                      key={user._id}
-                      className="transition-colors"
-                      style={{
-                        borderBottom: i === stats.users.length - 1 ? "none" : "1px solid var(--admin-border)",
-                      }}
-                    >
-                      <td className="px-6 py-4">
-                        <div>
-                          <p className="font-bold text-[13px]" style={{ color: "var(--admin-text-primary)" }}>{user.name || "—"}</p>
-                          <p className="text-[11px] mt-0.5" style={{ color: "var(--admin-text-muted)" }}>{user.email || user.userId}</p>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {user.isConnected ? (
-                          <div className="flex items-center gap-3">
-                            {user.instagramProfilePic && (
-                              <img src={user.instagramProfilePic} alt="" className="w-7 h-7 rounded-full object-cover" style={{ border: "1px solid var(--admin-border)" }} />
-                            )}
-                            <div>
-                              <p className="font-bold text-[13px]" style={{ color: "var(--admin-text-primary)" }}>@{user.instagramUsername}</p>
-                              <p className="text-[10px]" style={{ color: "var(--admin-text-muted)" }}>{user.instagramBusinessId}</p>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-xs" style={{ color: "var(--admin-text-muted)" }}>Not connected</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {(() => {
-                          const plan = user.subscription?.plan || "trial";
-                          const planColors = { trial: "var(--admin-text-muted)", silver: "var(--admin-text-secondary)", gold: "var(--warning)", platinum: "var(--primary)" };
-                          return (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                              style={{ backgroundColor: "var(--admin-surface-alt)", color: planColors[plan], border: `1px solid var(--admin-border)` }}
-                            >
-                              {plan}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-[13px] font-mono" style={{ color: "var(--admin-text-secondary)" }}>
-                          {user.usage?.dmsSentThisMonth || 0}
-                        </span>
-                        <span className="text-[10px] ml-1" style={{ color: "var(--admin-text-muted)" }}>
-                          /{user.subscription?.plan === "trial" ? 50 : "∞"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <StatusBadge active={user.automation?.isActive} />
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5" style={{ color: "var(--admin-text-muted)" }}>
-                          <Calendar size={11} />
-                          <span className="text-xs">{timeAgo(user.createdAt)}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {user.flags?.aiProductDetectionUnlocked ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase"
-                            style={{ backgroundColor: "var(--success-light)", color: "var(--success)", border: "1px solid var(--success)" }}>
-                            On
-                          </span>
-                        ) : (
-                          <span className="text-[10px]" style={{ color: "var(--admin-text-muted)" }}>—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <AdminUserActions userId={user.userId} currentPlan={user.subscription?.plan || "trial"} aiEnabled={!!user.flags?.aiProductDetectionUnlocked} />
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <DeleteUserButton userId={user.userId} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </section>
-
-        {/* Recent Events */}
-        <section>
-          <h2 className="text-xs font-black uppercase tracking-widest mb-5" style={{ color: "var(--admin-text-muted)" }}>
-            Recent Events ({stats.recentEvents.length})
-          </h2>
-          <div
-            className="rounded-[20px] overflow-hidden shadow-sm"
-            style={{ backgroundColor: "var(--admin-card)", border: "1px solid var(--admin-border)" }}
-          >
-            {stats.recentEvents.length === 0 ? (
-              <div className="py-16 text-center text-sm font-medium" style={{ color: "var(--admin-text-muted)" }}>No events recorded yet.</div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--admin-border)", backgroundColor: "var(--admin-surface-alt)" }}>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Type</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>From</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Content</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Reply Sent</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Status</th>
-                    <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--admin-text-muted)" }}>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.recentEvents.map((event, i) => (
-                    <tr
-                      key={event._id}
-                      className="transition-colors"
-                      style={{
-                        borderBottom: i === stats.recentEvents.length - 1 ? "none" : "1px solid var(--admin-border)",
-                      }}
-                    >
-                      <td className="px-6 py-4">
-                        <EventTypeBadge type={event.type} />
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-[13px]" style={{ color: "var(--admin-text-secondary)" }}>
-                          {event.from?.username ? `@${event.from.username}` : event.from?.id || "—"}
-                        </p>
-                        {event.from?.name && (
-                          <p className="text-[10px] mt-0.5" style={{ color: "var(--admin-text-muted)" }}>{event.from.name}</p>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 max-w-[200px]">
-                        <p className="text-xs truncate" style={{ color: "var(--admin-text-muted)" }}>{event.content?.text || "—"}</p>
-                      </td>
-                      <td className="px-6 py-4 max-w-[180px]">
-                        <p className="text-xs truncate" style={{ color: "var(--admin-text-muted)" }}>{event.reply?.privateDM || event.reply?.publicReply || "—"}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <EventStatusBadge status={event.reply?.status} />
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-xs" style={{ color: "var(--admin-text-muted)" }}>{timeAgo(event.createdAt)}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </section>
-
-        {/* Feature Flags Summary */}
-        <section>
-          <h2 className="text-xs font-black uppercase tracking-widest mb-5" style={{ color: "var(--admin-text-muted)" }}>Feature Flags</h2>
-          <div className="rounded-[16px] p-6 space-y-3" style={{ backgroundColor: "var(--admin-card)", border: "1px solid var(--admin-border)" }}>
-            {[
-              { name: "Payments (Dodo)", status: "Disabled", tag: "[PAYMENTS DISABLED]" },
-              { name: "Feature Gating (Plans)", status: "Disabled", tag: "[PLANS DISABLED]" },
-              { name: "AI Product Detection", status: "Disabled", tag: "[AI DETECTION]" },
-              { name: "Smart Features (Shopify + KB + Smart Replies)", status: "Disabled", tag: "[SMART FEATURES]" },
-              { name: "Early Access Mode", status: "Active", active: true },
-            ].map((flag) => (
-              <div key={flag.name} className="flex items-center justify-between">
-                <span className="text-[12px] font-bold" style={{ color: "var(--admin-text-primary)" }}>{flag.name}</span>
-                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full`}
-                  style={{
-                    backgroundColor: flag.active ? "var(--success-light)" : "var(--admin-surface-alt)",
-                    color: flag.active ? "var(--success)" : "var(--admin-text-muted)",
-                    border: flag.active ? "1px solid var(--success)" : "1px solid var(--admin-border)",
-                  }}>
-                  {flag.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-      </main>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
