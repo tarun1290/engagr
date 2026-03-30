@@ -7,7 +7,17 @@ const UserSchema = new mongoose.Schema({
   passwordHash: { type: String },
   googleId: { type: String, default: null },
   authProvider: { type: String, enum: ["email", "google", "instagram"], default: "email" },
-  accountType: { type: String, enum: ["creator", "business", "agency"], default: null },
+  accountType: { type: String, enum: ["creator", "business", "agency"], default: "creator" },
+  agencyProfile: {
+    companyName: { type: String },
+    website: { type: String },
+    clientCount: { type: Number, default: 0 },
+  },
+  businessProfile: {
+    businessName: { type: String },
+    industry: { type: String },
+    website: { type: String },
+  },
   profilePicture: { type: String, default: null },
   instagramAccessToken: { type: String },
   instagramBusinessId: { type: String },

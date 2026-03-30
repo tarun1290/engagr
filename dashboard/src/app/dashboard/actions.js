@@ -105,7 +105,9 @@ export async function getDashboardStats(accountId) {
       isConnected: account.isConnected,
     },
     accountId: account._id.toString(),
-    accountType: user?.accountType || null,
+    accountType: user?.accountType || "creator",
+    businessProfile: user?.businessProfile || null,
+    agencyProfile: user?.agencyProfile || null,
     // AI feature flag — completely hidden unless admin-enabled
     aiFeatureEnabled: !!(user?.flags?.aiProductDetectionUnlocked && account?.aiFeature?.enabled),
     // Smart features flags — completely hidden unless admin-enabled
@@ -914,6 +916,7 @@ export async function getHomeStats(accountId) {
     commentEventsThisMonth,
     postbackEventsThisMonth,
     gatePassedThisMonth,
+    totalInteractionsCount,
     eventsToday,
     totalDmsSentAllAccounts,
     activeAutomationCount,
@@ -929,6 +932,8 @@ export async function getHomeStats(accountId) {
     Event.countDocuments({ ...acctFilter, type: "postback", createdAt: { $gte: startOfMonth } }),
     // Follower gate conversions (postback events with CONFIRM metadata)
     Event.countDocuments({ ...acctFilter, type: "postback", "content.text": { $regex: /follow/i }, createdAt: { $gte: startOfMonth } }),
+    // Total interactions ever (current account)
+    Event.countDocuments(acctFilter),
     // Events today across all accounts
     Event.countDocuments({ ...allFilter, createdAt: { $gte: startOfDay } }),
     // Total DMs this month across all accounts
@@ -1020,6 +1025,7 @@ export async function getHomeStats(accountId) {
     follower_gate_conversions: gatePassedThisMonth,
     customers_reached: uniqueRecipientsThisMonth.length,
     link_clicks: postbackEventsThisMonth,
+    total_interactions: totalInteractionsCount,
     conversion_rate: conversionRate,
     accounts_managed: connectedAccounts.length,
     total_dms_sent: totalDmsSentAllAccounts,

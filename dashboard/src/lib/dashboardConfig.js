@@ -49,7 +49,7 @@ export const DASHBOARD_CONFIG = {
     },
     home: {
       headline: "Your engagement at a glance",
-      stats: ["followers_engaged", "dms_sent", "comments_detected", "follower_gate_conversions"],
+      stats: ["followers_engaged", "dms_sent", "total_interactions", "follower_gate_conversions"],
       showGrowthChart: true,
       showRevenueChart: false,
       showClientOverview: false,
@@ -100,6 +100,7 @@ export const DASHBOARD_CONFIG = {
         {
           title: "COMING SOON",
           items: [
+            { id: "beta:advanced-analytics", label: "Analytics", icon: "BarChart3", badge: "Soon", betaSlug: "advanced-analytics" },
             { id: "beta:shopify", label: "Shopify", icon: "ShoppingBag", badge: "Beta", betaSlug: "shopify", featureKey: "shopify" },
             { id: "beta:smart-replies", label: "Smart Replies", icon: "Bot", badge: "Beta", betaSlug: "smart-replies", featureKey: "smart-replies" },
             { id: "beta:knowledge-base", label: "Knowledge Base", icon: "BookOpen", badge: "Beta", betaSlug: "knowledge-base", featureKey: "knowledge-base" },
@@ -116,7 +117,7 @@ export const DASHBOARD_CONFIG = {
     },
     home: {
       headline: "Your business performance",
-      stats: ["dms_sent", "customers_reached", "link_clicks", "conversion_rate"],
+      stats: ["customers_reached", "dms_sent", "total_interactions", "conversion_rate"],
       showGrowthChart: false,
       showRevenueChart: true,
       showClientOverview: false,
@@ -159,9 +160,9 @@ export const DASHBOARD_CONFIG = {
         {
           title: "MANAGEMENT",
           items: [
-            { id: "Settings", label: "Accounts", icon: "Users", pageTitle: "Client Accounts", description: "Manage connected Instagram accounts" },
             { id: "Automation", label: "Automation", icon: "Zap" },
             { id: "Contacts", label: "Contacts", icon: "Contact" },
+            { id: "Clients", label: "Clients", icon: "Users2", badge: "Soon" },
             { id: "Activity", label: "Activity", icon: "Activity" },
           ],
         },
@@ -184,7 +185,7 @@ export const DASHBOARD_CONFIG = {
     },
     home: {
       headline: "Client overview",
-      stats: ["accounts_managed", "total_dms_sent", "active_automations", "total_events_today"],
+      stats: ["accounts_managed", "dms_sent", "total_interactions", "total_events_today"],
       showGrowthChart: false,
       showRevenueChart: false,
       showClientOverview: true,

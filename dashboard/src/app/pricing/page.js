@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/ThemeProvider";
 import { getLoggedInPlan } from "@/app/dashboard/billing-actions";
+import { getAccountType } from "@/app/onboarding/actions";
 
 /* ─────────────────────────── CONSTANTS ─────────────────────────── */
 
@@ -93,6 +94,37 @@ const FAQS = [
     a: "Absolutely. Engagr uses official Meta APIs with encrypted tokens. We never store your Instagram password and all data is transmitted over HTTPS. You can revoke access at any time.",
   },
 ];
+
+/* ─────────────────────────── PERSONALISATION ─────────────────────── */
+
+// Plan descriptions keyed by [activeType][planIndex]
+const PLAN_DESCRIPTIONS = {
+  creator: [
+    "Perfect for growing creators. Automate replies and DMs on up to 1 account.",
+    "For serious creators. Higher DM volumes and reel share automation.",
+    "For top creators and influencers. Unlimited DMs, priority support.",
+  ],
+  business: [
+    "Great for small businesses getting started with Instagram automation.",
+    "For active businesses. Automate customer support, sales flows, and mentions.",
+    "For high-volume businesses. Unlimited DMs, AI features, and analytics.",
+  ],
+  agency: [
+    "Manage automation for 1 client account.",
+    "Handle up to 3 client accounts with full automation.",
+    "Scale to 5 client accounts. Everything unlocked for your whole roster.",
+  ],
+};
+
+// Which plan index gets the "Recommended" badge per type
+const RECOMMENDED_INDEX = { creator: 1, business: 1, agency: 2 };
+
+// Value proposition line per type
+const VALUE_PROPS = {
+  creator: "Join thousands of creators automating their Instagram growth.",
+  business: "Trusted by businesses to handle customer conversations 24/7.",
+  agency: "One platform to manage all your clients. No juggling tools.",
+};
 
 /* ─────────────────────────── COMPONENTS ─────────────────────────── */
 
@@ -216,11 +248,18 @@ function FAQItem({ q, a }) {
 
 export default function PricingPage() {
   const [userPlan, setUserPlan] = useState(null);
-  const [activeType, setActiveType] = useState("business");
+  const [activeType, setActiveType] = useState("creator");
   const [allPlans, setAllPlans] = useState(FALLBACK_PLANS);
+  const [userAccountType, setUserAccountType] = useState(null);
 
   useEffect(() => {
     getLoggedInPlan().then(setUserPlan).catch(() => setUserPlan({ loggedIn: false }));
+    getAccountType().then((res) => {
+      if (res.accountType) {
+        setUserAccountType(res.accountType);
+        setActiveType(res.accountType);
+      }
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -309,7 +348,7 @@ export default function PricingPage() {
       <section className="pb-24 px-6">
         <div key={activeType} className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6"
           style={{ animation: "priceFadeIn 0.35s cubic-bezier(0.16,1,0.3,1)" }}>
-          {plans.map((plan) => {
+          {plans.map((plan, planIdx) => {
             const priceDisplay = typeof plan.priceDisplay === "string"
               ? plan.priceDisplay
               : `\u20B9${(plan.price || 0).toLocaleString("en-IN")}`;
@@ -317,27 +356,30 @@ export default function PricingPage() {
               const key = typeof f === "string" ? f : f;
               return { key, label: FEATURE_LABELS[key] || key, soon: COMING_SOON_SET.has(key) };
             });
+            const isRecommended = RECOMMENDED_INDEX[activeType] === planIdx;
+            const description = PLAN_DESCRIPTIONS[activeType]?.[planIdx] || "";
 
             return (
               <div
                 key={plan.slug}
                 className={cn(
                   "relative rounded-[32px] p-8 flex flex-col transition-all hover:-translate-y-1 duration-300",
-                  plan.isPopular ? "shadow-lg" : ""
+                  (plan.isPopular || isRecommended) ? "shadow-lg" : ""
                 )}
                 style={{
                   backgroundColor: "var(--card)",
-                  border: plan.isPopular ? "1px solid var(--primary-medium)" : "1px solid var(--border)",
-                  boxShadow: plan.isPopular ? "0 4px 24px var(--primary-light)" : undefined,
+                  border: (plan.isPopular || isRecommended) ? "1px solid var(--primary-medium)" : "1px solid var(--border)",
+                  boxShadow: (plan.isPopular || isRecommended) ? "0 4px 24px var(--primary-light)" : undefined,
                 }}
               >
-                {plan.isPopular && (
+                {/* Badges — Recommended takes priority over Most Popular */}
+                {(isRecommended || plan.isPopular) && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                     <div
                       className="px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg"
                       style={{ backgroundColor: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
                     >
-                      Most Popular
+                      {isRecommended ? "Recommended" : "Most Popular"}
                     </div>
                   </div>
                 )}
@@ -345,6 +387,9 @@ export default function PricingPage() {
                 {/* Plan header */}
                 <div className="mb-6">
                   <h3 className="text-lg font-black mb-1" style={{ color: "var(--text-primary)" }}>{plan.name}</h3>
+                  {description && (
+                    <p className="text-[12px] font-medium mb-2" style={{ color: "var(--text-muted)" }}>{description}</p>
+                  )}
                   <div className="flex items-center gap-3 text-xs" style={{ color: "var(--text-placeholder)" }}>
                     <span>{plan.dmLimitDisplay || "10,000"} DMs/mo</span>
                     <span>&middot;</span>
@@ -421,8 +466,15 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Early access banner */}
+        {/* Type-specific value proposition */}
         <div className="max-w-2xl mx-auto mt-10 text-center">
+          <p className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
+            {VALUE_PROPS[activeType]}
+          </p>
+        </div>
+
+        {/* Early access banner */}
+        <div className="max-w-2xl mx-auto mt-4 text-center">
           <p className="text-sm" style={{ color: "var(--text-placeholder)" }}>
             {"\u2728"} Currently in early access \u2014 all features free for all account types. No credit card needed.
           </p>

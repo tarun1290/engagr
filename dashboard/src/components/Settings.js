@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Instagram, Trash2, ShieldOff, AlertTriangle, CheckCircle2, ExternalLink, User, Mail, AtSign, Brain, ShoppingBag, CreditCard, Building2, Palette, Users2 } from "lucide-react";
-import { deauthorizeInstagram, deleteAccountData, updateAccountType } from "@/app/settings/actions";
+import { Instagram, Trash2, ShieldOff, AlertTriangle, CheckCircle2, ExternalLink, User, Mail, AtSign, Brain, ShoppingBag, CreditCard, Building2, Palette, Users2, Sparkles, Briefcase, Globe, AlertCircle } from "lucide-react";
+import { deauthorizeInstagram, deleteAccountData, updateAccountType, getAccountProfile } from "@/app/settings/actions";
 import ManageAccounts from "./ManageAccounts";
 
 const BASE_URL = "https://engagr-dm.vercel.app";
@@ -97,10 +97,34 @@ function SettingsSkeleton() {
 }
 
 export default function Settings({ stats }) {
-  const [accountType, setAccountType] = useState(stats?.accountType || null);
+  const [accountType, setAccountType] = useState(stats?.accountType || "creator");
+  const [originalType, setOriginalType] = useState(stats?.accountType || "creator");
   const [accountTypeSaving, setAccountTypeSaving] = useState(false);
   const [accountTypeSaved, setAccountTypeSaved] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [website, setWebsite] = useState("");
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [deauthLoading, setDeauthLoading] = useState(false);
+
+  // Fetch profile data on mount
+  React.useEffect(() => {
+    getAccountProfile().then((data) => {
+      if (data.accountType) {
+        setAccountType(data.accountType);
+        setOriginalType(data.accountType);
+      }
+      if (data.businessProfile) {
+        setBusinessName(data.businessProfile.businessName || "");
+        if (data.accountType === "business") setWebsite(data.businessProfile.website || "");
+      }
+      if (data.agencyProfile) {
+        setCompanyName(data.agencyProfile.companyName || "");
+        if (data.accountType === "agency") setWebsite(data.agencyProfile.website || "");
+      }
+      setProfileLoaded(true);
+    }).catch(() => setProfileLoaded(true));
+  }, []);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeauthConfirm, setShowDeauthConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -141,29 +165,36 @@ export default function Settings({ stats }) {
         icon={Building2}
         iconColor="var(--primary)"
         title="Account Type"
-        description="How you use Engagr"
+        description="This affects your dashboard layout, feature visibility, and pricing recommendations."
       >
-        <div className="space-y-4">
+        <div className="space-y-5">
+          {/* Current type badge */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "var(--text-placeholder)" }}>Current:</span>
+            <span
+              className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
+              style={{
+                backgroundColor: accountType === "creator" ? "#F3E8FF" : accountType === "business" ? "#EEF2FF" : "#ECFEFF",
+                color: accountType === "creator" ? "#7C3AED" : accountType === "business" ? "#4F46E5" : "#0891B2",
+              }}
+            >
+              {accountType === "creator" ? "Creator" : accountType === "business" ? "Business" : "Agency"}
+            </span>
+          </div>
+
+          {/* Type selector cards */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { value: "creator", label: "Creator", icon: Palette, color: "#EC4899" },
-              { value: "business", label: "Business", icon: Building2, color: "#4F46E5" },
-              { value: "agency", label: "Agency", icon: Users2, color: "#0EA5E9" },
+              { value: "creator", label: "Creator", desc: "Grow your audience", icon: Sparkles, color: "#7C3AED" },
+              { value: "business", label: "Business", desc: "Automate sales", icon: Briefcase, color: "#4F46E5" },
+              { value: "agency", label: "Agency", desc: "Manage clients", icon: Building2, color: "#0891B2" },
             ].map((t) => {
               const Icon = t.icon;
               const isActive = accountType === t.value;
               return (
                 <button
                   key={t.value}
-                  onClick={async () => {
-                    setAccountType(t.value);
-                    setAccountTypeSaving(true);
-                    setAccountTypeSaved(false);
-                    await updateAccountType(t.value);
-                    setAccountTypeSaving(false);
-                    setAccountTypeSaved(true);
-                    setTimeout(() => setAccountTypeSaved(false), 2000);
-                  }}
+                  onClick={() => setAccountType(t.value)}
                   disabled={accountTypeSaving}
                   className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-all disabled:opacity-60"
                   style={{
@@ -175,13 +206,120 @@ export default function Settings({ stats }) {
                   <span className="text-xs font-black" style={{ color: isActive ? t.color : "var(--text-secondary)" }}>
                     {t.label}
                   </span>
+                  <span className="text-[10px]" style={{ color: isActive ? t.color : "var(--text-placeholder)" }}>
+                    {t.desc}
+                  </span>
                 </button>
               );
             })}
           </div>
-          {accountTypeSaving && (
-            <p className="text-[11px] font-bold animate-pulse" style={{ color: "var(--text-placeholder)" }}>Saving...</p>
+
+          {/* Business profile fields */}
+          {accountType === "business" && (
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Business Name <span className="font-medium normal-case tracking-normal" style={{ color: "var(--text-placeholder)" }}>(optional)</span></label>
+                <div className="relative">
+                  <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2" size={15} style={{ color: "var(--text-muted)" }} />
+                  <input
+                    type="text"
+                    placeholder="Your business name"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    className="w-full rounded-2xl pl-10 pr-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 transition-all"
+                    style={{ backgroundColor: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--input-text)", "--tw-ring-color": "var(--input-focus-ring)" }}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Website <span className="font-medium normal-case tracking-normal" style={{ color: "var(--text-placeholder)" }}>(optional)</span></label>
+                <div className="relative">
+                  <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2" size={15} style={{ color: "var(--text-muted)" }} />
+                  <input
+                    type="url"
+                    placeholder="https://yourbusiness.com"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                    className="w-full rounded-2xl pl-10 pr-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 transition-all"
+                    style={{ backgroundColor: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--input-text)", "--tw-ring-color": "var(--input-focus-ring)" }}
+                  />
+                </div>
+              </div>
+            </div>
           )}
+
+          {/* Agency profile fields */}
+          {accountType === "agency" && (
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Company Name <span className="font-medium normal-case tracking-normal" style={{ color: "var(--text-placeholder)" }}>(optional)</span></label>
+                <div className="relative">
+                  <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2" size={15} style={{ color: "var(--text-muted)" }} />
+                  <input
+                    type="text"
+                    placeholder="Your agency name"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    className="w-full rounded-2xl pl-10 pr-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 transition-all"
+                    style={{ backgroundColor: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--input-text)", "--tw-ring-color": "var(--input-focus-ring)" }}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Website <span className="font-medium normal-case tracking-normal" style={{ color: "var(--text-placeholder)" }}>(optional)</span></label>
+                <div className="relative">
+                  <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2" size={15} style={{ color: "var(--text-muted)" }} />
+                  <input
+                    type="url"
+                    placeholder="https://youragency.com"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                    className="w-full rounded-2xl pl-10 pr-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 transition-all"
+                    style={{ backgroundColor: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--input-text)", "--tw-ring-color": "var(--input-focus-ring)" }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Type change warning */}
+          {profileLoaded && accountType !== originalType && (
+            <div className="flex items-start gap-2.5 rounded-2xl px-4 py-3" style={{ backgroundColor: "var(--warning-light)", border: "1px solid var(--warning-light)" }}>
+              <AlertCircle size={15} className="flex-shrink-0 mt-0.5" style={{ color: "var(--warning)" }} />
+              <p className="text-[12px] font-medium leading-relaxed" style={{ color: "var(--warning-dark)" }}>
+                Switching account types will update your dashboard layout. Your automations and data will not be affected.
+              </p>
+            </div>
+          )}
+
+          {/* Save button */}
+          <button
+            onClick={async () => {
+              setAccountTypeSaving(true);
+              setAccountTypeSaved(false);
+              const fd = new FormData();
+              fd.set("accountType", accountType);
+              fd.set("businessName", businessName);
+              fd.set("companyName", companyName);
+              fd.set("website", website);
+              const res = await updateAccountType(fd);
+              setAccountTypeSaving(false);
+              if (res.success) {
+                setOriginalType(accountType);
+                setAccountTypeSaved(true);
+                setTimeout(() => setAccountTypeSaved(false), 3000);
+              }
+            }}
+            disabled={accountTypeSaving}
+            className="px-6 py-3 rounded-2xl font-bold text-sm transition-all disabled:opacity-60 flex items-center gap-2"
+            style={{ backgroundColor: "var(--btn-primary-bg)", color: "var(--btn-primary-text)" }}
+          >
+            {accountTypeSaving ? (
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : null}
+            {accountTypeSaving ? "Saving..." : "Save Account Type"}
+          </button>
+
           {accountTypeSaved && (
             <div className="flex items-center gap-1.5">
               <CheckCircle2 size={13} style={{ color: "var(--success)" }} />

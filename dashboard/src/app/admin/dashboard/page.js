@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, Activity, Zap, MessageSquare, ShieldCheck, Loader2 } from "lucide-react";
-import { ResponsiveContainer, ComposedChart, Line, Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { Users, Activity, Zap, MessageSquare, ShieldCheck, Loader2, Sparkles, Briefcase, Building2 } from "lucide-react";
+import { ResponsiveContainer, ComposedChart, Line, Bar, BarChart, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import StatCard from "../components/StatCard";
 import ChartCard from "../components/ChartCard";
 import EventLog from "../components/EventLog";
@@ -81,6 +81,57 @@ export default function AdminDashboard() {
         <StatCard label="Active automations" value={stats?.activeAutomations ?? 0} icon={Zap} />
         <StatCard label="Webhook health" value={stats?.webhookHealth ?? 100} icon={ShieldCheck} format="percentage" />
       </div>
+
+      {/* Account type breakdown */}
+      {stats?.accountTypeBreakdown && (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          {[
+            { label: "Creators", value: stats.accountTypeBreakdown.creator, color: "#7C3AED", icon: Sparkles },
+            { label: "Businesses", value: stats.accountTypeBreakdown.business, color: "#2563EB", icon: Briefcase },
+            { label: "Agencies", value: stats.accountTypeBreakdown.agency, color: "#0D9488", icon: Building2 },
+            { label: "Unset", value: stats.accountTypeBreakdown.unset, color: "#A1A1AA", icon: Users, tooltip: "Users who signed up before account types were introduced" },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.label} className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                style={{ background: "#fff", border: "1px solid #E4E4E7", borderLeft: `3px solid ${item.color}` }}
+                title={item.tooltip || ""}>
+                <Icon size={15} style={{ color: item.color }} />
+                <div>
+                  <p className="text-lg font-bold" style={{ color: "#18181B" }}>{item.value}</p>
+                  <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: "#A1A1AA" }}>{item.label}</p>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Mini donut chart */}
+          {(stats.accountTypeBreakdown.creator + stats.accountTypeBreakdown.business + stats.accountTypeBreakdown.agency + stats.accountTypeBreakdown.unset) >= 5 ? (
+            <div className="flex items-center justify-center px-4 py-3 rounded-xl" style={{ background: "#fff", border: "1px solid #E4E4E7" }}>
+              <ResponsiveContainer width={80} height={80}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: "Creator", value: stats.accountTypeBreakdown.creator },
+                      { name: "Business", value: stats.accountTypeBreakdown.business },
+                      { name: "Agency", value: stats.accountTypeBreakdown.agency },
+                      { name: "Unset", value: stats.accountTypeBreakdown.unset },
+                    ].filter((d) => d.value > 0)}
+                    cx="50%" cy="50%" innerRadius={22} outerRadius={36} dataKey="value" stroke="none"
+                  >
+                    {["#7C3AED", "#2563EB", "#0D9488", "#A1A1AA"].map((c, i) => <Cell key={i} fill={c} />)}
+                  </Pie>
+                  <Tooltip formatter={(v, name) => [`${v} users`, name]} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center px-4 py-3 rounded-xl" style={{ background: "#fff", border: "1px solid #E4E4E7" }}>
+              <p className="text-[10px] text-center" style={{ color: "#A1A1AA" }}>Not enough data yet</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

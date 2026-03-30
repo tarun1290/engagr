@@ -224,6 +224,45 @@ const COMING_SOON_SET = new Set([
   "apiAccess", "facebookLogin",
 ]);
 
+const HERO_CONTENT = {
+  creator: {
+    headline: "Turn Comments Into Fans, Automatically",
+    subheading: "Engagr replies to every comment, sends DMs, and delivers your content \u2014 so you can focus on creating.",
+    bullets: [
+      "Auto-reply to comments & send DMs",
+      "Detect reel shares & @mentions",
+      "Gate content behind a follow check",
+    ],
+    cta: "Start Automating Free",
+    proof: "Used by 1,000+ creators to grow on autopilot",
+    sectionLabel: "For Creators",
+  },
+  business: {
+    headline: "Turn Comments Into Customers, Automatically",
+    subheading: "Engagr handles customer replies, sends product links, and qualifies leads 24/7 \u2014 no extra headcount needed.",
+    bullets: [
+      "Automate customer support replies",
+      "Send product links & drive conversions",
+      "Capture leads directly from comments",
+    ],
+    cta: "Automate Your Business Free",
+    proof: "Trusted by businesses to handle DMs 24/7",
+    sectionLabel: "For Businesses",
+  },
+  agency: {
+    headline: "Automate Instagram for All Your Clients, From One Place",
+    subheading: "Manage comment automation and DM flows for all your client accounts from a single dashboard. Scale without chaos.",
+    bullets: [
+      "Manage multiple client accounts",
+      "Set up automations for each client",
+      "Track performance across all accounts",
+    ],
+    cta: "Manage Clients Free",
+    proof: "Built for agencies managing multiple Instagram accounts",
+    sectionLabel: "For Agencies",
+  },
+};
+
 const ROADMAP = [
   { label: "Now", color: "#34D399", active: true, items: ["Comment-to-DM automation", "Follower gate & reel detection", "Multi-account dashboard", "Early access — all features free"] },
   { label: "Q2 2026", color: "#2DD4BF", items: ["AI product detection from reels", "Smart link tracking & analytics", "Shopify catalog integration"] },
@@ -238,6 +277,28 @@ export default function LandingPage() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [pricingType, setPricingType] = useState("business");
   const [allPlans, setAllPlans] = useState(FALLBACK_PLANS);
+  const [heroType, setHeroType] = useState("creator");
+  const [heroFade, setHeroFade] = useState(1);
+
+  // Persist hero type selection
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("engagr_landing_type");
+      if (stored && ["creator", "business", "agency"].includes(stored)) {
+        setHeroType(stored);
+      }
+    } catch {}
+  }, []);
+
+  const switchHeroType = (type) => {
+    if (type === heroType) return;
+    setHeroFade(0);
+    setTimeout(() => {
+      setHeroType(type);
+      try { localStorage.setItem("engagr_landing_type", type); } catch {}
+      setHeroFade(1);
+    }, 150);
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -343,44 +404,79 @@ export default function LandingPage() {
           {/* Announcement */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm mb-8"
             style={{ border: "1px solid rgba(45, 212, 191, 0.3)", background: "rgba(45, 212, 191, 0.08)", color: "#2DD4BF" }}>
-            <span className="animate-pulse">✨</span> Now in Early Access — all features free
+            <span className="animate-pulse">{"\u2728"}</span> Now in Early Access — all features free
           </div>
 
-          {/* Headline */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.1] tracking-tight mb-6">
-            Turn every Instagram<br />
-            interaction into{" "}
-            <GradientText>revenue</GradientText>
-          </h1>
-
-          {/* Subheadline */}
-          <p className="text-lg max-w-2xl mx-auto mb-10" style={{ color: "#A1A1AA" }}>
-            Whether you&apos;re a creator growing your audience, a business driving sales, or an agency managing clients — automate your Instagram DMs with AI.
-          </p>
-
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-            <Link href="/onboarding" className="text-base font-semibold px-8 py-3 rounded-full transition-colors"
-              style={{ background: "#818CF8", color: "#fff" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#6366F1"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#818CF8"; }}>
-              Get started free
-            </Link>
-            <a href="#how-it-works" className="text-base font-semibold px-8 py-3 rounded-full transition-colors"
-              style={{ border: "1px solid #3F3F46", color: "#D4D4D8" }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#52525B"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3F3F46"; }}>
-              See how it works ↓
-            </a>
+          {/* Account type toggle */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex p-1 rounded-full" style={{ background: "rgba(24, 24, 27, 0.8)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              {[
+                { key: "creator", label: "Creator" },
+                { key: "business", label: "Business" },
+                { key: "agency", label: "Agency" },
+              ].map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => switchHeroType(opt.key)}
+                  className="px-5 sm:px-6 py-2 rounded-full text-sm font-medium transition-all duration-200"
+                  style={heroType === opt.key
+                    ? { background: "#818CF8", color: "#fff", boxShadow: "0 4px 12px rgba(129, 140, 248, 0.3)" }
+                    : { color: "#71717A" }
+                  }
+                  onMouseEnter={(e) => { if (heroType !== opt.key) e.currentTarget.style.color = "#D4D4D8"; }}
+                  onMouseLeave={(e) => { if (heroType !== opt.key) e.currentTarget.style.color = "#71717A"; }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Social proof */}
-          <div className="flex items-center justify-center gap-6 text-sm" style={{ color: "#71717A" }}>
-            <span>100+ creators</span>
-            <span style={{ color: "#3F3F46" }}>·</span>
-            <span>50K+ DMs sent</span>
-            <span style={{ color: "#3F3F46" }}>·</span>
-            <span>4.9/5 rating</span>
+          {/* Dynamic hero content with fade */}
+          <div style={{ opacity: heroFade, transition: "opacity 0.15s ease" }}>
+            {/* Headline */}
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.1] tracking-tight mb-6">
+              <GradientText>{HERO_CONTENT[heroType].headline}</GradientText>
+            </h1>
+
+            {/* Subheadline */}
+            <p className="text-lg max-w-2xl mx-auto mb-8" style={{ color: "#A1A1AA" }}>
+              {HERO_CONTENT[heroType].subheading}
+            </p>
+
+            {/* Feature bullets */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-10">
+              {HERO_CONTENT[heroType].bullets.map((b) => (
+                <div key={b} className="flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+                    <circle cx="8" cy="8" r="8" fill="rgba(52, 211, 153, 0.15)" />
+                    <path d="M5 8l2 2 4-4" stroke="#34D399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className="text-sm" style={{ color: "#A1A1AA" }}>{b}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+              <Link href="/sign-up" className="text-base font-semibold px-8 py-3 rounded-full transition-colors"
+                style={{ background: "#818CF8", color: "#fff" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "#6366F1"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "#818CF8"; }}>
+                {HERO_CONTENT[heroType].cta}
+              </Link>
+              <a href="#how-it-works" className="text-base font-semibold px-8 py-3 rounded-full transition-colors"
+                style={{ border: "1px solid #3F3F46", color: "#D4D4D8" }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#52525B"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#3F3F46"; }}>
+                See how it works {"\u2193"}
+              </a>
+            </div>
+
+            {/* Type-specific social proof */}
+            <p className="text-sm" style={{ color: "#71717A" }}>
+              {HERO_CONTENT[heroType].proof}
+            </p>
           </div>
         </div>
       </section>
@@ -391,6 +487,10 @@ export default function LandingPage() {
           style={{ background: "radial-gradient(ellipse, rgba(129, 140, 248, 0.06) 0%, transparent 70%)" }} />
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="text-center mb-20" data-reveal style={revealStyle}>
+            <span className="inline-block text-[11px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full mb-4"
+              style={{ background: "rgba(129, 140, 248, 0.1)", color: "#818CF8" }}>
+              {HERO_CONTENT[heroType].sectionLabel}
+            </span>
             <SectionEyebrow>Features</SectionEyebrow>
             <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
               <GradientText>Everything you need to automate Instagram</GradientText>
@@ -431,6 +531,10 @@ export default function LandingPage() {
       <section id="how-it-works" className="py-32" ref={stepsRef} style={revealStyle}>
         <div className="max-w-3xl mx-auto px-6">
           <div className="text-center mb-20" data-reveal style={revealStyle}>
+            <span className="inline-block text-[11px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full mb-4"
+              style={{ background: "rgba(129, 140, 248, 0.1)", color: "#818CF8" }}>
+              {HERO_CONTENT[heroType].sectionLabel}
+            </span>
             <SectionEyebrow>How it works</SectionEyebrow>
             <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
               <GradientText>Live in 5 minutes</GradientText>

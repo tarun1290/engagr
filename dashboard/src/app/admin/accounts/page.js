@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Users, Activity, AlertTriangle, Loader2, Trash2 } from "lucide-react";
+import { Users, Activity, AlertTriangle, Loader2, Trash2, Search, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import StatCard from "../components/StatCard";
 import PlanBadge from "../components/PlanBadge";
 import DataTable from "../components/DataTable";
 import ConfirmModal from "../components/ConfirmModal";
-import { adminGetOverviewStats, adminGetAccounts } from "../admin-actions";
+import { adminGetOverviewStats, adminGetAccounts, adminUpdateAccountType } from "../admin-actions";
 import { deleteUser } from "../actions";
 
 function timeAgo(date) {
@@ -37,6 +37,55 @@ function FlagDots({ flags }) {
   );
 }
 
+function TypeDropdown({ userId, currentType, name, onUpdate }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const TYPES = [
+    { value: "creator", label: "Creator", bg: "#F3E8FF", color: "#7C3AED" },
+    { value: "business", label: "Business", bg: "#EEF2FF", color: "#4F46E5" },
+    { value: "agency", label: "Agency", bg: "#ECFEFF", color: "#0891B2" },
+  ];
+
+  const current = TYPES.find((t) => t.value === currentType);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full transition-colors"
+        style={{ background: current?.bg || "#F4F4F5", color: current?.color || "#A1A1AA" }}>
+        {current?.label || "Unset"} <ChevronDown size={10} />
+      </button>
+      {open && (
+        <div className="absolute z-20 top-full mt-1 left-0 rounded-lg shadow-lg py-1 min-w-[120px]"
+          style={{ background: "#fff", border: "1px solid #E4E4E7" }}>
+          {TYPES.map((t) => (
+            <button key={t.value} onClick={async () => {
+              setOpen(false);
+              onUpdate(userId, t.value);
+              const res = await adminUpdateAccountType(userId, t.value);
+              if (res.success) toast.success(`Account type updated for ${name}`);
+              else toast.error(res.error || "Failed to update");
+            }}
+              className="w-full text-left px-3 py-1.5 text-xs font-medium transition-colors"
+              style={{ color: t.value === currentType ? t.color : "#71717A" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#F9FAFB"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+              <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: t.color }} />
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AccountsPage() {
   const [stats, setStats] = useState(null);
   const [accounts, setAccounts] = useState([]);
@@ -44,6 +93,16 @@ export default function AccountsPage() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [filterType, setFilterType] = useState("all");
+  const [filterSearch, setFilterSearch] = useState("");
+  const [filterConnected, setFilterConnected] = useState("all");
+  const searchTimerRef = useRef(null);
+
+  const fetchAccounts = (filters = {}) => {
+    adminGetAccounts(filters, { field: "createdAt", dir: "desc" }, 1, 200)
+      .then((a) => setAccounts(a.accounts || []))
+      .catch(console.error);
+  };
 
   useEffect(() => {
     Promise.all([
@@ -54,6 +113,23 @@ export default function AccountsPage() {
       setAccounts(a.accounts || []);
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
+
+  // Debounced search + filter
+  useEffect(() => {
+    if (loading) return;
+    clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      const filters = {};
+      if (filterType !== "all") filters.accountType = filterType;
+      if (filterSearch) filters.search = filterSearch;
+      fetchAccounts(filters);
+    }, 300);
+    return () => clearTimeout(searchTimerRef.current);
+  }, [filterType, filterSearch]);
+
+  const handleTypeUpdate = (userId, newType) => {
+    setAccounts((prev) => prev.map((a) => a.userId === userId ? { ...a, accountType: newType } : a));
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin" style={{ color: "#A1A1AA" }} /></div>;
@@ -102,15 +178,14 @@ export default function AccountsPage() {
     },
     {
       key: "accountType", label: "Type", sortable: true,
-      render: (row) => {
-        const t = ACCOUNT_TYPE_COLORS[row.accountType];
-        if (!t) return <span className="text-xs" style={{ color: "#A1A1AA" }}>—</span>;
-        return (
-          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: t.bg, color: t.color }}>
-            {t.label}
-          </span>
-        );
-      },
+      render: (row) => (
+        <TypeDropdown
+          userId={row.userId}
+          currentType={row.accountType}
+          name={row.instagramUsername || row.name || row.email || row.userId}
+          onUpdate={handleTypeUpdate}
+        />
+      ),
     },
     {
       key: "igAccountCount", label: "IG Accounts", sortable: true, align: "center",
@@ -171,9 +246,39 @@ export default function AccountsPage() {
         <StatCard label="With errors (24h)" value={stats?.errorAccountCount ?? 0} icon={AlertTriangle} />
       </div>
 
+      {/* Filter toolbar */}
+      <div className="flex flex-wrap items-center gap-3 p-4 rounded-lg" style={{ background: "#fff", border: "1px solid #E4E4E7" }}>
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#A1A1AA" }} />
+          <input
+            type="text"
+            placeholder="Search name, email, or handle..."
+            value={filterSearch}
+            onChange={(e) => setFilterSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 text-sm rounded-md outline-none"
+            style={{ border: "1px solid #E4E4E7", color: "#18181B" }}
+          />
+        </div>
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)}
+          className="text-sm px-3 py-2 rounded-md outline-none"
+          style={{ border: "1px solid #E4E4E7", color: "#18181B", background: "#fff" }}>
+          <option value="all">All Types</option>
+          <option value="creator">Creator</option>
+          <option value="business">Business</option>
+          <option value="agency">Agency</option>
+        </select>
+        <select value={filterConnected} onChange={(e) => setFilterConnected(e.target.value)}
+          className="text-sm px-3 py-2 rounded-md outline-none"
+          style={{ border: "1px solid #E4E4E7", color: "#18181B", background: "#fff" }}>
+          <option value="all">All</option>
+          <option value="connected">Connected only</option>
+          <option value="disconnected">Not connected</option>
+        </select>
+      </div>
+
       <DataTable
         columns={columns}
-        data={accounts}
+        data={filterConnected === "all" ? accounts : filterConnected === "connected" ? accounts.filter((a) => a.isConnected) : accounts.filter((a) => !a.isConnected)}
         searchPlaceholder="Search by username or email..."
         searchKey="instagramUsername"
         pageSize={20}

@@ -11,7 +11,10 @@ export async function signUp(formData) {
   const name = (formData.get("name") || "").trim();
   const email = (formData.get("email") || "").trim().toLowerCase();
   const instagramHandle = (formData.get("instagramHandle") || "").trim().replace(/^@/, "");
-  const accountType = formData.get("accountType") || null;
+  let accountType = formData.get("accountType") || "creator";
+  const businessName = (formData.get("businessName") || "").trim();
+  const companyName = (formData.get("companyName") || "").trim();
+  const website = (formData.get("website") || "").trim();
   const password = formData.get("password") || "";
   const confirmPassword = formData.get("confirmPassword") || "";
 
@@ -31,8 +34,8 @@ export async function signUp(formData) {
   if (password !== confirmPassword) {
     return { error: "Passwords do not match." };
   }
-  if (accountType && !["creator", "business", "agency"].includes(accountType)) {
-    return { error: "Invalid account type." };
+  if (!["creator", "business", "agency"].includes(accountType)) {
+    accountType = "creator";
   }
 
   await dbConnect();
@@ -52,7 +55,9 @@ export async function signUp(formData) {
     email,
     name,
     instagramHandle: instagramHandle || undefined,
-    accountType: accountType || undefined,
+    accountType,
+    ...(accountType === "business" && businessName ? { businessProfile: { businessName, website } } : {}),
+    ...(accountType === "agency" && companyName ? { agencyProfile: { companyName, website } } : {}),
     passwordHash,
     subscription: {
       plan: "trial",

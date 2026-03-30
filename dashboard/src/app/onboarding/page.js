@@ -7,6 +7,22 @@ import {
   ShieldCheck, Zap, MessageSquare, ChevronDown, ExternalLink,
 } from "lucide-react";
 import { getAccountsFromToken, saveDiscoveredAccount } from "../dashboard/actions";
+import { getAccountType } from "./actions";
+
+const ONBOARDING_COPY = {
+  creator: {
+    heading: "Connect Instagram",
+    subheading: "Link your Creator account to start automating DMs, replies, and engagement.",
+  },
+  business: {
+    heading: "Connect Instagram",
+    subheading: "Link your Business account to automate customer conversations and drive sales.",
+  },
+  agency: {
+    heading: "Connect Your First Account",
+    subheading: "Link your first client\u2019s Instagram Business account. You can add more accounts later.",
+  },
+};
 
 export default function Onboarding() {
   const router = useRouter();
@@ -17,12 +33,20 @@ export default function Onboarding() {
   const [connectedUsername, setConnectedUsername] = useState("");
   const [error, setError] = useState("");
   const [showHelp, setShowHelp] = useState(false);
+  const [accountType, setAccountType] = useState("creator");
 
   const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || "2989539487909963";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://engagr-dm.vercel.app";
 
   // Must match EXACTLY what's registered in Meta App Dashboard → Valid OAuth Redirect URIs
   const redirectUri = `${appUrl}/onboarding`;
+
+  // Fetch current user's account type
+  useEffect(() => {
+    getAccountType().then((res) => {
+      if (res.accountType) setAccountType(res.accountType);
+    }).catch(() => {});
+  }, []);
 
   // Handle OAuth redirect — Instagram sends ?code= back to this page
   useEffect(() => {
@@ -186,9 +210,9 @@ export default function Onboarding() {
           style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}
         >
           <div className="space-y-2">
-            <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Connect Instagram</h1>
+            <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{ONBOARDING_COPY[accountType]?.heading || "Connect Instagram"}</h1>
             <p className="font-medium text-sm" style={{ color: 'var(--text-placeholder)' }}>
-              Link your Business account to start automating DMs, replies, and engagement.
+              {ONBOARDING_COPY[accountType]?.subheading || "Link your account to start automating."}
             </p>
           </div>
 
@@ -310,6 +334,19 @@ export default function Onboarding() {
                 <p className="text-[11px] font-medium" style={{ color: 'var(--text-placeholder)' }}>Personal accounts are not supported by Instagram API</p>
               </div>
             </div>
+
+            {/* Agency info callout */}
+            {accountType === "agency" && (
+              <div
+                className="flex items-start gap-3 rounded-2xl px-5 py-4"
+                style={{ backgroundColor: 'var(--primary-light)', border: '1px solid var(--primary-light)' }}
+              >
+                <ShieldCheck size={16} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
+                <p className="text-[12px] font-medium leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  You&apos;re setting up an Agency account. After connecting your first account, you&apos;ll be able to add more client accounts from your dashboard.
+                </p>
+              </div>
+            )}
 
             {/* Skip link */}
             <button

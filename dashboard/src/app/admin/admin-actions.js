@@ -34,6 +34,7 @@ export async function adminGetOverviewStats() {
     totalAccounts, connectedAccounts, activeAutomations, totalEvents,
     sentToday, eventsToday, eventsByType, activeAccountIds, dmAgg,
     totalLast24h, failedLast24h, newThisMonth, planBreakdown, errorAccounts,
+    creatorCount, businessCount, agencyCount, unsetCount,
   ] = await Promise.all([
     User.countDocuments(),
     User.countDocuments({ isConnected: true }),
@@ -49,6 +50,10 @@ export async function adminGetOverviewStats() {
     User.countDocuments({ createdAt: { $gte: startOfMonth } }),
     User.aggregate([{ $group: { _id: "$subscription.plan", count: { $sum: 1 } } }]),
     Event.distinct("accountId", { "reply.status": "failed", createdAt: { $gte: oneDayAgo } }),
+    User.countDocuments({ accountType: "creator" }),
+    User.countDocuments({ accountType: "business" }),
+    User.countDocuments({ accountType: "agency" }),
+    User.countDocuments({ $or: [{ accountType: { $exists: false } }, { accountType: null }] }),
   ]);
 
   const activeAccounts = activeAccountIds.length;
@@ -62,6 +67,12 @@ export async function adminGetOverviewStats() {
     activeAccounts, totalDmsSent, dmsThisMonth, webhookHealth, newThisMonth,
     planBreakdown: JSON.parse(JSON.stringify(planBreakdown)),
     errorAccountCount: errorAccounts.length,
+    accountTypeBreakdown: {
+      creator: creatorCount,
+      business: businessCount,
+      agency: agencyCount,
+      unset: unsetCount,
+    },
   };
 }
 
@@ -105,6 +116,17 @@ export async function adminGetAccounts(filters = {}, sort = { field: "createdAt"
     page,
     totalPages: Math.ceil(total / limit),
   };
+}
+
+export async function adminUpdateAccountType(userId, accountType) {
+  await requireAdmin();
+  if (!["creator", "business", "agency"].includes(accountType)) {
+    return { error: "Invalid account type." };
+  }
+  await dbConnect();
+  const user = await User.findOneAndUpdate({ userId }, { accountType }, { new: true });
+  if (!user) return { error: "User not found." };
+  return { success: true };
 }
 
 export async function adminGetAccountDetail(userId) {

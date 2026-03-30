@@ -107,6 +107,12 @@ export default function AccountDetailPage() {
               )}
             </div>
             {user.email && <p className="text-sm" style={{ color: "#52525B" }}>{user.email}</p>}
+            {user.businessProfile?.businessName && (
+              <p className="text-xs" style={{ color: "#52525B" }}>{user.businessProfile.businessName}{user.businessProfile.website ? ` · ${user.businessProfile.website}` : ""}</p>
+            )}
+            {user.agencyProfile?.companyName && (
+              <p className="text-xs" style={{ color: "#52525B" }}>{user.agencyProfile.companyName}{user.agencyProfile.website ? ` · ${user.agencyProfile.website}` : ""}</p>
+            )}
             <p className="text-xs" style={{ color: "#A1A1AA" }}>Joined {new Date(user.createdAt).toLocaleDateString()}</p>
           </div>
         </div>

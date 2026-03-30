@@ -55,14 +55,53 @@ export async function deauthorizeInstagram(accountId) {
   return { success: true };
 }
 
-// Update account type
-export async function updateAccountType(accountType) {
+// Fetch account profile for settings page
+export async function getAccountProfile() {
+  const userId = await getOwnerId();
+  await dbConnect();
+  const user = await User.findOne({ userId }).select("accountType businessProfile agencyProfile name email").lean();
+  if (!user) return { accountType: "creator", businessProfile: null, agencyProfile: null, name: "", email: "" };
+  return {
+    accountType: user.accountType || "creator",
+    businessProfile: user.businessProfile || null,
+    agencyProfile: user.agencyProfile || null,
+    name: user.name || "",
+    email: user.email || "",
+  };
+}
+
+// Update account type with profile fields
+export async function updateAccountType(formData) {
+  // Support both old call signature (string) and new FormData
+  let accountType, businessName, companyName, website;
+  if (typeof formData === "string") {
+    // Legacy: updateAccountType("creator")
+    accountType = formData;
+    businessName = "";
+    companyName = "";
+    website = "";
+  } else {
+    accountType = formData.get("accountType") || "creator";
+    businessName = (formData.get("businessName") || "").trim();
+    companyName = (formData.get("companyName") || "").trim();
+    website = (formData.get("website") || "").trim();
+  }
+
   if (!["creator", "business", "agency"].includes(accountType)) {
     return { error: "Invalid account type." };
   }
+
   const userId = await getOwnerId();
   await dbConnect();
-  await User.findOneAndUpdate({ userId }, { accountType });
+
+  const update = { accountType };
+  if (accountType === "business") {
+    update.businessProfile = { businessName: businessName || undefined, website: website || undefined };
+  } else if (accountType === "agency") {
+    update.agencyProfile = { companyName: companyName || undefined, website: website || undefined };
+  }
+
+  await User.findOneAndUpdate({ userId }, update);
   return { success: true };
 }
 

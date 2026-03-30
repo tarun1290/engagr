@@ -374,7 +374,8 @@ function DashboardContent() {
           customers_reached: { label: "Customers Reached", color: "var(--primary)", bg: "var(--primary-light)", border: "var(--primary-medium)", suffix: "unique recipients" },
           link_clicks: { label: "Link Clicks", color: "var(--accent)", bg: "var(--accent-light)", border: "var(--accent)", suffix: "button taps" },
           conversion_rate: { label: "Conversion Rate", color: "var(--success)", bg: "var(--success-light)", border: "var(--success)", suffix: "clicks / DMs", isPercent: true },
-          accounts_managed: { label: "Accounts Managed", color: "var(--primary)", bg: "var(--primary-light)", border: "var(--primary-medium)", suffix: "connected" },
+          total_interactions: { label: "Total Interactions", color: "var(--accent)", bg: "var(--accent-light)", border: "var(--accent)", suffix: "all time" },
+          accounts_managed: { label: "Managed Accounts", color: "var(--primary)", bg: "var(--primary-light)", border: "var(--primary-medium)", suffix: "connected" },
           total_dms_sent: { label: "Total DMs Sent", color: "var(--success)", bg: "var(--success-light)", border: "var(--success)", suffix: "across all accounts" },
           active_automations: { label: "Active Automations", color: "var(--info)", bg: "var(--info-light)", border: "var(--info)", suffix: "enabled rules" },
           total_events_today: { label: "Events Today", color: "var(--warning)", bg: "var(--warning-light)", border: "var(--warning)", suffix: "last 24h" },
@@ -803,6 +804,21 @@ function DashboardContent() {
       // [/SMART FEATURES]
       case "Automation":
         return <Automation aiEnabled={stats.aiFeatureEnabled} />;
+      case "Clients":
+        return (
+          <div className="max-w-2xl mx-auto py-16">
+            <div className="rounded-2xl p-8 text-center" style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)' }}>
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: 'var(--primary-light)' }}>
+                <UsersIcon size={24} style={{ color: 'var(--primary)' }} />
+              </div>
+              <h3 className="text-xl font-black mb-2" style={{ color: 'var(--text-primary)' }}>Client Management</h3>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                Client management coming soon — you&apos;ll be able to manage multiple Instagram accounts for your clients from here.
+              </p>
+              <span className="inline-block mt-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest" style={{ backgroundColor: 'var(--warning-light)', color: 'var(--warning)' }}>Coming Soon</span>
+            </div>
+          </div>
+        );
       case "Settings":
         return <Settings stats={stats} />;
       default:
