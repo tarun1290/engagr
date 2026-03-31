@@ -12,14 +12,13 @@ const IG_BASE = "https://graph.instagram.com/v25.0";
 
 // ── hideComment ────────────────────────────────────────────────────────────
 // Hide or unhide a single comment.
+// Instagram Graph API: POST /{comment-id}?hide=true/false
 export async function hideComment(account, commentId, hide = true) {
   try {
-    const url = `${IG_BASE}/${commentId}?access_token=${account.accessToken}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hide }),
-    });
+    const url = new URL(`${IG_BASE}/${commentId}`);
+    url.searchParams.set("access_token", account.accessToken);
+    url.searchParams.set("hide", String(hide));
+    const res = await fetch(url.toString(), { method: "POST" });
     const data = await res.json();
     if (res.ok && !data.error) {
       console.log(`[CommentModeration] ${hide ? "Hid" : "Unhid"} comment ${commentId}`);
@@ -35,21 +34,20 @@ export async function hideComment(account, commentId, hide = true) {
 
 // ── editComment ───────────────────────────────────────────────────────────
 // Edit the text of a comment owned by the business account.
+// Instagram Graph API requires message as a query/form parameter, not JSON body.
 export async function editComment(account, commentId, message) {
   try {
-    const url = `${IG_BASE}/${commentId}?access_token=${account.accessToken}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
+    const url = new URL(`${IG_BASE}/${commentId}`);
+    url.searchParams.set("access_token", account.accessToken);
+    url.searchParams.set("message", message);
+    const res = await fetch(url.toString(), { method: "POST" });
     const data = await res.json();
     if (res.ok && !data.error) {
       console.log(`[CommentModeration] Edited comment ${commentId}`);
       return { success: true };
     }
     console.error("[CommentModeration] editComment failed:", data?.error?.message);
-    return { success: false, error: data?.error?.message || "Unknown error" };
+    return { success: false, error: data?.error?.message || "Cannot edit this comment" };
   } catch (e) {
     console.error("[CommentModeration] editComment error:", e.message);
     return { success: false, error: e.message };
@@ -77,14 +75,13 @@ export async function deleteComment(account, commentId) {
 
 // ── toggleMediaComments ────────────────────────────────────────────────────
 // Enable or disable commenting on a media object.
+// Instagram Graph API: POST /{media-id}?comment_enabled=true/false
 export async function toggleMediaComments(account, mediaId, enabled = true) {
   try {
-    const url = `${IG_BASE}/${mediaId}?access_token=${account.accessToken}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ comment_enabled: enabled }),
-    });
+    const url = new URL(`${IG_BASE}/${mediaId}`);
+    url.searchParams.set("access_token", account.accessToken);
+    url.searchParams.set("comment_enabled", String(enabled));
+    const res = await fetch(url.toString(), { method: "POST" });
     const data = await res.json();
     if (res.ok && !data.error) {
       console.log(`[CommentModeration] Comments ${enabled ? "enabled" : "disabled"} on media ${mediaId}`);

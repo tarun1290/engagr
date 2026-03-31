@@ -26,6 +26,7 @@ import {
   deleteCommentAction,
   toggleMediaCommentsAction,
 } from "@/app/dashboard/comment-actions";
+import AutomationBuilder from "./automation/AutomationBuilder";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -177,7 +178,7 @@ function EnableToggle({ enabled, loading, onChange }) {
 
 // ── Three-dot menu ─────────────────────────────────────────────────────────
 
-function CardMenu({ onDuplicate, onDelete }) {
+function CardMenu({ onEdit, onDuplicate, onDelete }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -199,6 +200,13 @@ function CardMenu({ onDuplicate, onDelete }) {
       {open && (
         <div className="absolute right-0 top-full mt-1 w-40 rounded-lg shadow-lg py-1 z-20"
           style={{ backgroundColor: "#FFFFFF", border: "1px solid #E4E4E7" }}>
+          <button onClick={(e) => { e.stopPropagation(); onEdit(); setOpen(false); }}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors"
+            style={{ color: "#52525B" }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = "#FAFAFA"; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}>
+            <Pencil size={14} /> Edit
+          </button>
           <button onClick={(e) => { e.stopPropagation(); onDuplicate(); setOpen(false); }}
             className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors"
             style={{ color: "#52525B" }}
@@ -1055,7 +1063,7 @@ function DetailView({ automation, accountId, onUpdated }) {
 
 // ── Automation card ────────────────────────────────────────────────────────
 
-function AutomationCard({ automation, expandedId, onExpand, onToggle, onDuplicate, onDelete, togglingId, accountId, onAutomationUpdated }) {
+function AutomationCard({ automation, expandedId, onExpand, onToggle, onDuplicate, onDelete, onEdit, togglingId, accountId, onAutomationUpdated }) {
   const a = automation;
   const isExpanded = expandedId === a._id;
 
@@ -1103,7 +1111,7 @@ function AutomationCard({ automation, expandedId, onExpand, onToggle, onDuplicat
         {/* Toggle + menu */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <EnableToggle enabled={a.enabled} loading={togglingId === a._id} onChange={(v) => onToggle(a._id, v)} />
-          <CardMenu onDuplicate={() => onDuplicate(a)} onDelete={() => onDelete(a)} />
+          <CardMenu onEdit={() => onEdit(a)} onDuplicate={() => onDuplicate(a)} onDelete={() => onDelete(a)} />
           <ChevronRight size={16} className={cn("transition-transform duration-200", isExpanded && "rotate-90")} style={{ color: "#A1A1AA" }} />
         </div>
       </div>
@@ -1626,8 +1634,11 @@ export default function AutomationList() {
   const [automations, setAutomations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [accountId, setAccountId] = useState(null);
+  const [username, setUsername] = useState("");
   const [expandedId, setExpandedId] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [builderMode, setBuilderMode] = useState(false);
+  const [editingAutomation, setEditingAutomation] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
@@ -1638,6 +1649,7 @@ export default function AutomationList() {
         const data = await getInstagramAccount();
         if (data?.isConnected && data.accountId) {
           setAccountId(data.accountId);
+          setUsername(data.username || "");
           const res = await getAutomationsAction(data.accountId);
           if (res.success) setAutomations(res.automations);
         }
@@ -1720,6 +1732,25 @@ export default function AutomationList() {
     setAutomations(prev => [automation, ...prev]);
   }, []);
 
+  const openBuilder = useCallback((auto = null) => {
+    setEditingAutomation(auto);
+    setBuilderMode(true);
+  }, []);
+
+  const closeBuilder = useCallback(() => {
+    setBuilderMode(false);
+    setEditingAutomation(null);
+  }, []);
+
+  const handleBuilderSave = useCallback((saved) => {
+    if (editingAutomation) {
+      setAutomations(prev => prev.map(a => a._id === saved._id ? saved : a));
+    } else {
+      setAutomations(prev => [saved, ...prev]);
+    }
+    closeBuilder();
+  }, [editingAutomation, closeBuilder]);
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -1762,6 +1793,19 @@ export default function AutomationList() {
     );
   }
 
+  // ── Builder mode ──────────────────────────────────────────────────────
+  if (builderMode && accountId) {
+    return (
+      <AutomationBuilder
+        accountId={accountId}
+        username={username}
+        automation={editingAutomation}
+        onSave={handleBuilderSave}
+        onBack={closeBuilder}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -1771,7 +1815,7 @@ export default function AutomationList() {
           <p className="text-sm" style={{ color: "#71717A" }}>Manage your comment-to-DM, reel share, and mention reply automations</p>
         </div>
         {automations.length > 0 && (
-          <button onClick={() => setShowCreate(true)}
+          <button onClick={() => openBuilder()}
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-colors"
             style={{ backgroundColor: "#4F46E5" }}
             onMouseEnter={e => { e.currentTarget.style.backgroundColor = "#4338CA"; }}
@@ -1792,7 +1836,7 @@ export default function AutomationList() {
           <p className="text-sm max-w-sm mb-6" style={{ color: "#71717A" }}>
             Create your first automation to start engaging with your audience automatically
           </p>
-          <button onClick={() => setShowCreate(true)}
+          <button onClick={() => openBuilder()}
             className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white transition-colors"
             style={{ backgroundColor: "#4F46E5" }}
             onMouseEnter={e => { e.currentTarget.style.backgroundColor = "#4338CA"; }}
@@ -1808,16 +1852,14 @@ export default function AutomationList() {
               onToggle={handleToggle} togglingId={togglingId}
               onDuplicate={handleDuplicate}
               onDelete={setDeleteTarget}
+              onEdit={openBuilder}
               accountId={accountId}
               onAutomationUpdated={(updated) => setAutomations(prev => prev.map(x => x._id === updated._id ? updated : x))} />
           ))}
         </div>
       )}
 
-      {/* Modals */}
-      {showCreate && accountId && (
-        <CreateModal accountId={accountId} onClose={() => setShowCreate(false)} onCreated={handleCreated} />
-      )}
+      {/* Delete dialog */}
       {deleteTarget && (
         <DeleteDialog automation={deleteTarget} deleting={deleting} onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
       )}

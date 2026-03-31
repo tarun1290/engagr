@@ -82,7 +82,6 @@ export async function createAutomationAction(accountId, data) {
   }
 
   try {
-    console.log("[createAutomationAction] building doc...");
     // Use safeStringArray to guard against non-array values from client serialization
     const replyMsgs = safeStringArray(data.commentReply?.messages);
     const fuOptions = safeStringArray(data.followUp?.options);
