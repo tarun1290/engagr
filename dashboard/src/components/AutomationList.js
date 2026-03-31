@@ -1128,61 +1128,51 @@ function CreateModal({ accountId, onClose, onCreated }) {
     setKeywordInput("");
   };
 
-  // Root cause fix: build a plain-object payload with only serializable primitives,
-  // then call the server action. Previous versions passed shorthand property names
-  // that could collide with minified identifiers during RSC serialization.
   const handleCreate = async () => {
+    console.log("[handleCreate] typeof createAutomationAction:", typeof createAutomationAction);
+    console.log("[handleCreate] accountId:", accountId);
     setCreating(true);
+    let res;
     try {
-      const safeMessages = Array.isArray(replyMessages)
-        ? replyMessages.filter(m => typeof m === "string" && m.trim())
-        : [];
-      const safeFuOpts = Array.isArray(followUpOptions)
-        ? followUpOptions.filter(o => typeof o === "string" && o.trim())
-        : [];
-      const safeKw = Array.isArray(keywords) ? keywords : [];
-
-      const payload = {
-        name: String(name || ""),
-        type: String(selectedType || ""),
-        scope: String(scope || "account_wide"),
-        mediaIds: scope === "post_specific" ? (Array.isArray(mediaIds) ? mediaIds : []) : [],
-        keywords: safeKw,
+      res = await createAutomationAction(accountId, {
+        name: name || "",
+        type: selectedType || "",
+        scope: scope || "account_wide",
+        mediaIds: scope === "post_specific" ? mediaIds || [] : [],
+        keywords: keywords || [],
         commentReply: {
-          enabled: Boolean(commentReplyEnabled),
-          messages: safeMessages.length > 0 ? safeMessages : ["Check your DMs! \ud83d\udce9"],
+          enabled: !!commentReplyEnabled,
+          messages: Array.isArray(replyMessages) ? replyMessages.filter(Boolean) : [],
         },
-        dmMessage: String(dmMessage || ""),
-        linkUrl: String(linkUrl || ""),
-        buttonText: String(buttonText || ""),
-        deliveryMessage: String(deliveryMessage || ""),
-        deliveryButtonText: String(deliveryButtonText || ""),
+        dmMessage: dmMessage || "",
+        linkUrl: linkUrl || "",
+        buttonText: buttonText || "",
+        deliveryMessage: deliveryMessage || "",
+        deliveryButtonText: deliveryButtonText || "",
         followUp: {
-          enabled: Boolean(followUpEnabled),
-          question: String(followUpQuestion || ""),
-          options: safeFuOpts.length >= 2 ? safeFuOpts : ["Option 1", "Option 2"],
-          response: String(followUpResponse || ""),
+          enabled: !!followUpEnabled,
+          question: followUpQuestion || "",
+          options: Array.isArray(followUpOptions) ? followUpOptions.filter(Boolean) : [],
+          response: followUpResponse || "",
         },
         followerGate: {
-          enabled: Boolean(followerGateEnabled),
-          nonFollowerMessage: String(followerGateMessage || ""),
+          enabled: !!followerGateEnabled,
+          nonFollowerMessage: followerGateMessage || "",
         },
-      };
-
-      const res = await createAutomationAction(String(accountId), payload);
-
-      if (res && res.success) {
-        toast.success("Automation created!");
-        if (typeof onCreated === "function") onCreated(res.automation);
-        if (typeof onClose === "function") onClose();
-      } else {
-        toast.error((res && res.error) || "Failed to create automation");
-      }
+      });
     } catch (e) {
-      console.error("[CreateAutomation] Error:", e);
-      toast.error(typeof e === "object" && e !== null && e.message ? e.message : "Something went wrong");
-    } finally {
+      console.error("[CreateAutomation] call failed:", e);
+      toast.error("Failed: " + (e && e.message ? e.message : String(e)));
       setCreating(false);
+      return;
+    }
+    setCreating(false);
+    if (res && res.success) {
+      toast.success("Automation created!");
+      onCreated(res.automation);
+      onClose();
+    } else {
+      toast.error(res ? res.error || "Failed to create" : "No response from server");
     }
   };
 

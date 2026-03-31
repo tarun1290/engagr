@@ -68,6 +68,7 @@ export async function getAutomationsAction(accountId) {
 
 // ── Create a new automation ────────────────────────────────────────────
 export async function createAutomationAction(accountId, data) {
+  try {
   const userId = await getOwnerId();
   await dbConnect();
 
@@ -82,6 +83,7 @@ export async function createAutomationAction(accountId, data) {
   }
 
   try {
+    console.log("[createAutomationAction] building doc...");
     // Use safeStringArray to guard against non-array values from client serialization
     const replyMsgs = safeStringArray(data.commentReply?.messages);
     const fuOptions = safeStringArray(data.followUp?.options);
@@ -119,13 +121,18 @@ export async function createAutomationAction(accountId, data) {
       enabled: data.enabled ?? true,
     });
 
+    console.log("[createAutomationAction] created:", automation._id);
     return {
       success: true,
       automation: JSON.parse(JSON.stringify(automation)),
     };
   } catch (err) {
-    console.error("[AutomationCRUD] createAutomation error:", err.message);
+    console.error("[AutomationCRUD] createAutomation error:", err.message, err.stack);
     return { success: false, error: err.message };
+  }
+  } catch (outerErr) {
+    console.error("[AutomationCRUD] OUTER error:", outerErr.message, outerErr.stack);
+    return { success: false, error: "Server error: " + (outerErr.message || "unknown") };
   }
 }
 
