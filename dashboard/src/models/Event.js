@@ -34,6 +34,7 @@ const EventSchema = new mongoose.Schema({
         }
     },
     metadata: {
+        automationId: { type: mongoose.Schema.Types.ObjectId, ref: "Automation" },
         categoryRuleId: String,
         categoryRuleName: String,
         matchedCriteria: [String],

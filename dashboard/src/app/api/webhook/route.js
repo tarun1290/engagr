@@ -8,6 +8,7 @@ import ProcessedMid from '@/models/ProcessedMid';
 import { checkDmQuota } from '@/lib/gating';
 import { matchReelToCategory } from '@/lib/reelMatcher';
 import { runProductDetection } from '@/lib/ai/detectProduct';
+import Automation from '@/models/Automation';
 // [SMART FEATURES] import { runSmartReplyPipeline } from '@/lib/smartReply/pipeline';
 
 // Business Login for Instagram uses graph.instagram.com — NOT graph.facebook.com
@@ -548,8 +549,8 @@ function checkTokenError(data, botUser, igAccountId) {
     return false;
 }
 
-async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, token, automation, botUser, accountId) {
-    console.log(`[AutoReply] Start — commentId=${commentId} senderId=${senderId} type=${type}`);
+async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, token, automation, botUser, accountId, matchedAutomation) {
+    console.log(`[AutoReply] Start — commentId=${commentId} senderId=${senderId} type=${type}${matchedAutomation ? ` automationId=${matchedAutomation._id}` : ' (legacy)'}`);
     if (!commentId) { console.log('[AutoReply] ❌ No commentId — skipping'); return; }
 
     // Dedup check
@@ -584,6 +585,9 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
         }
     }
 
+    // Build metadata with automationId when routed via new Automation model
+    const eventMeta = matchedAutomation ? { automationId: matchedAutomation._id } : undefined;
+
     // ── Quota check before sending any DM ──────────────────────────────────
     const quota = await enforceDmQuota(botUser, accountId, automation.instagramBusinessId);
     if (!quota.allowed) {
@@ -594,12 +598,14 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
             from: { id: fromInfo?.id, username: fromInfo?.username, name: fromInfo?.name },
             content: { commentId, text: fromInfo?.text, mediaId },
             reply: { status: 'quota_exceeded' },
+            ...(eventMeta && { metadata: eventMeta }),
         });
         return;
     }
 
     const igUsername = botUser?.instagramUsername || '';
     const publicReply = automation.replyMessages?.[0] || 'Check your DM! 📩';
+    let replySent = false;
 
     // ── Step 1: Public reply to the comment ──────────────────────────────────
     if (automation.replyEnabled) {
@@ -619,6 +625,7 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
             try {
                 const replyResult = await replyToComment(commentId, replyText, token, mediaId);
                 console.log(`[CommentReply] ✅ Public reply sent to comment ${commentId}: "${replyText}"`);
+                replySent = true;
             } catch (e) {
                 console.error('[CommentReply] ⚠️ Failed (DM will still send):', e.message);
             }
@@ -656,7 +663,15 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
             from: { id: fromInfo?.id, username: fromInfo?.username, name: fromInfo?.name },
             content: { commentId, text: fromInfo?.text, mediaId },
             reply: { publicReply, privateDM: greetingText, status },
+            ...(eventMeta && { metadata: eventMeta }),
         });
+        // Update automation stats even on failure (trigger still fired)
+        if (matchedAutomation) {
+            await Automation.findByIdAndUpdate(matchedAutomation._id, {
+                $inc: { 'stats.triggers': 1, 'stats.repliesSent': replySent ? 1 : 0 },
+                $set: { 'stats.lastTriggeredAt': new Date() },
+            }).catch(e => console.error('[AutoReply] Stats update error:', e.message));
+        }
         return;
     }
 
@@ -669,7 +684,16 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
         from: { id: fromInfo?.id, username: fromInfo?.username, name: fromInfo?.name },
         content: { commentId, text: fromInfo?.text, mediaId },
         reply: { publicReply, privateDM: greetingText, status: 'sent' },
+        ...(eventMeta && { metadata: eventMeta }),
     });
+
+    // ── Update automation stats on success ─────────────────────────────────
+    if (matchedAutomation) {
+        await Automation.findByIdAndUpdate(matchedAutomation._id, {
+            $inc: { 'stats.triggers': 1, 'stats.repliesSent': replySent ? 1 : 0, 'stats.dmsSent': 1 },
+            $set: { 'stats.lastTriggeredAt': new Date() },
+        }).catch(e => console.error('[AutoReply] Stats update error:', e.message));
+    }
 }
 
 // ─── GET — Webhook Verification ──────────────────────────────────────────────
@@ -873,11 +897,69 @@ export async function POST(request) {
                     if (value.parent_id) continue;
 
                     const cid = value.comment_id || value.id;
+                    const commentMediaId = value.media?.id || value.media_id || value.post_id;
+                    const commentText = (value.text || value.message || '').toLowerCase();
+                    const commentFromInfo = { id: fromId, username: value.from?.username, text: value.text || value.message };
                     console.log(`[Comment] @${value.from?.username}: ${value.text || value.message}`);
-                    const autoObj = automation?.toObject?.() || automation || {};
-                    await handleAutoReply(cid, fromId, 'comment', {
-                        id: fromId, username: value.from?.username, text: value.text || value.message
-                    }, value, token, { ...autoObj, instagramBusinessId: igBusinessId }, botUser, accountId);
+
+                    // ── New Automation model routing ───────────────────────────
+                    let matched = null;
+                    if (accountId) {
+                        try {
+                            const automations = await Automation.find({
+                                accountId, type: 'comment_to_dm', enabled: true,
+                            }).lean();
+
+                            if (automations.length > 0) {
+                                // Find best match — post_specific wins over account_wide
+                                let postSpecificMatch = null;
+                                let accountWideMatch = null;
+
+                                for (const auto of automations) {
+                                    const keywordOk = !auto.keywords?.length || auto.keywords.some(k =>
+                                        auto.caseSensitive
+                                            ? (value.text || value.message || '').includes(k)
+                                            : commentText.includes(k.toLowerCase())
+                                    );
+                                    if (!keywordOk) continue;
+
+                                    if (auto.scope === 'post_specific') {
+                                        if (commentMediaId && auto.mediaIds?.includes(commentMediaId)) {
+                                            postSpecificMatch = auto;
+                                            break; // first post_specific match wins
+                                        }
+                                    } else if (!accountWideMatch) {
+                                        accountWideMatch = auto;
+                                    }
+                                }
+                                matched = postSpecificMatch || accountWideMatch;
+                            }
+                        } catch (e) {
+                            console.error('[Comment] Error fetching Automation docs:', e.message);
+                        }
+                    }
+
+                    if (matched) {
+                        // ── Fire via new Automation model ─────────────────────
+                        console.log(`[Comment] Matched automation "${matched.name}" (${matched._id}) scope=${matched.scope}`);
+                        const autoConfig = {
+                            isActive: true,
+                            postTrigger: 'any', // already filtered above
+                            commentTrigger: 'any', // already filtered above
+                            replyEnabled: matched.commentReply?.enabled ?? true,
+                            replyMessages: [matched.commentReply?.message || 'Check your DM! 📩'],
+                            dmContent: matched.dmMessage || '',
+                            buttonText: 'Yes',
+                            requireFollow: matched.followerGate?.enabled ?? false,
+                            keywords: matched.keywords || [],
+                            instagramBusinessId: igBusinessId,
+                        };
+                        await handleAutoReply(cid, fromId, 'comment', commentFromInfo, value, token, autoConfig, botUser, accountId, matched);
+                    } else {
+                        // ── Fallback to legacy config on InstagramAccount ─────
+                        const autoObj = automation?.toObject?.() || automation || {};
+                        await handleAutoReply(cid, fromId, 'comment', commentFromInfo, value, token, { ...autoObj, instagramBusinessId: igBusinessId }, botUser, accountId, null);
+                    }
                 }
             }
 

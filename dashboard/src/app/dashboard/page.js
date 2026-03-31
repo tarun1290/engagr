@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Automation from "@/components/Automation";
+import AutomationList from "@/components/AutomationList";
 import Settings from "@/components/Settings";
 import Contacts from "@/components/Contacts";
 import Activity from "@/components/Activity";
@@ -803,7 +804,7 @@ function DashboardContent() {
       //   return stats.smartFeaturesEnabled?.smartReplies ? <ConversationsPage /> : null;
       // [/SMART FEATURES]
       case "Automation":
-        return <Automation aiEnabled={stats.aiFeatureEnabled} />;
+        return <AutomationList />;
       case "Clients":
         return (
           <div className="max-w-2xl mx-auto py-16">
