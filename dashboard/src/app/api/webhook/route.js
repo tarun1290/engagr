@@ -334,9 +334,12 @@ function normalizeUrl(url) {
     return url;
 }
 
-async function deliverContent(recipientId, token, automation, igUsername) {
-    const deliveryText = automation.deliveryMessage
+async function deliverContent(recipientId, token, automation, igUsername, commenterUsername) {
+    const rawDelivery = automation.deliveryMessage
         || `Thank you for your support! 🙌🙏\n\nHere you go. Click the button below to get your content :)`;
+    const deliveryText = rawDelivery
+        .replace(/\{\{username\}\}/g, commenterUsername ? `@${commenterUsername}` : '')
+        .replace(/\{username\}/g, igUsername || '');
     const rawLinkUrl = automation.linkUrl;
     const linkUrl = normalizeUrl(rawLinkUrl);
     const buttonLabel = automation.deliveryButtonText || 'Get Content →';
@@ -666,7 +669,10 @@ async function handleAutoReply(commentId, senderId, type, fromInfo, rawPayload, 
     }
 
     // ── Step 2: Send DM with confirmation button (single template card) ────
-    const greetingText = automation.dmContent || 'Hey there! Thanks for your interest 😊';
+    const rawGreeting = automation.dmContent || 'Hey there! Thanks for your interest 😊';
+    const greetingText = rawGreeting
+        .replace(/\{\{username\}\}/g, fromInfo?.username ? `@${fromInfo.username}` : '')
+        .replace(/\{username\}/g, fromInfo?.username ? `@${fromInfo.username}` : '');
     const confirmButtonText = automation.buttonText || 'Yes';
 
     // Send the template card directly via Private Reply — ONE message, no plain text opener
@@ -1427,7 +1433,7 @@ export async function POST(request) {
                                 });
                                 continue;
                             }
-                            await deliverContent(senderId, token, pbAutomation, igUsername);
+                            await deliverContent(senderId, token, pbAutomation, igUsername, pbProfile?.username);
                             await sendFollowUpQuestion(senderId, token, pbAutomation);
                             await trackDmUsage(botUser, pbQuota.source);
                             console.log(`[Confirm ✅] @${pbProfile?.username || senderId} is a follower — delivered content`);
@@ -1506,7 +1512,7 @@ export async function POST(request) {
                             });
                             continue;
                         }
-                        await deliverContent(senderId, token, pbAutomation, igUsername);
+                        await deliverContent(senderId, token, pbAutomation, igUsername, pbProfile?.username);
                         await sendFollowUpQuestion(senderId, token, pbAutomation);
                         await trackDmUsage(botUser, pbQuota2.source);
                         console.log(`[Confirm ✅] @${pbProfile?.username || senderId} — delivered content (no follow gate)`);
@@ -1547,7 +1553,7 @@ export async function POST(request) {
                             const successText = `${fgSuccess.title}\n\n${fgSuccess.subtitle || ''}`.replace(/\{username\}/g, igUsername).trim();
                             try { await sendDM(senderId, successText, token); } catch { /* non-fatal */ }
                         }
-                        await deliverContent(senderId, token, pbAutomation, igUsername);
+                        await deliverContent(senderId, token, pbAutomation, igUsername, pbProfile?.username);
                         await sendFollowUpQuestion(senderId, token, pbAutomation);
                         await trackDmUsage(botUser, fgQuota.source);
 
@@ -1574,7 +1580,7 @@ export async function POST(request) {
                             console.log(`[FollowGate] @${pbProfile?.username || senderId} hit retry limit (${retryCount}) — delivering content`);
                             await sendDM(senderId, "We're having trouble verifying your follow, but here's your content anyway! 🎉", token);
                             if (pbAutomation?.isActive) {
-                                await deliverContent(senderId, token, pbAutomation, igUsername);
+                                await deliverContent(senderId, token, pbAutomation, igUsername, pbProfile?.username);
                                 await sendFollowUpQuestion(senderId, token, pbAutomation);
                             }
                         } else {

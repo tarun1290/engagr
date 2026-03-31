@@ -7,6 +7,7 @@ import InstagramAccount from "@/models/InstagramAccount";
 import { verifyToken } from "@/lib/jwt";
 import {
   hideComment,
+  editComment,
   deleteComment,
   toggleMediaComments,
   getMediaComments,
@@ -51,6 +52,17 @@ export async function hideCommentAction(accountId, commentId, hide = true) {
   });
 
   return { success: true };
+}
+
+// ── Edit a comment (own comments only) ────────────────────────────────
+export async function editCommentAction(accountId, commentId, message) {
+  const userId = await getOwnerId();
+  await dbConnect();
+
+  const account = await resolveAccount(userId, accountId);
+  if (!account) return { success: false, error: "Account not found" };
+
+  return editComment(account, commentId, message);
 }
 
 // ── Delete a comment ───────────────────────────────────────────────────

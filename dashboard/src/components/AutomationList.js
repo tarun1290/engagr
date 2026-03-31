@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Loader2, Plus, MessageSquare, Share2, AtSign, Reply, ToggleLeft, ToggleRight,
   MoreVertical, Trash2, Copy, Zap, ChevronRight, X, ArrowRight, ArrowLeft,
-  Check, ImageIcon, Eye, EyeOff, Settings, MessageCircle, Clock,
+  Check, ImageIcon, Eye, EyeOff, Pencil, Settings, MessageCircle, Clock,
   AlertTriangle, Mail, CornerDownLeft, XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import {
   getAccountMediaAction,
   getMediaCommentsAction,
   hideCommentAction,
+  editCommentAction,
   deleteCommentAction,
   toggleMediaCommentsAction,
 } from "@/app/dashboard/comment-actions";
@@ -222,6 +223,9 @@ function CardMenu({ onDuplicate, onDelete }) {
 
 function CommentItem({ comment, accountId, onUpdated }) {
   const [hiding, setHiding] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.text || "");
+  const [saving, setSaving] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const isHidden = comment.hidden;
@@ -234,6 +238,17 @@ function CommentItem({ comment, accountId, onUpdated }) {
       else toast.error(res.error || "Failed");
     } catch (e) { toast.error(e.message); }
     finally { setHiding(false); }
+  };
+
+  const handleEdit = async () => {
+    if (!editText.trim() || editText === comment.text) { setEditing(false); return; }
+    setSaving(true);
+    try {
+      const res = await editCommentAction(accountId, comment.id, editText.trim());
+      if (res.success) { toast.success("Comment updated"); setEditing(false); onUpdated(); }
+      else toast.error(res.error || "Only your own comments can be edited");
+    } catch (e) { toast.error(e.message); }
+    finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
@@ -262,33 +277,58 @@ function CommentItem({ comment, accountId, onUpdated }) {
             {comment.timestamp ? relativeTime(comment.timestamp) : ""}
           </span>
         </div>
-        <p className="text-sm" style={{ color: "#52525B" }}>{comment.text}</p>
+        {editing ? (
+          <div className="flex items-center gap-2 mt-1">
+            <input value={editText} onChange={e => setEditText(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleEdit(); if (e.key === "Escape") setEditing(false); }}
+              className="flex-1 rounded-lg px-3 py-1.5 text-sm outline-none"
+              style={{ border: "1px solid #C7D2FE", color: "#18181B" }} autoFocus />
+            <button onClick={handleEdit} disabled={saving}
+              className="p-1.5 rounded-md" style={{ color: "#059669" }}>
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+            </button>
+            <button onClick={() => { setEditing(false); setEditText(comment.text || ""); }}
+              className="p-1.5 rounded-md" style={{ color: "#A1A1AA" }}>
+              <X size={13} />
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm" style={{ color: "#52525B" }}>{comment.text}</p>
+        )}
         {comment.like_count > 0 && <span className="text-[10px]" style={{ color: "#A1A1AA" }}>{comment.like_count} {comment.like_count === 1 ? "like" : "likes"}</span>}
       </div>
       {/* Actions */}
-      <div className="flex items-center gap-1 flex-shrink-0">
-        <button onClick={handleHide} disabled={hiding} title={isHidden ? "Unhide" : "Hide"}
-          className="p-1.5 rounded-md transition-colors" style={{ color: "#71717A" }}
-          onMouseEnter={e => { e.currentTarget.style.backgroundColor = "#F4F4F5"; }}
-          onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}>
-          {hiding ? <Loader2 size={13} className="animate-spin" /> : isHidden ? <EyeOff size={13} /> : <Eye size={13} />}
-        </button>
-        {confirmDel ? (
-          <div className="flex items-center gap-1">
-            <button onClick={handleDelete} disabled={deleting} className="px-2 py-1 rounded-md text-[10px] font-medium text-white" style={{ backgroundColor: "#DC2626" }}>
-              {deleting ? <Loader2 size={10} className="animate-spin" /> : "Delete"}
-            </button>
-            <button onClick={() => setConfirmDel(false)} className="px-2 py-1 rounded-md text-[10px] font-medium" style={{ color: "#71717A", backgroundColor: "#F4F4F5" }}>Cancel</button>
-          </div>
-        ) : (
-          <button onClick={() => setConfirmDel(true)} title="Delete"
+      {!editing && (
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button onClick={handleHide} disabled={hiding} title={isHidden ? "Unhide" : "Hide"}
             className="p-1.5 rounded-md transition-colors" style={{ color: "#71717A" }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = "#FEF2F2"; e.currentTarget.style.color = "#DC2626"; }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "#71717A"; }}>
-            <Trash2 size={13} />
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = "#F4F4F5"; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}>
+            {hiding ? <Loader2 size={13} className="animate-spin" /> : isHidden ? <EyeOff size={13} /> : <Eye size={13} />}
           </button>
-        )}
-      </div>
+          <button onClick={() => { setEditing(true); setEditText(comment.text || ""); }} title="Edit"
+            className="p-1.5 rounded-md transition-colors" style={{ color: "#71717A" }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = "#EEF2FF"; e.currentTarget.style.color = "#4F46E5"; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "#71717A"; }}>
+            <Pencil size={13} />
+          </button>
+          {confirmDel ? (
+            <div className="flex items-center gap-1">
+              <button onClick={handleDelete} disabled={deleting} className="px-2 py-1 rounded-md text-[10px] font-medium text-white" style={{ backgroundColor: "#DC2626" }}>
+                {deleting ? <Loader2 size={10} className="animate-spin" /> : "Delete"}
+              </button>
+              <button onClick={() => setConfirmDel(false)} className="px-2 py-1 rounded-md text-[10px] font-medium" style={{ color: "#71717A", backgroundColor: "#F4F4F5" }}>Cancel</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDel(true)} title="Delete"
+              className="p-1.5 rounded-md transition-colors" style={{ color: "#71717A" }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = "#FEF2F2"; e.currentTarget.style.color = "#DC2626"; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "#71717A"; }}>
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -33,6 +33,29 @@ export async function hideComment(account, commentId, hide = true) {
   }
 }
 
+// ── editComment ───────────────────────────────────────────────────────────
+// Edit the text of a comment owned by the business account.
+export async function editComment(account, commentId, message) {
+  try {
+    const url = `${IG_BASE}/${commentId}?access_token=${account.accessToken}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+    const data = await res.json();
+    if (res.ok && !data.error) {
+      console.log(`[CommentModeration] Edited comment ${commentId}`);
+      return { success: true };
+    }
+    console.error("[CommentModeration] editComment failed:", data?.error?.message);
+    return { success: false, error: data?.error?.message || "Unknown error" };
+  } catch (e) {
+    console.error("[CommentModeration] editComment error:", e.message);
+    return { success: false, error: e.message };
+  }
+}
+
 // ── deleteComment ──────────────────────────────────────────────────────────
 // Permanently delete a comment.
 export async function deleteComment(account, commentId) {
