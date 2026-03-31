@@ -117,6 +117,53 @@ function KeywordPill({ keyword }) {
   );
 }
 
+const REPLY_SUGGESTIONS = [
+  "Check your DMs! \ud83d\udce9",
+  "Sending you something special \ud83d\udc47",
+  "Just sent you a DM! \ud83c\udf81",
+  "Look out for my message! \ud83d\udcac",
+  "Replied in your DMs \u2728",
+];
+const DM_SUGGESTIONS = [
+  "Hey {{username}}! Here\u2019s what you asked for \ud83d\udc47",
+  "Hi! Thanks for your interest \u2014 here\u2019s your link \ud83d\udd17",
+  "Hey! You asked and we delivered \ud83c\udf81 Here it is:",
+  "Thanks for reaching out, {{username}}! Here\u2019s the info:",
+  "Hey {{username}}, here\u2019s your exclusive access \ud83d\udc47",
+];
+const DELIVERY_SUGGESTIONS = [
+  "Here\u2019s your link! Tap below to access it \ud83c\udf81",
+  "You\u2019re in! Click the button below to get started \ud83d\ude80",
+  "All yours! Here\u2019s the direct link \ud83d\udc47",
+  "Here it is \u2014 enjoy! \ud83d\ude4c",
+  "Click below to access your content \u2728",
+];
+
+function SuggestionChips({ suggestions, onSelect }) {
+  const [flashIdx, setFlashIdx] = useState(null);
+  const handleClick = (text, idx) => {
+    setFlashIdx(idx);
+    onSelect(text);
+    setTimeout(() => setFlashIdx(null), 300);
+  };
+  return (
+    <div className="space-y-1.5 pt-1">
+      <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#A1A1AA" }}>Suggestions</p>
+      <div className="flex flex-wrap gap-1.5">
+        {suggestions.map((s, i) => (
+          <button key={i} type="button" onClick={() => handleClick(s, i)}
+            className="text-[11px] font-semibold px-3 py-1 rounded-full transition-all"
+            style={{ backgroundColor: flashIdx === i ? "#C7D2FE" : "#EEF2FF", color: "#4F46E5" }}
+            onMouseEnter={e => { if (flashIdx !== i) e.currentTarget.style.backgroundColor = "#E0E7FF"; }}
+            onMouseLeave={e => { if (flashIdx !== i) e.currentTarget.style.backgroundColor = "#EEF2FF"; }}>
+            {flashIdx === i ? <Check size={11} className="inline -mt-px" /> : s}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function EnableToggle({ enabled, loading, onChange }) {
   return (
     <button onClick={(e) => { e.stopPropagation(); onChange(!enabled); }} disabled={loading}
@@ -459,6 +506,10 @@ function SettingsTab({ automation, accountId, onUpdated }) {
   }, [accountId, media.length, loadingMedia]);
 
   const handleSave = async () => {
+    if (typeof updateAutomationAction !== "function") {
+      toast.error("Internal error: save action not available. Please reload the page.");
+      return;
+    }
     setSaving(true);
     try {
       const safeReplyMessages = (Array.isArray(replyMessages) ? replyMessages : []).filter(m => typeof m === "string" && m.trim());
@@ -612,6 +663,7 @@ function SettingsTab({ automation, accountId, onUpdated }) {
                 <Plus size={12} /> Add variant
               </button>
             )}
+            <SuggestionChips suggestions={REPLY_SUGGESTIONS} onSelect={(t) => setReplyMessages(prev => { const next = [...prev]; next[0] = t; return next; })} />
             <p className="text-[10px]" style={{ color: "#A1A1AA" }}>{"Use {{username}} or {{keyword}} as template variables"}</p>
           </div>
         )}
@@ -624,6 +676,7 @@ function SettingsTab({ automation, accountId, onUpdated }) {
           placeholder="Hey! Thanks for your interest..."
           className="w-full rounded-lg px-4 py-2.5 text-sm outline-none resize-none"
           style={{ border: "1px solid #E4E4E7", color: "#18181B" }} />
+        <SuggestionChips suggestions={DM_SUGGESTIONS} onSelect={setDmMessage} />
       </div>
 
       {/* ── LINK URL + BUTTON ─────────────────────────────────── */}
@@ -661,6 +714,7 @@ function SettingsTab({ automation, accountId, onUpdated }) {
           placeholder="Here's your link! Tap below to access it 🎁"
           className="w-full rounded-lg px-4 py-2.5 text-sm outline-none resize-none"
           style={{ border: "1px solid #E4E4E7", color: "#18181B" }} />
+        <SuggestionChips suggestions={DELIVERY_SUGGESTIONS} onSelect={setDeliveryMessage} />
         <p className="text-[10px] mt-1" style={{ color: "#A1A1AA" }}>Sent after the user confirms. Leave blank to skip the confirmation step.</p>
       </div>
       <div style={{ opacity: deliveryMessage ? 1 : 0.4, transition: "opacity 0.2s", pointerEvents: deliveryMessage ? "auto" : "none" }}>
@@ -1050,6 +1104,11 @@ function CreateModal({ accountId, onClose, onCreated }) {
   };
 
   const handleCreate = async () => {
+    if (typeof createAutomationAction !== "function") {
+      console.error("[CreateAutomation] createAutomationAction is", typeof createAutomationAction, createAutomationAction);
+      toast.error("Internal error: save action not available. Please reload the page.");
+      return;
+    }
     setCreating(true);
     try {
       const safeReplyMessages = (Array.isArray(replyMessages) ? replyMessages : []).filter(m => typeof m === "string" && m.trim());
@@ -1240,6 +1299,7 @@ function CreateModal({ accountId, onClose, onCreated }) {
                         <Plus size={12} /> Add variant
                       </button>
                     )}
+                    <SuggestionChips suggestions={REPLY_SUGGESTIONS} onSelect={(t) => setReplyMessages(prev => { const next = [...prev]; next[0] = t; return next; })} />
                     <p className="text-[10px]" style={{ color: "#A1A1AA" }}>
                       {"Use {{username}} for the commenter's name, {{keyword}} for the matched keyword"}
                     </p>
@@ -1254,6 +1314,7 @@ function CreateModal({ accountId, onClose, onCreated }) {
                   placeholder="Hey! Thanks for your interest..."
                   className="w-full rounded-lg px-4 py-2.5 text-sm outline-none resize-none"
                   style={{ border: "1px solid #E4E4E7", color: "#18181B" }} />
+                <SuggestionChips suggestions={DM_SUGGESTIONS} onSelect={setDmMessage} />
               </div>
 
               {/* ── LINK URL + BUTTON LABEL ───────────────────────────── */}
@@ -1291,6 +1352,7 @@ function CreateModal({ accountId, onClose, onCreated }) {
                   placeholder="Here's your link! Tap below to access it 🎁"
                   className="w-full rounded-lg px-4 py-2.5 text-sm outline-none resize-none"
                   style={{ border: "1px solid #E4E4E7", color: "#18181B" }} />
+                <SuggestionChips suggestions={DELIVERY_SUGGESTIONS} onSelect={setDeliveryMessage} />
                 <p className="text-[10px] mt-1" style={{ color: "#A1A1AA" }}>Sent after the user confirms. Leave blank to skip the confirmation step.</p>
               </div>
               <div style={{ opacity: deliveryMessage ? 1 : 0.4, transition: "opacity 0.2s", pointerEvents: deliveryMessage ? "auto" : "none" }}>
@@ -1558,6 +1620,11 @@ export default function AutomationList() {
         keywords: automation.keywords || [],
         commentReply: automation.commentReply,
         dmMessage: automation.dmMessage,
+        linkUrl: automation.linkUrl || "",
+        buttonText: automation.buttonText || "",
+        deliveryMessage: automation.deliveryMessage || "",
+        deliveryButtonText: automation.deliveryButtonText || "",
+        followUp: automation.followUp,
         followerGate: automation.followerGate,
         enabled: false,
       });
