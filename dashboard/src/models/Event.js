@@ -58,6 +58,10 @@ const EventSchema = new mongoose.Schema({
         handoffReason: String,
         reason: String,
     },
+    hidden: { type: Boolean, default: false },
+    hiddenAt: { type: Date, default: null },
+    editedAt: { type: Date, default: null },
+    deletedAt: { type: Date, default: null },
     createdAt: {
         type: Date,
         default: Date.now
